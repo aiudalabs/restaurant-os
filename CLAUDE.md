@@ -151,6 +151,33 @@ Configurar en:
 
 ---
 
+## Arquitectura de agentes — cómo funciona el sistema
+
+Este proyecto usa **un orquestador + subagentes en git worktrees**.
+No hay terminales separadas. Claude Code lanza y coordina todo.
+
+```
+ Un solo proceso claude --dangerously-skip-permissions
+        │
+        ▼
+  ORQUESTADOR (lee ORCHESTRATOR.md)
+  ├── Task → A1 Core     (worktree ../ros_core)
+  ├── Task → A5 Firebase (worktree ../ros_firebase)
+  ├── Task → A4 Admin    (worktree ../ros_admin)
+  ├── Task → A2 Client   (worktree ../ros_client)  ← lanzado cuando Core S1 listo
+  └── Task → A3 Kitchen  (worktree ../ros_kitchen) ← lanzado cuando Core S1 listo
+```
+
+Cada subagente trabaja en su propio worktree. No hay conflictos de archivos.
+Las señales entre agentes son strings exactos que el orquestador detecta:
+- `SIGNAL: CORE_PROVIDERS_READY` → lanza A2 y A3
+- `SIGNAL: ORDER_ROUTING_READY` → Firebase lista para testear
+- `SIGNAL: MENU_MANAGEMENT_READY` → Admin puede crear menús
+
+**Para lanzar todo:** `./setup_agents.sh` desde la raíz del repo.
+
+---
+
 ## Flujo de trabajo con GitHub — OBLIGATORIO para todos los agentes
 
 > Tienes acceso al GitHub MCP. Repo: **aiudalabs/restaurant-os**
