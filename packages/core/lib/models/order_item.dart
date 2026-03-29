@@ -34,6 +34,7 @@ class OrderItemModifier with _$OrderItemModifier {
 
 @freezed
 class OrderItem with _$OrderItem {
+  @JsonSerializable(explicitToJson: true)
   const factory OrderItem({
     required String id,
     required String orgId,
@@ -64,7 +65,7 @@ class OrderItem with _$OrderItem {
     return OrderItem.fromJson({
       ...data,
       'id': doc.id,
-      'status': data['status'] as String,
+      'status': ItemStatus.fromString(data['status'] as String).name,
       'sentToStationAt':
           (data['sentToStationAt'] as Timestamp).toDate().toIso8601String(),
       'startedAt': data['startedAt'] != null
@@ -79,7 +80,7 @@ class OrderItem with _$OrderItem {
   const OrderItem._();
 
   Map<String, dynamic> toFirestore() => {
-        ...toJson()..remove('id'),
+        ...toJson()..remove('id')..remove('startedAt')..remove('completedAt'),
         'status': status.toFirestore(),
         'sentToStationAt': Timestamp.fromDate(sentToStationAt),
         if (startedAt != null) 'startedAt': Timestamp.fromDate(startedAt!),

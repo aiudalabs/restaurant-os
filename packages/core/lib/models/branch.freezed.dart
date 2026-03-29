@@ -401,7 +401,8 @@ class __$$BranchImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$BranchImpl extends _Branch {
   const _$BranchImpl(
       {required this.id,

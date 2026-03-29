@@ -64,7 +64,7 @@ Map<String, dynamic> _$$OrderItemImplToJson(_$OrderItemImpl instance) =>
       'quantity': instance.quantity,
       'unitPrice': instance.unitPrice,
       'totalPrice': instance.totalPrice,
-      'modifiers': instance.modifiers,
+      'modifiers': instance.modifiers.map((e) => e.toJson()).toList(),
       'specialInstructions': instance.specialInstructions,
       'status': _$ItemStatusEnumMap[instance.status]!,
       'sentToStationAt': instance.sentToStationAt.toIso8601String(),

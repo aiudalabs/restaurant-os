@@ -391,7 +391,8 @@ class __$$ModifierGroupImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$ModifierGroupImpl implements _ModifierGroup {
   const _$ModifierGroupImpl(
       {required this.id,
@@ -750,7 +751,8 @@ class __$$ProductImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$ProductImpl extends _Product {
   const _$ProductImpl(
       {required this.id,

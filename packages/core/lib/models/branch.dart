@@ -17,6 +17,7 @@ class BusinessHoursEntry with _$BusinessHoursEntry {
 
 @freezed
 class Branch with _$Branch {
+  @JsonSerializable(explicitToJson: true)
   const factory Branch({
     required String id,
     required String orgId,

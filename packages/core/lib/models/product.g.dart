@@ -44,7 +44,7 @@ Map<String, dynamic> _$$ModifierGroupImplToJson(_$ModifierGroupImpl instance) =>
       'multiSelect': instance.multiSelect,
       'minSelect': instance.minSelect,
       'maxSelect': instance.maxSelect,
-      'options': instance.options,
+      'options': instance.options.map((e) => e.toJson()).toList(),
     };
 
 _$ProductImpl _$$ProductImplFromJson(Map<String, dynamic> json) =>
@@ -79,6 +79,6 @@ Map<String, dynamic> _$$ProductImplToJson(_$ProductImpl instance) =>
       'isActive': instance.isActive,
       'sortOrder': instance.sortOrder,
       'tags': instance.tags,
-      'modifierGroups': instance.modifierGroups,
+      'modifierGroups': instance.modifierGroups.map((e) => e.toJson()).toList(),
       'preparationMinutes': instance.preparationMinutes,
     };

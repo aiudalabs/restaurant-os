@@ -50,6 +50,7 @@ Map<String, dynamic> _$$BranchImplToJson(_$BranchImpl instance) =>
       'taxPercent': instance.taxPercent,
       'tipOptions': instance.tipOptions,
       'isActive': instance.isActive,
-      'businessHours': instance.businessHours,
+      'businessHours':
+          instance.businessHours.map((k, e) => MapEntry(k, e.toJson())),
       'createdAt': instance.createdAt.toIso8601String(),
     };

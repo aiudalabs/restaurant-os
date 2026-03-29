@@ -512,7 +512,8 @@ class __$$OrderItemImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$OrderItemImpl extends _OrderItem {
   const _$OrderItemImpl(
       {required this.id,

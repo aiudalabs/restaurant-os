@@ -19,6 +19,7 @@ class ModifierOption with _$ModifierOption {
 
 @freezed
 class ModifierGroup with _$ModifierGroup {
+  @JsonSerializable(explicitToJson: true)
   const factory ModifierGroup({
     required String id,
     required String name,
@@ -35,6 +36,7 @@ class ModifierGroup with _$ModifierGroup {
 
 @freezed
 class Product with _$Product {
+  @JsonSerializable(explicitToJson: true)
   const factory Product({
     required String id,
     required String orgId,

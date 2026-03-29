@@ -41,6 +41,7 @@ class PaymentInfo with _$PaymentInfo {
 
 @freezed
 class Order with _$Order {
+  @JsonSerializable(explicitToJson: true)
   const factory Order({
     required String id,
     required String orgId,
@@ -68,7 +69,7 @@ class Order with _$Order {
     return Order.fromJson({
       ...data,
       'id': doc.id,
-      'status': data['status'] as String,
+      'status': OrderStatus.fromString(data['status'] as String).name,
       'createdAt':
           (data['createdAt'] as Timestamp).toDate().toIso8601String(),
       'updatedAt':
@@ -82,7 +83,7 @@ class Order with _$Order {
   const Order._();
 
   Map<String, dynamic> toFirestore() => {
-        ...toJson()..remove('id'),
+        ...toJson()..remove('id')..remove('completedAt'),
         'status': status.toFirestore(),
         'createdAt': Timestamp.fromDate(createdAt),
         'updatedAt': Timestamp.fromDate(updatedAt),

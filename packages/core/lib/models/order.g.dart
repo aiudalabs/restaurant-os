@@ -63,7 +63,7 @@ Map<String, dynamic> _$$OrderImplToJson(_$OrderImpl instance) =>
       'total': instance.total,
       'notes': instance.notes,
       'itemCount': instance.itemCount,
-      'payment': instance.payment,
+      'payment': instance.payment.toJson(),
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
       'completedAt': instance.completedAt?.toIso8601String(),
