@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+.DS_Store
+*.log
+.dart_tool/
+.packages
+pubspec.lock
+*.freezed.dart
+*.g.dart
