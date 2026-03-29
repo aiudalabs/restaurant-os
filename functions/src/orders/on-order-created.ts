@@ -54,6 +54,7 @@ interface StationData {
  * onOrderCreated — Triggered when a new order document is created.
  *
  * Responsibilities:
+<<<<<<< HEAD
  * 1. Confirm the order (status → "confirmed")
  * 2. Route each order_item to the correct station based on categoryId
  * 3. Mirror item status to Realtime Database for KDS live updates
