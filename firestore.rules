@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    // ─── Helper functions ───────────────────────────────────────────
+
+    function uid() { return request.auth.uid; }
+    function isAuthed() { return request.auth != null; }
+
+    function userDoc() {
+      return get(/databases/$(db)/documents/users/$(uid())).data;
+    }
+    function myOrgId() { return userDoc().orgId; }
+    function myRole() { return userDoc().role; }
+    function myBranches() { return userDoc().branchIds; }
+
+    function isAdmin() { return isAuthed() && myRole() == 'admin'; }
+    function isManager() { return isAuthed() && myRole() in ['admin', 'manager']; }
+    function isOperator() { return isAuthed() && myRole() in ['admin', 'manager', 'operator']; }
+    function belongsToMyOrg(orgId) { return isAuthed() && myOrgId() == orgId; }
+    function belongsToMyBranch(branchId) { return branchId in myBranches(); }
+
+    // ─── Organizations ──────────────────────────────────────────────
+
+    match /organizations/{orgId} {
+      allow read: if belongsToMyOrg(orgId);
+      allow write: if isAdmin() && belongsToMyOrg(orgId);
+    }
+
+    // ─── Branches ───────────────────────────────────────────────────
+
+    match /branches/{branchId} {
+      allow read: if belongsToMyOrg(resource.data.orgId)
+                  && belongsToMyBranch(branchId);
+      allow write: if isAdmin() && belongsToMyOrg(resource.data.orgId);
+    }
+
+    // ─── Menus ──────────────────────────────────────────────────────
+
+    match /menus/{menuId} {
+      allow read: if isAuthed();
+      allow write: if isManager() && belongsToMyOrg(resource.data.orgId);
+    }
+
+    // ─── Categories ─────────────────────────────────────────────────
+
+    match /categories/{categoryId} {
+      allow read: if isAuthed();
+      allow write: if isManager() && belongsToMyOrg(resource.data.orgId);
+    }
+
+    // ─── Products ───────────────────────────────────────────────────
+
+    match /products/{productId} {
+      allow read: if isAuthed();
+      allow write: if isManager() && belongsToMyOrg(resource.data.orgId);
+    }
+
+    // ─── Tables ─────────────────────────────────────────────────────
+
+    match /tables/{tableId} {
+      allow read: if isAuthed();
+      allow write: if isManager() && belongsToMyOrg(resource.data.orgId);
+    }
+
+    // ─── Stations ───────────────────────────────────────────────────
+
+    match /stations/{stationId} {
+      allow read: if belongsToMyOrg(resource.data.orgId)
+                  && belongsToMyBranch(resource.data.branchId);
+      allow write: if isAdmin() && belongsToMyOrg(resource.data.orgId);
+    }
+
+    // ─── Orders ─────────────────────────────────────────────────────
+    // Clientes (anon auth) pueden crear.
+    // Operadores de la org pueden leer y actualizar.
+
+    match /orders/{orderId} {
+      allow read: if belongsToMyOrg(resource.data.orgId);
+      allow create: if isAuthed();
+      allow update: if belongsToMyOrg(resource.data.orgId);
+    }
+
+    // ─── Order Items ────────────────────────────────────────────────
+    // KDS operators can update items assigned to their station.
+
+    match /order_items/{itemId} {
+      allow read: if belongsToMyOrg(resource.data.orgId);
+      allow create: if isAuthed();
+      allow update: if belongsToMyOrg(resource.data.orgId)
+                    && (isManager()
+                        || userDoc().stationId == resource.data.stationId);
+    }
+
+    // ─── Users ──────────────────────────────────────────────────────
+
+    match /users/{userId} {
+      allow read: if uid() == userId
+                  || (isManager() && belongsToMyOrg(resource.data.orgId));
+      allow write: if isAdmin() && belongsToMyOrg(resource.data.orgId);
+    }
+
+    // ─── Integrations ───────────────────────────────────────────────
+    // NEVER accessible from clients. Only Cloud Functions (Admin SDK).
+
+    match /integrations/{integrationId} {
+      allow read, write: if false;
+    }
+
+    // ─── Audit Log ──────────────────────────────────────────────────
+    // Read-only for managers. Writes only from Cloud Functions.
+
+    match /audit_log/{logId} {
+      allow read: if isManager() && belongsToMyOrg(resource.data.orgId);
+      allow write: if false;
+    }
+  }
+}
