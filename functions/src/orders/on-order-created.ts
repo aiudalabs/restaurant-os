@@ -54,7 +54,8 @@ interface StationData {
  * onOrderCreated — Triggered when a new order document is created.
  *
  * Responsibilities:
- * 1. Confirm the order (status -> "confirmed")
+<<<<<<< HEAD
+ * 1. Confirm the order (status → "confirmed")
  * 2. Route each order_item to the correct station based on categoryId
  * 3. Mirror item status to Realtime Database for KDS live updates
  * 4. Send FCM push notifications to station tablets
@@ -85,7 +86,7 @@ export const onOrderCreated = functions.firestore
       ...doc.data(),
     })) as StationData[];
 
-    // Build categoryId -> station lookup
+    // Build categoryId → station lookup
     const categoryToStation = new Map<string, StationData>();
     for (const station of stations) {
       for (const catId of station.categoryIds) {
