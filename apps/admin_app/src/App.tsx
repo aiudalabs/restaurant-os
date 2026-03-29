@@ -1,7 +1,18 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider } from '@tanstack/react-router';
+import { AuthContext, useAuthProvider } from '@/hooks/use-auth';
+import { router } from '@/router';
+
+const queryClient = new QueryClient();
+
 export default function App() {
+  const auth = useAuthProvider();
+
   return (
-    <div className="flex h-screen items-center justify-center">
-      <h1 className="text-2xl font-bold">RestaurantOS Admin</h1>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <AuthContext.Provider value={auth}>
+        <RouterProvider router={router} />
+      </AuthContext.Provider>
+    </QueryClientProvider>
   );
 }
