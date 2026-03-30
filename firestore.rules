@@ -30,7 +30,8 @@ service cloud.firestore {
     // ─── Branches ───────────────────────────────────────────────────
 
     match /branches/{branchId} {
-      allow read: if isAuthed() && belongsToMyBranch(branchId);
+      // Read: any authenticated user (including anonymous clients scanning QR)
+      allow read: if isAuthed();
       allow create: if isAdmin() && belongsToMyOrg(request.resource.data.orgId);
       allow update, delete: if isAdmin() && belongsToMyOrg(resource.data.orgId);
     }
