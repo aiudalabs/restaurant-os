@@ -1,0 +1,42 @@
+name: restaurant_os
+
+packages:
+  - packages/core
+  - apps/client_app
+  - apps/kitchen_app
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  build:
+    run: melos exec -- flutter pub run build_runner build --delete-conflicting-outputs
+    description: Genera Freezed + json_serializable en todos los packages Flutter
+
+  test:
+    run: melos exec -- flutter test
+    description: Tests en todos los packages Flutter
+
+  test:core:
+    run: flutter test
+    packageFilters:
+      - name: core
+    description: Solo tests del core
+
+  analyze:
+    run: melos exec -- flutter analyze
+    description: Análisis estático
+
+  clean:
+    run: melos exec -- flutter clean
+    description: Limpia builds
+
+  # Admin es React — comandos separados
+  admin:dev:
+    run: cd apps/admin_app && npm run dev
+    description: Dev server del admin React
+
+  admin:build:
+    run: cd apps/admin_app && npm run build
+    description: Build de producción del admin
