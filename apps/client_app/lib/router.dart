@@ -25,6 +25,15 @@ GoRouter router(Ref ref) {
           tableId: state.uri.queryParameters['table'],
         ),
       ),
+      // Deep link from QR: https://aiudalabs.github.io/restaurant/qr/?org=X&branch=Y&table=Z
+      GoRoute(
+        path: '/restaurant/qr',
+        builder: (_, state) => SplashScreen(
+          orgId: state.uri.queryParameters['org'],
+          branchId: state.uri.queryParameters['branch'],
+          tableId: state.uri.queryParameters['table'],
+        ),
+      ),
       GoRoute(
         path: '/error',
         builder: (_, state) => ErrorScreen(

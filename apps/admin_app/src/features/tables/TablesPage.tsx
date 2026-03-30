@@ -31,7 +31,7 @@ const TABLE_FORM_SCHEMA = z.object({
 type TableFormValues = z.infer<typeof TABLE_FORM_SCHEMA>;
 
 function buildQrUrl(orgId: string, branchId: string, tableId: string): string {
-  return `https://restaurantos.app/qr?org=${orgId}&branch=${branchId}&table=${tableId}`;
+  return `https://aiudalabs.github.io/restaurant/qr/?org=${orgId}&branch=${branchId}&table=${tableId}`;
 }
 
 // ─── QR Preview Dialog ───
