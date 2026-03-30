@@ -16,18 +16,27 @@ part 'router.g.dart';
 GoRouter router(Ref ref) {
   return GoRouter(
     initialLocation: '/',
+    // Handle deep links: strip the GitHub Pages path prefix so GoRouter
+    // recognises the route. Without this, a deep link like
+    // https://aiudalabs.github.io/restaurant/qr/?org=X&branch=Y&table=Z
+    // would not match any route.
+    redirect: (context, state) {
+      final path = state.uri.path;
+      // Deep link from QR via GitHub Pages
+      if (path.startsWith('/restaurant/qr')) {
+        final org = state.uri.queryParameters['org'];
+        final branch = state.uri.queryParameters['branch'];
+        final table = state.uri.queryParameters['table'];
+        if (org != null && branch != null && table != null) {
+          return '/?org=$org&branch=$branch&table=$table';
+        }
+        return '/error?msg=${Uri.encodeComponent('QR invalido')}';
+      }
+      return null; // no redirect
+    },
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, state) => SplashScreen(
-          orgId: state.uri.queryParameters['org'],
-          branchId: state.uri.queryParameters['branch'],
-          tableId: state.uri.queryParameters['table'],
-        ),
-      ),
-      // Deep link from QR: https://aiudalabs.github.io/restaurant/qr/?org=X&branch=Y&table=Z
-      GoRoute(
-        path: '/restaurant/qr',
         builder: (_, state) => SplashScreen(
           orgId: state.uri.queryParameters['org'],
           branchId: state.uri.queryParameters['branch'],
