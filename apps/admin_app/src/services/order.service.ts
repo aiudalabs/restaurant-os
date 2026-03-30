@@ -5,11 +5,14 @@ import {
   orderBy,
   onSnapshot,
   getDocs,
+  doc,
+  updateDoc,
   Timestamp,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { paths } from '@/lib/firestore-paths';
-import type { Order } from '@/types/order';
+import type { Order, OrderStatus } from '@/types/order';
 import type { OrderItem } from '@/types/order-item';
 
 export function watchActiveOrders(
@@ -72,6 +75,21 @@ export async function fetchOrderItems(
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as OrderItem);
+}
+
+export async function updateOrderStatus(
+  orderId: string,
+  status: OrderStatus,
+): Promise<void> {
+  const ref = doc(db, paths.orders, orderId);
+  const data: Record<string, unknown> = {
+    status,
+    updatedAt: serverTimestamp(),
+  };
+  if (status === 'closed' || status === 'cancelled') {
+    data.completedAt = serverTimestamp();
+  }
+  await updateDoc(ref, data);
 }
 
 export async function fetchTodayOrders(

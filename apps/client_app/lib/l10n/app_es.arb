@@ -1,0 +1,108 @@
+{
+  "@@locale": "es",
+  "appTitle": "RestaurantOS",
+
+  "open": "Abierto",
+  "searchMenu": "Buscar en el menu...",
+  "allCategory": "Todo",
+  "popular": "Populares",
+  "viewCart": "Ver carrito",
+  "addToCart": "Agregar al carrito",
+  "required": "Requerido",
+  "included": "Incluido",
+  "quantity": "Cantidad",
+  "specialInstructions": "Instrucciones especiales",
+  "specialInstructionsHint": "Ej: sin cebolla, extra salsa...",
+
+  "myOrder": "Mi pedido",
+  "tableN": "Mesa {number}",
+  "@tableN": {
+    "placeholders": {
+      "number": { "type": "String" }
+    }
+  },
+  "itemsCount": "{count} items",
+  "@itemsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "kitchenNotes": "Nota para la cocina (opcional)",
+  "kitchenNotesHint": "Ej: sin cebolla en el ceviche...",
+  "subtotal": "Subtotal",
+  "taxLabel": "ITBMS ({percent})",
+  "@taxLabel": {
+    "placeholders": {
+      "percent": { "type": "String" }
+    }
+  },
+  "total": "Total",
+  "sendOrder": "Enviar pedido a cocina",
+  "emptyCart": "Tu carrito esta vacio",
+  "goToMenu": "Ver menu",
+  "clearCart": "Vaciar",
+
+  "orderNumber": "Pedido #{number}",
+  "@orderNumber": {
+    "placeholders": {
+      "number": { "type": "String" }
+    }
+  },
+  "sentAgo": "Enviado hace {minutes} min",
+  "@sentAgo": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "stepReceived": "Recibido",
+  "stepPreparing": "Preparando",
+  "stepReady": "Listo",
+  "stepDelivered": "Entregado",
+  "estimatedWait": "Tiempo estimado de espera",
+  "minutes": "minutos",
+  "orderItems": "Items de tu pedido",
+  "inKitchen": "En cocina",
+  "inPreparation": "En preparacion",
+  "ready": "Listo!",
+  "queued": "En cola",
+  "addMoreItems": "Agregar mas items",
+  "orderDelivered": "Pedido entregado",
+  "thankYou": "Gracias por tu pedido!",
+  "tip": "Propina",
+  "tax": "Impuesto",
+  "orderCancelled": "Pedido cancelado",
+
+  "scanQr": "Escanea el QR de tu mesa",
+  "openCamera": "Abrir camara",
+  "sessionNotStarted": "Sesion no iniciada.",
+  "loadingMenu": "Cargando menu...",
+  "errorLoadingMenu": "Error al cargar el menu",
+  "errorLoadingProducts": "Error al cargar productos",
+  "noCategories": "No hay categorias disponibles.",
+  "noProducts": "No hay productos en esta categoria.",
+  "productNotFound": "Producto no encontrado.",
+  "orderNotFound": "Pedido no encontrado.",
+  "errorUnknown": "Algo salio mal",
+  "consultStaff": "Por favor, consulta al personal del restaurante.",
+  "addedToCart": "{name} agregado al carrito",
+  "@addedToCart": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "errorSendingOrder": "Error al enviar pedido",
+  "scanValidQr": "Escanea un QR valido para acceder al menu.",
+  "tableNotAvailable": "Mesa no disponible. Consulta al personal.",
+  "invalidQr": "QR invalido para esta sucursal.",
+  "branchNotFound": "Sucursal no encontrada.",
+  "unexpectedError": "Error inesperado. Intenta de nuevo.",
+  "mainHall": "Salon principal",
+  "orderCreated": "Pedido realizado: {time}",
+  "@orderCreated": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "confirmed": "Confirmado",
+  "products": "Productos"
+}

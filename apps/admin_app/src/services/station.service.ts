@@ -20,6 +20,7 @@ export function watchStations(
 ) {
   const q = query(
     collection(db, paths.stations),
+    where('orgId', '==', orgId),
     where('branchId', '==', branchId),
   );
   return onSnapshot(q, (snap) => {

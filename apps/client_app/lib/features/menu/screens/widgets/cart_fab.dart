@@ -1,23 +1,86 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:client_app/l10n/generated/app_localizations.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-import '../../providers/cart_notifier.dart';
+import '../../../../theme/app_colors.dart';
 
-class CartFab extends ConsumerWidget {
-  const CartFab({super.key});
+class CartFab extends StatelessWidget {
+  const CartFab({
+    super.key,
+    required this.itemCount,
+    required this.total,
+    required this.onTap,
+  });
+
+  final int itemCount;
+  final double total;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cart = ref.watch(cartNotifierProvider);
-    final itemCount = cart.itemCount;
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
 
-    if (itemCount == 0) return const SizedBox.shrink();
-
-    return FloatingActionButton.extended(
-      onPressed: () => context.push('/cart'),
-      icon: const Icon(Icons.shopping_cart),
-      label: Text('Ver carrito ($itemCount)'),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedSlide(
+        offset: Offset.zero,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: ClientColors.kBrandRed,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x73C8392B),
+                blurRadius: 24,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '$itemCount',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: ClientColors.kBrandRed,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                l10n.viewCart,
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                total.toCurrency(),
+                style: GoogleFonts.fraunces(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

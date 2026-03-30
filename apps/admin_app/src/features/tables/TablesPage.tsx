@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Plus,
   QrCode,
@@ -8,7 +8,9 @@ import {
   X,
   Copy,
   Check,
+  Download,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -42,6 +44,7 @@ interface QrPreviewDialogProps {
 
 function QrPreviewDialog({ table, orgId, onClose }: QrPreviewDialogProps) {
   const [copied, setCopied] = useState(false);
+  const qrRef = useRef<HTMLDivElement>(null);
   const qrUrl = table.qrData || buildQrUrl(orgId, table.branchId, table.id);
 
   const handleCopy = async () => {
@@ -49,6 +52,25 @@ function QrPreviewDialog({ table, orgId, onClose }: QrPreviewDialogProps) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const handleDownload = useCallback(() => {
+    const svg = qrRef.current?.querySelector('svg');
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
+      const link = document.createElement('a');
+      link.download = `qr-mesa-${table.number}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
+    img.src = `data:image/svg+xml;base64,${btoa(svgData)}`;
+  }, [table.number]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -63,28 +85,37 @@ function QrPreviewDialog({ table, orgId, onClose }: QrPreviewDialogProps) {
         </div>
 
         <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center justify-center h-48 w-48 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50">
-            <QrCode className="h-24 w-24 text-gray-400" />
+          <div
+            ref={qrRef}
+            className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-4"
+          >
+            <QRCodeSVG value={qrUrl} size={192} level="H" />
           </div>
           <p className="text-xs text-gray-500 text-center">
-            Usa esta URL para generar el codigo QR de la mesa.
+            Mesa {table.number} — escanea para abrir el menu
           </p>
           <div className="w-full rounded-lg bg-gray-50 p-3 text-xs text-gray-700 break-all font-mono">
             {qrUrl}
           </div>
-          <Button size="sm" variant="secondary" onClick={handleCopy} className="w-full">
-            {copied ? (
-              <>
-                <Check className="mr-1.5 h-4 w-4 text-green-600" />
-                Copiado
-              </>
-            ) : (
-              <>
-                <Copy className="mr-1.5 h-4 w-4" />
-                Copiar URL
-              </>
-            )}
-          </Button>
+          <div className="w-full flex gap-2">
+            <Button size="sm" variant="secondary" onClick={handleCopy} className="flex-1">
+              {copied ? (
+                <>
+                  <Check className="mr-1.5 h-4 w-4 text-green-600" />
+                  Copiado
+                </>
+              ) : (
+                <>
+                  <Copy className="mr-1.5 h-4 w-4" />
+                  Copiar URL
+                </>
+              )}
+            </Button>
+            <Button size="sm" onClick={handleDownload} className="flex-1">
+              <Download className="mr-1.5 h-4 w-4" />
+              Descargar PNG
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -127,24 +158,25 @@ function TableFormDialog({
 
   const onSubmit = async (values: TableFormValues) => {
     if (isEditing) {
-      await onUpdate(table.id, {
+      const updateData: Partial<Table> = {
         number: values.number,
-        zone: values.zone || undefined,
         capacity: values.capacity,
-      });
+      };
+      if (values.zone) updateData.zone = values.zone;
+      await onUpdate(table.id, updateData);
     } else {
       const tempId = crypto.randomUUID();
       const qrData = buildQrUrl(orgId, branchId, tempId);
-      const id = await onSave({
+      const tableData: Omit<Table, 'id'> = {
         orgId,
         branchId,
         number: values.number,
-        zone: values.zone || undefined,
         capacity: values.capacity,
         qrData,
         isActive: true,
-        currentOrderId: undefined,
-      });
+      };
+      if (values.zone) tableData.zone = values.zone;
+      const id = await onSave(tableData);
       // Update qrData with the real Firestore id
       const realQrData = buildQrUrl(orgId, branchId, id);
       await onUpdate(id, { qrData: realQrData });

@@ -1,10 +1,13 @@
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
+import 'package:client_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core_client/anon_auth.dart';
 import '../../core_client/table_session.dart';
+import '../../theme/app_colors.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({
@@ -29,39 +32,39 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _initialize();
+    // Delay initialization to after the first frame so that
+    // context has access to AppLocalizations and navigation.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initialize();
+    });
   }
 
   Future<void> _initialize() async {
     try {
-      // 1. Validate QR params
       final orgId = widget.orgId;
       final branchId = widget.branchId;
       final tableId = widget.tableId;
 
       if (orgId == null || branchId == null || tableId == null) {
-        _navigateToError('Escanea un QR valido para acceder al menu.');
+        _navigateToError('scan_valid_qr');
         return;
       }
 
-      // 2. Anonymous auth
       await ref.read(anonAuthProvider.future);
 
-      // 3. Validate table exists and is active
       final tableRepo = ref.read(tableRepositoryProvider);
       final table = await tableRepo.getById(tableId);
 
       if (table == null || !table.isActive) {
-        _navigateToError('Mesa no disponible. Consulta al personal.');
+        _navigateToError('table_not_available');
         return;
       }
 
       if (table.orgId != orgId || table.branchId != branchId) {
-        _navigateToError('QR invalido para esta sucursal.');
+        _navigateToError('invalid_qr');
         return;
       }
 
-      // 4. Get branch to obtain menuId
       final firestore = ref.read(firestoreProvider);
       final branchDoc = await firestore
           .collection(FirestorePaths.branches)
@@ -69,13 +72,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           .get();
 
       if (!branchDoc.exists) {
-        _navigateToError('Sucursal no encontrada.');
+        _navigateToError('branch_not_found');
         return;
       }
 
       final branch = Branch.fromFirestore(branchDoc);
 
-      // 5. Create session
       final session = TableSession(
         orgId: orgId,
         branchId: branchId,
@@ -86,43 +88,62 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
       ref.read(tableSessionNotifierProvider.notifier).setSession(session);
 
-      // 6. Navigate to menu
       if (mounted) {
         context.go('/menu');
       }
     } on AppException catch (e) {
       _navigateToError(e.message);
     } catch (e) {
-      _navigateToError('Error inesperado. Intenta de nuevo.');
+      _navigateToError('unexpected');
     }
   }
 
-  void _navigateToError(String message) {
-    if (mounted) {
-      setState(() {
-        _initializing = false;
-        _error = message;
-      });
-      context.go('/error?msg=${Uri.encodeComponent(message)}');
-    }
+  void _navigateToError(String errorKey) {
+    if (!mounted) return;
+
+    setState(() {
+      _initializing = false;
+      _error = errorKey;
+    });
+
+    final l10n = AppLocalizations.of(context);
+    final message = switch (errorKey) {
+      'scan_valid_qr' => l10n.scanValidQr,
+      'table_not_available' => l10n.tableNotAvailable,
+      'invalid_qr' => l10n.invalidQr,
+      'branch_not_found' => l10n.branchNotFound,
+      'unexpected' => l10n.unexpectedError,
+      _ => errorKey,
+    };
+
+    context.go('/error?msg=${Uri.encodeComponent(message)}');
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
+      backgroundColor: ClientColors.kSurface,
       body: Center(
-        child: _error != null
-            ? Text(_error!, style: Theme.of(context).textTheme.bodyLarge)
-            : _initializing
-                ? const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Cargando menu...'),
-                    ],
-                  )
-                : const SizedBox.shrink(),
+        child: _initializing
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    color: ClientColors.kBrandRed,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.loadingMenu,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      color: ClientColors.kTextSecondary,
+                    ),
+                  ),
+                ],
+              )
+            : const SizedBox.shrink(),
       ),
     );
   }

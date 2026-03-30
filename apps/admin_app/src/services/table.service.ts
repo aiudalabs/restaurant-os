@@ -20,6 +20,7 @@ export function watchTables(
 ) {
   const q = query(
     collection(db, paths.tables),
+    where('orgId', '==', orgId),
     where('branchId', '==', branchId),
   );
   return onSnapshot(q, (snap) => {

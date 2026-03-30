@@ -90,7 +90,7 @@ class TicketCard extends ConsumerWidget {
               },
             ),
           ),
-          // Footer with item count
+          // Footer with item count and bump button
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
@@ -98,14 +98,7 @@ class TicketCard extends ConsumerWidget {
                   .withValues(alpha: 0.5),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '${ticket.items.length} items',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
                 Text(
                   '${ticket.items.where((i) => i.status == ItemStatus.done).length}/${ticket.items.length} listos',
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -113,12 +106,37 @@ class TicketCard extends ConsumerWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                const Spacer(),
+                if (ticket.items.any((i) => i.status != ItemStatus.done))
+                  FilledButton.tonalIcon(
+                    onPressed: () => _onBumpAll(ref),
+                    icon: const Icon(Icons.done_all, size: 18),
+                    label: const Text('Bump All'),
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                  ),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  void _onBumpAll(WidgetRef ref) {
+    final updater = ref.read(itemStatusUpdaterProvider.notifier);
+    for (final item in ticket.items) {
+      if (item.status != ItemStatus.done) {
+        updater.update(
+          stationId: stationId,
+          orderId: ticket.orderId,
+          itemId: item.itemId,
+          newStatus: ItemStatus.done,
+        );
+      }
+    }
   }
 
   void _onItemTap(WidgetRef ref, KdsItem item) {

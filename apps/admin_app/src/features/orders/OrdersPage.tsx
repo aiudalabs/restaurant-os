@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Search, X, Eye } from 'lucide-react';
+import { Search, X, Eye, CheckCircle, Truck, XCircle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
-import { useAllOrders, useOrderItems } from '@/hooks/use-orders';
+import { useAllOrders, useOrderItems, useUpdateOrderStatus } from '@/hooks/use-orders';
 import type { Order, OrderStatus } from '@/types/order';
 import type { OrderItem } from '@/types/order-item';
 
@@ -46,9 +46,11 @@ interface OrderDetailDialogProps {
   items: OrderItem[];
   itemsLoading: boolean;
   onClose: () => void;
+  onUpdateStatus: (orderId: string, status: OrderStatus) => Promise<void>;
+  updating: boolean;
 }
 
-function OrderDetailDialog({ order, items, itemsLoading, onClose }: OrderDetailDialogProps) {
+function OrderDetailDialog({ order, items, itemsLoading, onClose, onUpdateStatus, updating }: OrderDetailDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto">
@@ -155,6 +157,55 @@ function OrderDetailDialog({ order, items, itemsLoading, onClose }: OrderDetailD
               )}
             </div>
           </div>
+
+          {/* Status action buttons */}
+          <div className="pt-4 border-t border-gray-200 flex flex-wrap gap-2">
+            {order.status === 'pending' && (
+              <Button
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={updating}
+                onClick={() => onUpdateStatus(order.id, 'confirmed')}
+              >
+                <CheckCircle className="mr-1.5 h-4 w-4" />
+                Confirmar
+              </Button>
+            )}
+            {order.status === 'ready' && (
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700"
+                disabled={updating}
+                onClick={() => onUpdateStatus(order.id, 'delivered')}
+              >
+                <Truck className="mr-1.5 h-4 w-4" />
+                Marcar entregado
+              </Button>
+            )}
+            {order.status === 'delivered' && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={updating}
+                onClick={() => onUpdateStatus(order.id, 'closed')}
+              >
+                <Lock className="mr-1.5 h-4 w-4" />
+                Cerrar
+              </Button>
+            )}
+            {!['cancelled', 'closed'].includes(order.status) && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                disabled={updating}
+                onClick={() => onUpdateStatus(order.id, 'cancelled')}
+              >
+                <XCircle className="mr-1.5 h-4 w-4" />
+                Cancelar
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -170,6 +221,7 @@ export default function OrdersPage() {
 
   const { orders, loading } = useAllOrders(orgId, branchId);
   const { items, loading: itemsLoading, fetchItems } = useOrderItems();
+  const { updateStatus, updating } = useUpdateOrderStatus();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
@@ -310,6 +362,11 @@ export default function OrdersPage() {
           items={items}
           itemsLoading={itemsLoading}
           onClose={() => setSelectedOrder(null)}
+          onUpdateStatus={async (orderId, status) => {
+            await updateStatus(orderId, status);
+            setSelectedOrder((prev) => prev ? { ...prev, status } : null);
+          }}
+          updating={updating}
         />
       )}
     </div>
