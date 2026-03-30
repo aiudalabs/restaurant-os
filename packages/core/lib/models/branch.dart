@@ -36,13 +36,17 @@ class Branch with _$Branch {
       _$BranchFromJson(json);
 
   factory Branch.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data()!;
-    return Branch.fromJson({
-      ...data,
-      'id': doc.id,
-      'createdAt':
-          (data['createdAt'] as Timestamp).toDate().toIso8601String(),
-    });
+    final data = Map<String, dynamic>.from(doc.data()!);
+    // Ensure businessHours is a Map, not a List or other type
+    if (data['businessHours'] is! Map) {
+      data['businessHours'] = <String, dynamic>{};
+    }
+    final createdAt = data['createdAt'];
+    data['id'] = doc.id;
+    data['createdAt'] = createdAt is Timestamp
+        ? createdAt.toDate().toIso8601String()
+        : DateTime.now().toIso8601String();
+    return Branch.fromJson(data);
   }
 
   const Branch._();
