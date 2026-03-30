@@ -70,19 +70,22 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
     ref.read(cartNotifierProvider.notifier).addItem(item);
 
-    final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.addedToCart(product.name)),
-        duration: const Duration(seconds: 2),
-        action: SnackBarAction(
-          label: l10n.viewCart,
-          onPressed: () => context.push('/cart'),
-        ),
-      ),
-    );
-
+    // Pop first, then show snackbar on the previous screen
     context.pop();
+
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(l10n.addedToCart(product.name)),
+          duration: const Duration(seconds: 2),
+          action: SnackBarAction(
+            label: l10n.viewCart,
+            onPressed: () => context.push('/cart'),
+          ),
+        ),
+      );
   }
 
   @override
@@ -167,7 +170,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Tag badge
-                            if (isPopular)
+                            if (isPopular || product.preparationMinutes != null)
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 4),
@@ -177,7 +180,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  'Popular · 25 min',
+                                  [
+                                    if (isPopular) l10n.popular,
+                                    if (product.preparationMinutes != null)
+                                      '${product.preparationMinutes} min',
+                                  ].join(' · '),
                                   style: GoogleFonts.dmSans(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,

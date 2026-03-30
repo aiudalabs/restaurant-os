@@ -207,7 +207,9 @@ class _HeroSection extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'El Fogon\nPanama',
+                              session.branchName.isNotEmpty
+                                  ? session.branchName
+                                  : 'RestaurantOS',
                               style: GoogleFonts.fraunces(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w600,
@@ -217,7 +219,9 @@ class _HeroSection extends StatelessWidget {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              '${l10n.tableN(session.tableNumber)} · ${l10n.mainHall}',
+                              session.tableZone != null
+                                  ? '${l10n.tableN(session.tableNumber)} · ${session.tableZone}'
+                                  : l10n.tableN(session.tableNumber),
                               style: GoogleFonts.dmSans(
                                 fontSize: 12,
                                 color: Colors.white.withValues(alpha: 0.75),
@@ -477,7 +481,7 @@ class _ProductCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'Popular',
+                          AppLocalizations.of(context).popular,
                           style: GoogleFonts.dmSans(
                             fontSize: 9,
                             fontWeight: FontWeight.w600,

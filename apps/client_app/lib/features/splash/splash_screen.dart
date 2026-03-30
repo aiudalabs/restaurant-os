@@ -83,6 +83,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         tableId: tableId,
         tableNumber: table.number,
         menuId: branch.menuId,
+        branchName: branch.name,
+        tableZone: table.zone,
       );
 
       ref.read(tableSessionNotifierProvider.notifier).setSession(session);

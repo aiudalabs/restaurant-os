@@ -131,7 +131,7 @@ class TrackingScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '12',
+                            '~15',
                             style: GoogleFonts.fraunces(
                               fontSize: 32,
                               fontWeight: FontWeight.w600,
@@ -347,16 +347,17 @@ class _TrackingStepper extends StatelessWidget {
                   child: isDone
                       ? const Icon(Icons.check,
                           color: Colors.white, size: 14)
-                      : Text(
-                          isActive ? '⟳' : '${stepIdx + 1}',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isActive
-                                ? ClientColors.kBrandRed
-                                : ClientColors.kTextHint,
-                          ),
-                        ),
+                      : isActive
+                          ? const Icon(Icons.sync,
+                              size: 14, color: ClientColors.kBrandRed)
+                          : Text(
+                              '${stepIdx + 1}',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: ClientColors.kTextHint,
+                              ),
+                            ),
                 ),
               ),
               const SizedBox(height: 6),
@@ -436,7 +437,7 @@ class _TrackingItemTile extends StatelessWidget {
           ClientColors.kSuccess,
         ),
       ItemStatus.inProgress => (
-          '⟳ ${l10n.inPreparation}',
+          l10n.inPreparation,
           const Color(0xFF856404),
           ClientColors.kWarning,
         ),

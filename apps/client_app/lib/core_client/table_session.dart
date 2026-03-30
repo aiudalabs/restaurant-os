@@ -12,6 +12,8 @@ class TableSession with _$TableSession {
     required String tableId,
     required String tableNumber,
     required String menuId,
+    @Default('') String branchName,
+    String? tableZone,
   }) = _TableSession;
 }
 
