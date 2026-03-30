@@ -1,19 +1,27 @@
 import { useState } from 'react';
+import { Plus, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
+import { useBranchContext } from '@/hooks/use-branch-context';
 import { useMenus, useCategories, useProducts } from '@/hooks/use-menu';
 import CategoryList from './CategoryList';
 import ProductList from './ProductList';
+import ProductFormDialog from './ProductFormDialog';
+import MenuFormDialog from './MenuFormDialog';
 import type { Product } from '@/types/product';
 
 export default function MenuPage() {
   const { appUser } = useAuth();
   const orgId = appUser?.orgId ?? '';
+  const { selectedBranch, updateBranch } = useBranchContext();
 
-  const { menus, loading: menusLoading } = useMenus(orgId);
+  const { menus, loading: menusLoading, createMenu } = useMenus(orgId);
   const [selectedMenuId, setSelectedMenuId] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
+  const [showMenuForm, setShowMenuForm] = useState(false);
+  const [linkingMenu, setLinkingMenu] = useState(false);
 
   // Auto-select first menu
   const activeMenuId = selectedMenuId ?? menus[0]?.id ?? '';
@@ -32,6 +40,8 @@ export default function MenuPage() {
   const {
     products,
     loading: productsLoading,
+    createProduct,
+    updateProduct,
     toggleProduct,
   } = useProducts(activeMenuId, activeCategoryId);
 
@@ -72,13 +82,32 @@ export default function MenuPage() {
     );
   }
 
+  const handleLinkMenu = async () => {
+    if (!selectedBranch || !activeMenuId) return;
+    setLinkingMenu(true);
+    try {
+      await updateBranch(selectedBranch.id, { menuId: activeMenuId });
+    } finally {
+      setLinkingMenu(false);
+    }
+  };
+
   if (menus.length === 0) {
     return (
       <div className="text-center py-12">
         <h1 className="text-2xl font-bold text-gray-900">Menú</h1>
-        <p className="mt-2 text-gray-500">
-          No hay menús creados. Crea uno desde Firestore o la consola de Firebase.
-        </p>
+        <p className="mt-2 text-gray-500">No hay menús creados.</p>
+        <Button className="mt-4" onClick={() => setShowMenuForm(true)}>
+          <Plus className="mr-1.5 h-4 w-4" />
+          Crear menú
+        </Button>
+        {showMenuForm && (
+          <MenuFormDialog
+            orgId={orgId}
+            onSave={createMenu}
+            onClose={() => setShowMenuForm(false)}
+          />
+        )}
       </div>
     );
   }
@@ -88,23 +117,51 @@ export default function MenuPage() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Menú</h1>
 
-        {menus.length > 1 && (
-          <select
-            value={activeMenuId}
-            onChange={(e) => {
-              setSelectedMenuId(e.target.value);
-              setSelectedCategoryId(null);
-            }}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
-          >
-            {menus.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        )}
+        <div className="flex items-center gap-2">
+          {menus.length > 1 && (
+            <select
+              value={activeMenuId}
+              onChange={(e) => {
+                setSelectedMenuId(e.target.value);
+                setSelectedCategoryId(null);
+              }}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+            >
+              {menus.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setShowMenuForm(true)}>
+            <Plus className="mr-1 h-4 w-4" />
+            Nuevo menú
+          </Button>
+        </div>
       </div>
+
+      {/* Link menu to branch banner */}
+      {selectedBranch && !selectedBranch.menuId && (
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-800">
+              La sucursal &quot;{selectedBranch.name}&quot; no tiene un menú asignado.
+            </p>
+            <p className="text-xs text-amber-600">
+              Asigna un menú para que los clientes puedan hacer pedidos.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            disabled={linkingMenu}
+            onClick={handleLinkMenu}
+          >
+            {linkingMenu ? 'Asignando...' : 'Asignar menú actual'}
+          </Button>
+        </div>
+      )}
 
       <div className="flex gap-6">
         {/* Left panel — Categories */}
@@ -140,26 +197,24 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* ProductFormDialog placeholder — will be implemented in issue #12 */}
       {showProductForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl">
-            <h2 className="text-lg font-semibold mb-4">
-              {editingProduct ? 'Editar producto' : 'Nuevo producto'}
-            </h2>
-            <p className="text-sm text-gray-500">
-              El formulario completo se implementa en el issue #12.
-            </p>
-            <div className="mt-4 flex justify-end">
-              <button
-                className="rounded-lg bg-gray-200 px-4 py-2 text-sm"
-                onClick={() => setShowProductForm(false)}
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ProductFormDialog
+          product={editingProduct}
+          orgId={orgId}
+          menuId={activeMenuId}
+          categoryId={activeCategoryId}
+          onSave={createProduct}
+          onUpdate={updateProduct}
+          onClose={() => setShowProductForm(false)}
+        />
+      )}
+
+      {showMenuForm && (
+        <MenuFormDialog
+          orgId={orgId}
+          onSave={createMenu}
+          onClose={() => setShowMenuForm(false)}
+        />
       )}
     </div>
   );

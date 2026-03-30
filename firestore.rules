@@ -30,45 +30,49 @@ service cloud.firestore {
     // ─── Branches ───────────────────────────────────────────────────
 
     match /branches/{branchId} {
-      allow read: if belongsToMyOrg(resource.data.orgId)
-                  && belongsToMyBranch(branchId);
-      allow write: if isAdmin() && belongsToMyOrg(resource.data.orgId);
+      allow read: if isAuthed() && belongsToMyBranch(branchId);
+      allow create: if isAdmin() && belongsToMyOrg(request.resource.data.orgId);
+      allow update, delete: if isAdmin() && belongsToMyOrg(resource.data.orgId);
     }
 
     // ─── Menus ──────────────────────────────────────────────────────
 
     match /menus/{menuId} {
       allow read: if isAuthed();
-      allow write: if isManager() && belongsToMyOrg(resource.data.orgId);
+      allow create: if isManager() && belongsToMyOrg(request.resource.data.orgId);
+      allow update, delete: if isManager() && belongsToMyOrg(resource.data.orgId);
     }
 
     // ─── Categories ─────────────────────────────────────────────────
 
     match /categories/{categoryId} {
       allow read: if isAuthed();
-      allow write: if isManager() && belongsToMyOrg(resource.data.orgId);
+      allow create: if isManager() && belongsToMyOrg(request.resource.data.orgId);
+      allow update, delete: if isManager() && belongsToMyOrg(resource.data.orgId);
     }
 
     // ─── Products ───────────────────────────────────────────────────
 
     match /products/{productId} {
       allow read: if isAuthed();
-      allow write: if isManager() && belongsToMyOrg(resource.data.orgId);
+      allow create: if isManager() && belongsToMyOrg(request.resource.data.orgId);
+      allow update, delete: if isManager() && belongsToMyOrg(resource.data.orgId);
     }
 
     // ─── Tables ─────────────────────────────────────────────────────
 
     match /tables/{tableId} {
       allow read: if isAuthed();
-      allow write: if isManager() && belongsToMyOrg(resource.data.orgId);
+      allow create: if isManager() && belongsToMyOrg(request.resource.data.orgId);
+      allow update, delete: if isManager() && belongsToMyOrg(resource.data.orgId);
     }
 
     // ─── Stations ───────────────────────────────────────────────────
 
     match /stations/{stationId} {
-      allow read: if belongsToMyOrg(resource.data.orgId)
-                  && belongsToMyBranch(resource.data.branchId);
-      allow write: if isAdmin() && belongsToMyOrg(resource.data.orgId);
+      allow read: if isAuthed() && belongsToMyOrg(resource.data.orgId);
+      allow create: if isAdmin() && belongsToMyOrg(request.resource.data.orgId);
+      allow update, delete: if isAdmin() && belongsToMyOrg(resource.data.orgId);
     }
 
     // ─── Orders ─────────────────────────────────────────────────────
@@ -97,7 +101,8 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if uid() == userId
                   || (isManager() && belongsToMyOrg(resource.data.orgId));
-      allow write: if isAdmin() && belongsToMyOrg(resource.data.orgId);
+      allow create: if isAdmin() && belongsToMyOrg(request.resource.data.orgId);
+      allow update, delete: if isAdmin() && belongsToMyOrg(resource.data.orgId);
     }
 
     // ─── Integrations ───────────────────────────────────────────────

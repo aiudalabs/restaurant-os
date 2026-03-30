@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RestaurantOS — KDS Cocina</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0D0D0F;
+    --surface: #161618;
+    --surface2: #1F1F22;
+    --surface3: #2A2A2E;
+    --border: #2E2E33;
+    --text: #F0EFE8;
+    --text2: #9E9D96;
+    --text3: #5C5B55;
+    --green: #22C55E;
+    --green-dim: #16532A;
+    --amber: #F59E0B;
+    --amber-dim: #78350F;
+    --red: #EF4444;
+    --red-dim: #7F1D1D;
+    --blue: #3B82F6;
+    --blue-dim: #1E3A5F;
+  }
+
+  body {
+    background: #06060A;
+    font-family: 'DM Sans', sans-serif;
+    padding: 40px 24px 60px;
+    min-height: 100vh;
+  }
+
+  h1.page-title {
+    font-family: 'Fraunces', serif;
+    color: #5C5B55;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  h2.page-subtitle {
+    font-family: 'Fraunces', serif;
+    color: #F0EFE8;
+    font-size: 26px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .page-note {
+    color: #5C5B55;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  /* Tablet frame landscape */
+  .tablet-frame {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--surface);
+    border-radius: 20px;
+    border: 2px solid #2A2A2E;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.03);
+    overflow: hidden;
+  }
+
+  /* KDS AppBar */
+  .kds-appbar {
+    background: var(--bg);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .kds-appbar-left { display: flex; align-items: center; gap: 12px; }
+  .kds-logo {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #C8392B, #D4A853);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .kds-station {
+    font-family: 'Fraunces', serif;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .kds-station-sub { color: var(--text3); font-size: 11px; }
+
+  .kds-appbar-center { display: flex; gap: 8px; }
+  .kds-stat {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .kds-stat.active { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .kds-stat.pending { background: rgba(245,158,11,0.15); color: var(--amber); }
+  .kds-stat.done { background: rgba(34,197,94,0.15); color: var(--green); }
+
+  .kds-appbar-right { display: flex; align-items: center; gap: 16px; color: var(--text2); font-size: 13px; }
+  .kds-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .kds-icon-btn {
+    width: 34px; height: 34px;
+    background: var(--surface2);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer;
+    border: 1px solid var(--border);
+  }
+
+  /* Tickets grid */
+  .kds-grid {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    min-height: 480px;
+    background: var(--bg);
+  }
+
+  .ticket {
+    background: var(--surface);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.15s;
+  }
+  .ticket:hover { transform: translateY(-2px); }
+
+  .ticket-header {
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .ticket-header.green { border-top: 3px solid var(--green); }
+  .ticket-header.amber { border-top: 3px solid var(--amber); }
+  .ticket-header.red   { border-top: 3px solid var(--red); }
+  .ticket-header.blue  { border-top: 3px solid var(--blue); }
+
+  .ticket-mesa { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; color: var(--text); }
+  .ticket-num { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .ticket-timer {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 8px;
+  }
+  .ticket-timer.green { background: rgba(34,197,94,0.12); color: var(--green); }
+  .ticket-timer.amber { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .ticket-timer.red   { background: rgba(239,68,68,0.12); color: var(--red); }
+  .timer-dot { width: 5px; height: 5px; border-radius: 50%; }
+  .timer-dot.green { background: var(--green); animation: blink 1.5s infinite; }
+  .timer-dot.amber { background: var(--amber); animation: blink 1s infinite; }
+  .timer-dot.red   { background: var(--red);   animation: blink 0.6s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .ticket-items { flex: 1; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; }
+
+  .ticket-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .ticket-item:hover { background: var(--surface2); }
+  .ticket-item.queued   { background: transparent; }
+  .ticket-item.progress { background: rgba(245,158,11,0.08); }
+  .ticket-item.done     { background: rgba(34,197,94,0.06); opacity: 0.5; }
+
+  .item-icon {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .item-icon.queued   { background: var(--surface3); }
+  .item-icon.progress { background: var(--amber-dim); }
+  .item-icon.done     { background: var(--green-dim); }
+
+  .item-details { flex: 1; }
+  .item-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.2; }
+  .item-name.done { text-decoration: line-through; color: var(--text3); }
+  .item-mod { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+  .item-status-icon { font-size: 16px; flex-shrink: 0; }
+
+  .ticket-footer {
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .ticket-items-count { font-size: 10px; color: var(--text3); }
+  .ticket-action-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 11px; font-weight: 600;
+    cursor: pointer; border: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .ticket-action-btn.start { background: rgba(59,130,246,0.2); color: var(--blue); }
+  .ticket-action-btn.complete { background: rgba(34,197,94,0.2); color: var(--green); }
+  .ticket-action-btn.done { background: var(--surface3); color: var(--text3); font-size: 10px; }
+
+  /* New order flash overlay (decorative) */
+  .new-order-badge {
+    position: absolute;
+    top: -8px; right: -8px;
+    background: var(--red);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 8px;
+    letter-spacing: 0.5px;
+    animation: pop 0.3s ease;
+  }
+  @keyframes pop { 0%{transform:scale(0)} 80%{transform:scale(1.1)} 100%{transform:scale(1)} }
+
+  /* Second row - Login screen */
+  .screens-row2 {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    margin-top: 48px;
+  }
+  .screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .screen-label { color: #5C5B55; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500; }
+
+  /* Phone frame for login */
+  .phone-dark {
+    width: 300px;
+    background: var(--bg);
+    border-radius: 40px;
+    overflow: hidden;
+    border: 2px solid #2A2A2E;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+  }
+  .phone-dark-notch {
+    display: flex; justify-content: center;
+    padding: 10px 0 6px;
+  }
+  .phone-dark-notch-pill { width: 80px; height: 4px; background: #2A2A2E; border-radius: 4px; }
+  .phone-dark-inner { padding: 0 24px 32px; }
+
+  .login-logo {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, #C8392B, #D4A853);
+    border-radius: 16px;
+    margin: 20px auto 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+  }
+  .login-title { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; color: var(--text); text-align: center; margin-bottom: 4px; }
+  .login-sub { font-size: 12px; color: var(--text3); text-align: center; margin-bottom: 28px; }
+  .login-label { font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.5px; }
+  .login-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 13px;
+    margin-bottom: 14px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .login-input:focus { border-color: #C8392B; outline: none; }
+  .login-input.focus { border-color: #C8392B; }
+  .login-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #C8392B, #9E2A1F);
+    color: white; border: none; border-radius: 14px;
+    padding: 14px; font-size: 14px; font-weight: 600;
+    cursor: pointer; margin-top: 6px;
+    font-family: 'DM Sans', sans-serif;
+    box-shadow: 0 6px 20px rgba(200,57,43,0.4);
+  }
+  .login-hint { font-size: 11px; color: var(--text3); text-align: center; margin-top: 14px; line-height: 1.5; }
+
+  /* Recall drawer */
+  .phone-wide {
+    width: 340px;
+    background: var(--bg);
+    border-radius: 20px;
+    border: 2px solid #2A2A2E;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+    overflow: hidden;
+  }
+  .recall-header {
+    background: var(--surface);
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .recall-title { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; color: var(--text); }
+  .recall-close { color: var(--text3); font-size: 18px; cursor: pointer; }
+  .recall-items { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .recall-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--surface2); border-radius: 10px;
+    cursor: pointer; border: 1px solid transparent;
+    transition: border-color 0.15s;
+  }
+  .recall-item:hover { border-color: var(--border); }
+  .recall-item-left { display: flex; align-items: center; gap: 10px; }
+  .recall-item-mesa { font-size: 13px; font-weight: 600; color: var(--text); }
+  .recall-item-time { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); margin-top: 2px; }
+  .recall-item-count { font-size: 10px; color: var(--text2); }
+  .recall-revive {
+    font-size: 10px; font-weight: 600;
+    color: var(--amber); background: rgba(245,158,11,0.1);
+    padding: 4px 10px; border-radius: 7px;
+  }
+  .recall-empty { padding: 24px; text-align: center; color: var(--text3); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">RestaurantOS</h1>
+<h2 class="page-subtitle">App Cocina / Bar — KDS</h2>
+<p class="page-note">Tablet Android · Landscape permanente · Modo oscuro</p>
+
+<!-- Main KDS tablet -->
+<div class="tablet-frame">
+  <div class="kds-appbar">
+    <div class="kds-appbar-left">
+      <div class="kds-logo">🔥</div>
+      <div>
+        <div class="kds-station">Cocina caliente</div>
+        <div class="kds-station-sub">El Fogón · Sucursal Centro</div>
+      </div>
+    </div>
+    <div class="kds-appbar-center">
+      <div class="kds-stat active">⬡ 4 activos</div>
+      <div class="kds-stat pending">⏳ 2 pendientes</div>
+      <div class="kds-stat done">✓ 18 completados</div>
+    </div>
+    <div class="kds-appbar-right">
+      <div class="kds-time">12:47</div>
+      <div class="kds-icon-btn">🔔</div>
+      <div class="kds-icon-btn">⟲</div>
+      <div class="kds-icon-btn" style="font-size:13px;font-weight:600;color:#9E9D96">···</div>
+    </div>
+  </div>
+
+  <div class="kds-grid">
+
+    <!-- Ticket 1: urgente -->
+    <div class="ticket" style="position:relative;">
+      <div class="new-order-badge">NUEVO</div>
+      <div class="ticket-header red" style="border-top:3px solid var(--red)">
+        <div>
+          <div class="ticket-mesa">Mesa 12</div>
+          <div class="ticket-num">#0043 · 4 ítems</div>
+        </div>
+        <div class="ticket-timer red"><div class="timer-dot red"></div>18:32</div>
+      </div>
+      <div class="ticket-items">
+        <div class="ticket-item progress">
+          <div class="item-icon progress">🥩</div>
+          <div class="item-details">
+            <div class="item-name">Lomo al trapo × 2</div>
+            <div class="item-mod">Bien cocido · Sin sal</div>
+          </div>
+          <div class="item-status-icon">🟡</div>
+        </div>
+        <div class="ticket-item progress">
+          <div class="item-icon progress">🍗</div>
+          <div class="item-details">
+            <div class="item-name">Pollo a la plancha × 1</div>
+            <div class="item-mod">Con arroz</div>
+          </div>
+          <div class="item-status-icon">🟡</div>
+        </div>
+        <div class="ticket-item done">
+          <div class="item-icon done">🥗</div>
+          <div class="item-details">
+            <div class="item-name done">Ensalada César × 1</div>
+            <div class="item-mod">Sin crutones</div>
+          </div>
+          <div class="item-status-icon">✅</div>
+        </div>
+      </div>
+      <div class="ticket-footer">
+        <div class="ticket-items-count">2 de 3 en progreso</div>
+        <button class="ticket-action-btn complete">Marcar todo listo</button>
+      </div>
+    </div>
+
+    <!-- Ticket 2: en tiempo -->
+    <div class="ticket">
+      <div class="ticket-header amber">
+        <div>
+          <div class="ticket-mesa">Mesa 3</div>
+          <div class="ticket-num">#0044 · 3 ítems</div>
+        </div>
+        <div class="ticket-timer amber"><div class="timer-dot amber"></div>09:15</div>
+      </div>
+      <div class="ticket-items">
+        <div class="ticket-item queued">
+          <div class="item-icon queued">🥩</div>
+          <div class="item-details">
+            <div class="item-name">Costillas BBQ × 1</div>
+            <div class="item-mod">Salsa extra</div>
+          </div>
+          <div class="item-status-icon">⬜</div>
+        </div>
+        <div class="ticket-item queued">
+          <div class="item-icon queued">🍝</div>
+          <div class="item-details">
+            <div class="item-name">Pasta al pesto × 2</div>
+            <div class="item-mod">Sin queso · Al dente</div>
+          </div>
+          <div class="item-status-icon">⬜</div>
+        </div>
+      </div>
+      <div class="ticket-footer">
+        <div class="ticket-items-count">Sin empezar</div>
+        <button class="ticket-action-btn start">Iniciar preparación</button>
+      </div>
+    </div>
+
+    <!-- Ticket 3: nuevo -->
+    <div class="ticket">
+      <div class="ticket-header green">
+        <div>
+          <div class="ticket-mesa">Mesa 7</div>
+          <div class="ticket-num">#0047 · 2 ítems</div>
+        </div>
+        <div class="ticket-timer green"><div class="timer-dot green"></div>02:10</div>
+      </div>
+      <div class="ticket-items">
+        <div class="ticket-item queued">
+          <div class="item-icon queued">🥩</div>
+          <div class="item-details">
+            <div class="item-name">Lomo al trapo × 1</div>
+            <div class="item-mod">Término medio</div>
+          </div>
+          <div class="item-status-icon">⬜</div>
+        </div>
+        <div class="ticket-item queued">
+          <div class="item-icon queued">🦐</div>
+          <div class="item-details">
+            <div class="item-name">Camarones al ajillo × 1</div>
+            <div class="item-mod">Con tostadas</div>
+          </div>
+          <div class="item-status-icon">⬜</div>
+        </div>
+      </div>
+      <div class="ticket-footer">
+        <div class="ticket-items-count">Recién llegado</div>
+        <button class="ticket-action-btn start">Iniciar preparación</button>
+      </div>
+    </div>
+
+    <!-- Ticket 4: casi listo -->
+    <div class="ticket">
+      <div class="ticket-header blue">
+        <div>
+          <div class="ticket-mesa">Mesa 1</div>
+          <div class="ticket-num">#0045 · 2 ítems</div>
+        </div>
+        <div class="ticket-timer green"><div class="timer-dot green"></div>05:44</div>
+      </div>
+      <div class="ticket-items">
+        <div class="ticket-item done">
+          <div class="item-icon done">🥗</div>
+          <div class="item-details">
+            <div class="item-name done">Ceviche mixto × 2</div>
+            <div class="item-mod">Porción grande</div>
+          </div>
+          <div class="item-status-icon">✅</div>
+        </div>
+        <div class="ticket-item done">
+          <div class="item-icon done">🍗</div>
+          <div class="item-details">
+            <div class="item-name done">Pechuga rellena × 1</div>
+            <div class="item-mod">Con papas fritas</div>
+          </div>
+          <div class="item-status-icon">✅</div>
+        </div>
+      </div>
+      <div class="ticket-footer">
+        <div class="ticket-items-count">Todo listo ✓</div>
+        <button class="ticket-action-btn complete" style="background:rgba(34,197,94,0.2);color:var(--green)">Entregar</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Second row: Login + Recall -->
+<div class="screens-row2">
+
+  <!-- Login screen -->
+  <div class="screen-wrap">
+    <div class="phone-dark">
+      <div class="phone-dark-notch"><div class="phone-dark-notch-pill"></div></div>
+      <div class="phone-dark-inner">
+        <div class="login-logo">🔥</div>
+        <div class="login-title">Bienvenido</div>
+        <div class="login-sub">Ingresa con tu cuenta de operador</div>
+        <div class="login-label">CORREO</div>
+        <input class="login-input" type="email" value="cocina@elfogon.pa" readonly>
+        <div class="login-label">CONTRASEÑA</div>
+        <input class="login-input focus" type="password" value="••••••••" readonly>
+        <button class="login-btn">Ingresar a cocina</button>
+        <div class="login-hint">No puedes crear cuentas aquí.<br>Contacta al administrador del restaurante.</div>
+      </div>
+    </div>
+    <div class="screen-label">Login operador</div>
+  </div>
+
+  <!-- Recall drawer -->
+  <div class="screen-wrap">
+    <div class="phone-wide">
+      <div class="recall-header">
+        <div>
+          <div class="recall-title">Tickets completados</div>
+          <div style="font-size:11px;color:#5C5B55;margin-top:2px">Últimas 2 horas</div>
+        </div>
+        <div class="recall-close">✕</div>
+      </div>
+      <div class="recall-items">
+        <div class="recall-item">
+          <div class="recall-item-left">
+            <div style="font-size:22px">🍽️</div>
+            <div>
+              <div class="recall-item-mesa">Mesa 5 — #0042</div>
+              <div class="recall-item-time">Completado 12:31 · 3 ítems</div>
+            </div>
+          </div>
+          <div class="recall-revive">↩ Reabrir</div>
+        </div>
+        <div class="recall-item">
+          <div class="recall-item-left">
+            <div style="font-size:22px">🍽️</div>
+            <div>
+              <div class="recall-item-mesa">Mesa 9 — #0040</div>
+              <div class="recall-item-time">Completado 12:18 · 5 ítems</div>
+            </div>
+          </div>
+          <div class="recall-revive">↩ Reabrir</div>
+        </div>
+        <div class="recall-item">
+          <div class="recall-item-left">
+            <div style="font-size:22px">🍽️</div>
+            <div>
+              <div class="recall-item-mesa">Mesa 2 — #0038</div>
+              <div class="recall-item-time">Completado 11:55 · 2 ítems</div>
+            </div>
+          </div>
+          <div class="recall-revive">↩ Reabrir</div>
+        </div>
+        <div class="recall-item">
+          <div class="recall-item-left">
+            <div style="font-size:22px">🍽️</div>
+            <div>
+              <div class="recall-item-mesa">Mesa 14 — #0035</div>
+              <div class="recall-item-time">Completado 11:40 · 4 ítems</div>
+            </div>
+          </div>
+          <div class="recall-revive">↩ Reabrir</div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Recall de tickets</div>
+  </div>
+
+</div>
+
+</body>
+</html>

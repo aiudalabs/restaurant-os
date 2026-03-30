@@ -25,10 +25,14 @@ export function watchMenus(
   const q = query(
     collection(db, paths.menus),
     where('orgId', '==', orgId),
-    orderBy('name'),
   );
   return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Menu));
+    const menus = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Menu);
+    menus.sort((a, b) => a.name.localeCompare(b.name));
+    callback(menus);
+  }, (err) => {
+    console.error('watchMenus error:', err);
+    callback([]);
   });
 }
 
@@ -53,10 +57,14 @@ export function watchCategories(
   const q = query(
     collection(db, paths.categories),
     where('menuId', '==', menuId),
-    orderBy('sortOrder'),
   );
   return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Category));
+    const cats = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Category);
+    cats.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    callback(cats);
+  }, (err) => {
+    console.error('watchCategories error:', err);
+    callback([]);
   });
 }
 
@@ -89,10 +97,14 @@ export function watchProducts(
     collection(db, paths.products),
     where('menuId', '==', menuId),
     where('categoryId', '==', categoryId),
-    orderBy('sortOrder'),
   );
   return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Product));
+    const prods = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Product);
+    prods.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    callback(prods);
+  }, (err) => {
+    console.error('watchProducts error:', err);
+    callback([]);
   });
 }
 
@@ -104,10 +116,11 @@ export async function fetchProductsByCategory(
     collection(db, paths.products),
     where('menuId', '==', menuId),
     where('categoryId', '==', categoryId),
-    orderBy('sortOrder'),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Product);
+  const prods = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Product);
+  prods.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  return prods;
 }
 
 export async function createProduct(

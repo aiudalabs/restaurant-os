@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RestaurantOS — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand: #C8392B;
+    --brand-dark: #9E2A1F;
+    --brand-light: #FEF2F1;
+    --gold: #D4A853;
+    --sidebar: #1A1008;
+    --surface: #FEFAF7;
+    --surface2: #F5EDE8;
+    --surface3: #EDE0D8;
+    --border: #EDE0D8;
+    --text: #1A1008;
+    --text2: #5C4033;
+    --text3: #9E8070;
+    --white: #FFFFFF;
+    --green: #2D7A4F;
+    --green-bg: #E8F5EE;
+    --amber: #92400E;
+    --amber-bg: #FEF3C7;
+    --blue: #1E40AF;
+    --blue-bg: #EFF6FF;
+    --red: #991B1B;
+    --red-bg: #FEF2F2;
+  }
+
+  body {
+    background: #0D0603;
+    font-family: 'DM Sans', sans-serif;
+    padding: 40px 24px 60px;
+  }
+
+  h1.page-title {
+    font-family: 'Fraunces', serif;
+    color: #5C4033;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  h2.page-subtitle {
+    font-family: 'Fraunces', serif;
+    color: #F5EDE8;
+    font-size: 26px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .page-note {
+    color: #5C4033;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .section-label {
+    font-family: 'Fraunces', serif;
+    color: #9E8070;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+    margin: 48px 0 20px;
+  }
+
+  /* Browser frame */
+  .browser {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #E8E0D8;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+  }
+  .browser-bar {
+    background: #D5CCC4;
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .browser-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .browser-dot.red { background: #FF5F57; }
+  .browser-dot.amber { background: #FEBC2E; }
+  .browser-dot.green { background: #28C840; }
+  .browser-url {
+    flex: 1; background: white;
+    border-radius: 8px; padding: 6px 12px;
+    font-size: 12px; color: #666;
+    margin-left: 8px;
+  }
+
+  /* Admin shell */
+  .admin-shell {
+    display: flex;
+    height: 600px;
+    background: var(--surface);
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 220px;
+    background: var(--sidebar);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+  }
+  .sidebar-logo {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid #2E2010;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar-logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #C8392B, #D4A853);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .sidebar-logo-text { font-family: 'Fraunces', serif; color: #F5EDE8; font-size: 15px; font-weight: 600; line-height: 1.2; }
+  .sidebar-logo-sub { color: #5C4033; font-size: 10px; }
+
+  .sidebar-nav { padding: 12px 10px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #9E8070;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .nav-item:hover { background: #2E2010; color: #F5EDE8; }
+  .nav-item.active { background: var(--brand); color: white; }
+  .nav-item-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--brand);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 8px;
+    min-width: 20px;
+    text-align: center;
+  }
+  .nav-item.active .nav-badge { background: rgba(255,255,255,0.25); }
+
+  .sidebar-footer {
+    padding: 12px 10px 0;
+    border-top: 1px solid #2E2010;
+    margin-top: 8px;
+  }
+  .sidebar-user {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+  }
+  .sidebar-avatar {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #C8392B33, #D4A85333);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    border: 1px solid #2E2010;
+  }
+  .sidebar-user-name { font-size: 12px; color: #F5EDE8; font-weight: 500; }
+  .sidebar-user-role { font-size: 10px; color: #5C4033; }
+
+  /* Main content */
+  .main-content { flex: 1; overflow-y: auto; background: var(--surface); }
+  .content-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: white;
+    position: sticky; top: 0; z-index: 5;
+  }
+  .content-header h1 { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; color: var(--text); }
+  .content-header p { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .header-actions { display: flex; gap: 8px; }
+  .btn-primary {
+    background: var(--brand); color: white;
+    border: none; border-radius: 10px;
+    padding: 8px 16px; font-size: 12px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-secondary {
+    background: white; color: var(--text2);
+    border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 8px 16px; font-size: 12px; font-weight: 500;
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .content-body { padding: 20px 24px; }
+
+  /* Stats row */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-card {
+    background: white; border-radius: 14px;
+    padding: 16px; border: 1px solid var(--border);
+  }
+  .stat-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .stat-icon { font-size: 20px; }
+  .stat-trend {
+    font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 7px;
+  }
+  .stat-trend.up { background: var(--green-bg); color: var(--green); }
+  .stat-trend.down { background: var(--red-bg); color: var(--red); }
+  .stat-value { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 11px; color: var(--text3); }
+
+  /* Two column layout */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .card {
+    background: white; border-radius: 14px;
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .card-action { font-size: 11px; color: var(--brand); font-weight: 600; cursor: pointer; }
+
+  /* Active orders mini list */
+  .order-list { }
+  .order-row {
+    display: flex; align-items: center; padding: 10px 16px;
+    border-bottom: 1px solid var(--border); gap: 10px;
+  }
+  .order-row:last-child { border-bottom: none; }
+  .order-mesa { font-size: 13px; font-weight: 600; color: var(--text); min-width: 60px; }
+  .order-items-text { flex: 1; font-size: 11px; color: var(--text3); }
+  .order-status-badge {
+    font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 7px;
+  }
+  .order-status-badge.prep { background: var(--amber-bg); color: var(--amber); }
+  .order-status-badge.ready { background: var(--green-bg); color: var(--green); }
+  .order-status-badge.new { background: var(--blue-bg); color: var(--blue); }
+  .order-time { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--text3); min-width: 40px; text-align: right; }
+
+  /* Sales chart placeholder */
+  .chart-area { padding: 16px; }
+  .chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 120px; }
+  .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .chart-bar {
+    width: 100%; border-radius: 6px 6px 0 0;
+    background: var(--surface2);
+    transition: background 0.15s;
+    min-height: 4px;
+  }
+  .chart-bar.highlight { background: var(--brand); }
+  .chart-bar-label { font-size: 9px; color: var(--text3); }
+
+  /* ── MENU SCREEN ── */
+  .menu-layout { display: grid; grid-template-columns: 220px 1fr; height: 100%; }
+  .menu-cats {
+    border-right: 1px solid var(--border);
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 2px;
+    overflow-y: auto;
+  }
+  .menu-cat-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; border-radius: 10px;
+    cursor: pointer; font-size: 13px; color: var(--text2);
+  }
+  .menu-cat-item:hover { background: var(--surface2); }
+  .menu-cat-item.active { background: var(--brand-light); color: var(--brand); font-weight: 600; }
+  .menu-cat-count { font-size: 10px; color: var(--text3); background: var(--surface2); padding: 2px 8px; border-radius: 6px; }
+  .menu-cat-item.active .menu-cat-count { background: rgba(200,57,43,0.1); color: var(--brand); }
+
+  .menu-products { padding: 16px; overflow-y: auto; }
+  .menu-products-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .menu-products-title { font-size: 16px; font-weight: 600; color: var(--text); font-family: 'Fraunces', serif; }
+
+  .product-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+  .product-row-img {
+    width: 52px; height: 52px; border-radius: 10px;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; flex-shrink: 0;
+  }
+  .product-row-info { flex: 1; }
+  .product-row-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .product-row-desc { font-size: 11px; color: var(--text3); }
+  .product-row-price { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; color: var(--text); min-width: 60px; text-align: right; }
+  .product-row-actions { display: flex; gap: 6px; }
+  .product-row-btn {
+    width: 32px; height: 32px; border-radius: 9px;
+    border: 1.5px solid var(--border);
+    background: white; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+  .product-row-btn.danger { border-color: var(--red-bg); color: var(--red); }
+  .toggle-pill {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text3);
+  }
+  .toggle {
+    width: 32px; height: 18px; border-radius: 9px;
+    background: var(--green); position: relative; cursor: pointer;
+  }
+  .toggle.off { background: var(--surface3); }
+  .toggle-knob {
+    position: absolute; top: 2px; right: 2px;
+    width: 14px; height: 14px; border-radius: 50%; background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle.off .toggle-knob { right: auto; left: 2px; }
+
+  /* QR screen */
+  .qr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px; }
+  .qr-card {
+    background: white; border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 14px; text-align: center;
+  }
+  .qr-square {
+    width: 80px; height: 80px;
+    margin: 0 auto 10px;
+    background: var(--text);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qr-inner { font-size: 36px; filter: invert(1); }
+  .qr-table-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .qr-zone { font-size: 10px; color: var(--text3); margin-bottom: 10px; }
+  .qr-actions { display: flex; gap: 6px; justify-content: center; }
+  .qr-btn {
+    flex: 1; padding: 6px 0;
+    border-radius: 8px; border: 1.5px solid var(--border);
+    background: white; font-size: 10px; font-weight: 500; cursor: pointer;
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+  }
+  .qr-btn.primary { background: var(--brand); color: white; border-color: var(--brand); }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">RestaurantOS</h1>
+<h2 class="page-subtitle">App Administración</h2>
+<p class="page-note">Flutter Web · Responsive · Dashboard en tiempo real</p>
+
+<!-- SCREEN 1: Dashboard -->
+<div class="browser">
+  <div class="browser-bar">
+    <div class="browser-dot red"></div>
+    <div class="browser-dot amber"></div>
+    <div class="browser-dot green"></div>
+    <div class="browser-url">app.restaurantos.com/admin/dashboard</div>
+  </div>
+  <div class="admin-shell">
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">🍽️</div>
+        <div>
+          <div class="sidebar-logo-text">El Fogón</div>
+          <div class="sidebar-logo-sub">Sucursal Centro</div>
+        </div>
+      </div>
+      <div class="sidebar-nav">
+        <div class="nav-item active"><span class="nav-item-icon">⊞</span> Dashboard</div>
+        <div class="nav-item"><span class="nav-item-icon">📋</span> Pedidos <span class="nav-badge">6</span></div>
+        <div class="nav-item"><span class="nav-item-icon">📖</span> Menú</div>
+        <div class="nav-item"><span class="nav-item-icon">⬡</span> Mesas</div>
+        <div class="nav-item"><span class="nav-item-icon">🔥</span> Estaciones</div>
+        <div class="nav-item"><span class="nav-item-icon">👥</span> Usuarios</div>
+        <div class="nav-item"><span class="nav-item-icon">📊</span> Reportes</div>
+        <div class="nav-item"><span class="nav-item-icon">⚙️</span> Ajustes</div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">👤</div>
+          <div>
+            <div class="sidebar-user-name">Carlos Martínez</div>
+            <div class="sidebar-user-role">Administrador</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="content-header">
+        <div>
+          <h1>Dashboard</h1>
+          <p>Domingo 29 de marzo, 2026 · 12:47 PM</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-secondary">📥 Exportar</button>
+          <button class="btn-primary">+ Nuevo pedido</button>
+        </div>
+      </div>
+      <div class="content-body">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-icon">📋</span>
+              <span class="stat-trend up">↑ 12%</span>
+            </div>
+            <div class="stat-value">18</div>
+            <div class="stat-label">Pedidos hoy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-icon">💰</span>
+              <span class="stat-trend up">↑ 8%</span>
+            </div>
+            <div class="stat-value">$1,240</div>
+            <div class="stat-label">Ventas hoy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-icon">🧾</span>
+              <span class="stat-trend down">↓ 3%</span>
+            </div>
+            <div class="stat-value">$68</div>
+            <div class="stat-label">Ticket promedio</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-icon">⏱️</span>
+              <span class="stat-trend up">↑ 5%</span>
+            </div>
+            <div class="stat-value">14 min</div>
+            <div class="stat-label">Tiempo prep. promedio</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Pedidos activos</div>
+              <div class="card-action">Ver todos →</div>
+            </div>
+            <div class="order-list">
+              <div class="order-row">
+                <div class="order-mesa">Mesa 12</div>
+                <div class="order-items-text">Lomo × 2, Pollo, Ensalada</div>
+                <div class="order-status-badge prep">Cocina</div>
+                <div class="order-time">18 min</div>
+              </div>
+              <div class="order-row">
+                <div class="order-mesa">Mesa 3</div>
+                <div class="order-items-text">Costillas, Pasta × 2</div>
+                <div class="order-status-badge prep">Cocina</div>
+                <div class="order-time">9 min</div>
+              </div>
+              <div class="order-row">
+                <div class="order-mesa">Mesa 7</div>
+                <div class="order-items-text">Lomo, Camarones</div>
+                <div class="order-status-badge new">Recibido</div>
+                <div class="order-time">2 min</div>
+              </div>
+              <div class="order-row">
+                <div class="order-mesa">Mesa 1</div>
+                <div class="order-items-text">Ceviche × 2, Pechuga</div>
+                <div class="order-status-badge ready">Listo ✓</div>
+                <div class="order-time">5 min</div>
+              </div>
+              <div class="order-row">
+                <div class="order-mesa">Mesa 9</div>
+                <div class="order-items-text">Cerveza × 3, Cóctel × 2</div>
+                <div class="order-status-badge ready">Bar listo</div>
+                <div class="order-time">3 min</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Ventas por hora</div>
+              <div class="card-action">Hoy</div>
+            </div>
+            <div class="chart-area">
+              <div class="chart-bars">
+                <div class="chart-bar-wrap"><div class="chart-bar" style="height:20%"></div><div class="chart-bar-label">9am</div></div>
+                <div class="chart-bar-wrap"><div class="chart-bar" style="height:35%"></div><div class="chart-bar-label">10</div></div>
+                <div class="chart-bar-wrap"><div class="chart-bar" style="height:55%"></div><div class="chart-bar-label">11</div></div>
+                <div class="chart-bar-wrap"><div class="chart-bar highlight" style="height:90%"></div><div class="chart-bar-label">12</div></div>
+                <div class="chart-bar-wrap"><div class="chart-bar" style="height:75%"></div><div class="chart-bar-label">1pm</div></div>
+                <div class="chart-bar-wrap"><div class="chart-bar" style="height:60%"></div><div class="chart-bar-label">2</div></div>
+                <div class="chart-bar-wrap"><div class="chart-bar" style="height:40%"></div><div class="chart-bar-label">3</div></div>
+                <div class="chart-bar-wrap"><div class="chart-bar" style="height:30%"></div><div class="chart-bar-label">4</div></div>
+                <div class="chart-bar-wrap"><div class="chart-bar" style="height:45%"></div><div class="chart-bar-label">5</div></div>
+                <div class="chart-bar-wrap"><div class="chart-bar" style="height:80%"></div><div class="chart-bar-label">6</div></div>
+                <div class="chart-bar-wrap"><div class="chart-bar" style="height:70%"></div><div class="chart-bar-label">7</div></div>
+                <div class="chart-bar-wrap"><div class="chart-bar" style="height:50%"></div><div class="chart-bar-label">8</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 2: Menú -->
+<div class="section-label">Gestión de Menú</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="browser-dot red"></div>
+    <div class="browser-dot amber"></div>
+    <div class="browser-dot green"></div>
+    <div class="browser-url">app.restaurantos.com/admin/menu</div>
+  </div>
+  <div class="admin-shell">
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">🍽️</div>
+        <div>
+          <div class="sidebar-logo-text">El Fogón</div>
+          <div class="sidebar-logo-sub">Sucursal Centro</div>
+        </div>
+      </div>
+      <div class="sidebar-nav">
+        <div class="nav-item"><span class="nav-item-icon">⊞</span> Dashboard</div>
+        <div class="nav-item"><span class="nav-item-icon">📋</span> Pedidos <span class="nav-badge">6</span></div>
+        <div class="nav-item active"><span class="nav-item-icon">📖</span> Menú</div>
+        <div class="nav-item"><span class="nav-item-icon">⬡</span> Mesas</div>
+        <div class="nav-item"><span class="nav-item-icon">🔥</span> Estaciones</div>
+        <div class="nav-item"><span class="nav-item-icon">👥</span> Usuarios</div>
+        <div class="nav-item"><span class="nav-item-icon">📊</span> Reportes</div>
+        <div class="nav-item"><span class="nav-item-icon">⚙️</span> Ajustes</div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">👤</div>
+          <div>
+            <div class="sidebar-user-name">Carlos Martínez</div>
+            <div class="sidebar-user-role">Administrador</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="main-content">
+      <div class="content-header">
+        <div><h1>Menú</h1><p>38 productos · 6 categorías</p></div>
+        <div class="header-actions">
+          <button class="btn-secondary">+ Nueva categoría</button>
+          <button class="btn-primary">+ Nuevo producto</button>
+        </div>
+      </div>
+      <div style="display:flex; height:calc(100% - 61px);">
+        <div class="menu-cats" style="width:200px; flex-shrink:0;">
+          <div class="menu-cat-item"><span>🍢</span> Entradas <span class="menu-cat-count">8</span></div>
+          <div class="menu-cat-item active"><span>🥩</span> Carnes <span class="menu-cat-count">12</span></div>
+          <div class="menu-cat-item"><span>🐟</span> Mariscos <span class="menu-cat-count">7</span></div>
+          <div class="menu-cat-item"><span>🥗</span> Ensaladas <span class="menu-cat-count">5</span></div>
+          <div class="menu-cat-item"><span>🍺</span> Bebidas <span class="menu-cat-count">9</span></div>
+          <div class="menu-cat-item"><span>🍮</span> Postres <span class="menu-cat-count">6</span></div>
+        </div>
+        <div class="menu-products">
+          <div class="menu-products-header">
+            <div class="menu-products-title">Carnes · 12 productos</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn-secondary" style="font-size:11px;padding:6px 12px">🔀 Reordenar</button>
+            </div>
+          </div>
+          <div class="product-row">
+            <div class="product-row-img">🥩</div>
+            <div class="product-row-info">
+              <div class="product-row-name">Lomo al trapo premium</div>
+              <div class="product-row-desc">500g · Papa criolla · Chimichurri</div>
+            </div>
+            <div class="toggle-pill"><div class="toggle"><div class="toggle-knob"></div></div></div>
+            <div class="product-row-price">$28.00</div>
+            <div class="product-row-actions">
+              <button class="product-row-btn">✏️</button>
+              <button class="product-row-btn danger">🗑️</button>
+            </div>
+          </div>
+          <div class="product-row">
+            <div class="product-row-img">🍗</div>
+            <div class="product-row-info">
+              <div class="product-row-name">Pechuga rellena</div>
+              <div class="product-row-desc">Con jamón y queso · Papas fritas</div>
+            </div>
+            <div class="toggle-pill"><div class="toggle"><div class="toggle-knob"></div></div></div>
+            <div class="product-row-price">$22.00</div>
+            <div class="product-row-actions">
+              <button class="product-row-btn">✏️</button>
+              <button class="product-row-btn danger">🗑️</button>
+            </div>
+          </div>
+          <div class="product-row" style="opacity:0.55;">
+            <div class="product-row-img">🥩</div>
+            <div class="product-row-info">
+              <div class="product-row-name" style="color:#9E8070">Costillas BBQ</div>
+              <div class="product-row-desc">Sin gluten · 400g</div>
+            </div>
+            <div class="toggle-pill"><div class="toggle off"><div class="toggle-knob"></div></div></div>
+            <div class="product-row-price" style="color:#9E8070">$32.00</div>
+            <div class="product-row-actions">
+              <button class="product-row-btn">✏️</button>
+              <button class="product-row-btn danger">🗑️</button>
+            </div>
+          </div>
+          <div class="product-row">
+            <div class="product-row-img">🥩</div>
+            <div class="product-row-info">
+              <div class="product-row-name">Churrasco a las brasas</div>
+              <div class="product-row-desc">350g · Yuca frita · Ensalada</div>
+            </div>
+            <div class="toggle-pill"><div class="toggle"><div class="toggle-knob"></div></div></div>
+            <div class="product-row-price">$26.00</div>
+            <div class="product-row-actions">
+              <button class="product-row-btn">✏️</button>
+              <button class="product-row-btn danger">🗑️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 3: Mesas y QR -->
+<div class="section-label">Gestión de Mesas y QR</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="browser-dot red"></div>
+    <div class="browser-dot amber"></div>
+    <div class="browser-dot green"></div>
+    <div class="browser-url">app.restaurantos.com/admin/mesas</div>
+  </div>
+  <div class="admin-shell">
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">🍽️</div>
+        <div>
+          <div class="sidebar-logo-text">El Fogón</div>
+          <div class="sidebar-logo-sub">Sucursal Centro</div>
+        </div>
+      </div>
+      <div class="sidebar-nav">
+        <div class="nav-item"><span class="nav-item-icon">⊞</span> Dashboard</div>
+        <div class="nav-item"><span class="nav-item-icon">📋</span> Pedidos</div>
+        <div class="nav-item"><span class="nav-item-icon">📖</span> Menú</div>
+        <div class="nav-item active"><span class="nav-item-icon">⬡</span> Mesas</div>
+        <div class="nav-item"><span class="nav-item-icon">🔥</span> Estaciones</div>
+        <div class="nav-item"><span class="nav-item-icon">👥</span> Usuarios</div>
+        <div class="nav-item"><span class="nav-item-icon">📊</span> Reportes</div>
+        <div class="nav-item"><span class="nav-item-icon">⚙️</span> Ajustes</div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">👤</div>
+          <div>
+            <div class="sidebar-user-name">Carlos Martínez</div>
+            <div class="sidebar-user-role">Administrador</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="main-content">
+      <div class="content-header">
+        <div><h1>Mesas y QR</h1><p>14 mesas · 3 zonas</p></div>
+        <div class="header-actions">
+          <button class="btn-secondary">🖨️ Imprimir todos</button>
+          <button class="btn-primary">+ Nueva mesa</button>
+        </div>
+      </div>
+      <div class="content-body" style="padding-top:16px">
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="btn-primary" style="font-size:11px;padding:6px 14px;background:var(--brand-light);color:var(--brand);box-shadow:none">Todas las zonas</button>
+          <button class="btn-secondary" style="font-size:11px;padding:6px 14px">Salón principal</button>
+          <button class="btn-secondary" style="font-size:11px;padding:6px 14px">Terraza</button>
+          <button class="btn-secondary" style="font-size:11px;padding:6px 14px">Privado</button>
+        </div>
+        <div class="qr-grid">
+          <div class="qr-card">
+            <div class="qr-square"><div class="qr-inner">⬛</div></div>
+            <div class="qr-table-name">Mesa 1</div>
+            <div class="qr-zone">Salón principal · Cap. 4</div>
+            <div style="font-size:10px;color:var(--amber);background:var(--amber-bg);padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:10px">Ocupada</div>
+            <div class="qr-actions">
+              <button class="qr-btn">👁 Ver</button>
+              <button class="qr-btn primary">⬇ QR</button>
+            </div>
+          </div>
+          <div class="qr-card">
+            <div class="qr-square"><div class="qr-inner">⬛</div></div>
+            <div class="qr-table-name">Mesa 2</div>
+            <div class="qr-zone">Salón principal · Cap. 4</div>
+            <div style="font-size:10px;color:var(--green);background:var(--green-bg);padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:10px">Libre</div>
+            <div class="qr-actions">
+              <button class="qr-btn">👁 Ver</button>
+              <button class="qr-btn primary">⬇ QR</button>
+            </div>
+          </div>
+          <div class="qr-card">
+            <div class="qr-square"><div class="qr-inner">⬛</div></div>
+            <div class="qr-table-name">Mesa 7</div>
+            <div class="qr-zone">Salón principal · Cap. 2</div>
+            <div style="font-size:10px;color:var(--amber);background:var(--amber-bg);padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:10px">Ocupada</div>
+            <div class="qr-actions">
+              <button class="qr-btn">👁 Ver</button>
+              <button class="qr-btn primary">⬇ QR</button>
+            </div>
+          </div>
+          <div class="qr-card">
+            <div class="qr-square"><div class="qr-inner">⬛</div></div>
+            <div class="qr-table-name">Mesa T-1</div>
+            <div class="qr-zone">Terraza · Cap. 6</div>
+            <div style="font-size:10px;color:var(--green);background:var(--green-bg);padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:10px">Libre</div>
+            <div class="qr-actions">
+              <button class="qr-btn">👁 Ver</button>
+              <button class="qr-btn primary">⬇ QR</button>
+            </div>
+          </div>
+          <div class="qr-card">
+            <div class="qr-square"><div class="qr-inner">⬛</div></div>
+            <div class="qr-table-name">Mesa T-2</div>
+            <div class="qr-zone">Terraza · Cap. 6</div>
+            <div style="font-size:10px;color:var(--amber);background:var(--amber-bg);padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:10px">Ocupada</div>
+            <div class="qr-actions">
+              <button class="qr-btn">👁 Ver</button>
+              <button class="qr-btn primary">⬇ QR</button>
+            </div>
+          </div>
+          <div class="qr-card" style="border:1.5px dashed var(--border);background:var(--surface);">
+            <div style="width:80px;height:80px;margin:0 auto 10px;border:2px dashed var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--text3)">+</div>
+            <div class="qr-table-name" style="color:var(--text3)">Nueva mesa</div>
+            <div class="qr-zone">Agregar al layout</div>
+            <div style="margin-bottom:10px;height:18px"></div>
+            <div class="qr-actions">
+              <button class="qr-btn primary" style="flex:unset;width:100%">+ Agregar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

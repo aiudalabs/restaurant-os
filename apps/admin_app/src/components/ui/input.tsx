@@ -4,15 +4,17 @@ import { cn } from '@/lib/utils';
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  isRequired?: boolean;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, id, ...props }, ref) => {
+  ({ className, label, error, id, isRequired, ...props }, ref) => {
     return (
       <div className="space-y-1">
         {label && (
           <label htmlFor={id} className="block text-sm font-medium text-gray-700">
             {label}
+            {isRequired && <span className="text-red-500 ml-0.5">*</span>}
           </label>
         )}
         <input

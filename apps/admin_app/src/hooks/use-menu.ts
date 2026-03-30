@@ -23,7 +23,11 @@ export function useMenus(orgId: string) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId) {
+      setMenus([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const unsubscribe = watchMenus(orgId, (data) => {
       setMenus(data);

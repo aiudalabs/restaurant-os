@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { useBranchContext } from '@/hooks/use-branch-context';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { appUser, logout } = useAuth();
+  const { branches, selectedBranchId, setSelectedBranchId, selectedBranch } = useBranchContext();
   const matchRoute = useMatchRoute();
 
   return (
@@ -56,6 +58,25 @@ export default function AdminLayout() {
           >
             <X className="h-5 w-5" />
           </button>
+        </div>
+
+        {/* Branch selector */}
+        <div className="px-4 py-2 border-b border-gray-200">
+          {branches.length > 1 ? (
+            <select
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm"
+            >
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {selectedBranch?.name ?? 'Sin sucursal'}
+            </p>
+          )}
         </div>
 
         {/* Navigation */}

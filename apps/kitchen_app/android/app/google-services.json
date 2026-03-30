@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "839468636765",
+    "project_id": "restaurant-os-68c79",
+    "storage_bucket": "restaurant-os-68c79.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:839468636765:android:4eed72f797659119b70bb4",
+        "android_client_info": {
+          "package_name": "com.aiudalabs.restaurantos.client"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBHM1cHT5WFrpl4_zSEgJa5my4NwZvigOc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:839468636765:android:25488fb6bf5a5cf5b70bb4",
+        "android_client_info": {
+          "package_name": "com.aiudalabs.restaurantos.kitchen"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBHM1cHT5WFrpl4_zSEgJa5my4NwZvigOc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:839468636765:android:8ead8d25b19af173b70bb4",
+        "android_client_info": {
+          "package_name": "com.example.client_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBHM1cHT5WFrpl4_zSEgJa5my4NwZvigOc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

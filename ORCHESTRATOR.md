@@ -138,3 +138,26 @@ Si un agente necesita algo del core que no existe:
 Si un agente reporta error de compilación:
 - Leer el error, enviar la solución específica
 - NO interrumpir a los otros agentes
+
+## Sprint futuro — Data Seeding (después de integración)
+
+**Objetivo:** Poblar Firestore con datos reales de restaurantes (web scraping si es necesario).
+
+**Referencia:** El proyecto anterior tiene un seed script funcional en:
+`/Users/nmlemus/projects/restaurant_os_old/tools/firebase_bootstrap/`
+- `seed.py` — crea org, branch, menú completo (5 categorías, 19 productos), estaciones, mesas, usuarios
+- `data/peekbar_snackbar.json` — datos de menú de ejemplo (MIT license)
+
+**Tareas:**
+1. Migrar `tools/firebase_bootstrap/` al repo actual, adaptar a la estructura actual
+2. Investigar restaurantes reales (web scraping) para obtener menús, categorías y productos realistas
+3. Crear JSON de datos por tipo de restaurante (mexicano, italiano, café, bar, etc.)
+4. Script de seed que:
+   - Crea organización + sucursal(es)
+   - Crea menú completo con categorías, productos, modificadores e imágenes
+   - Crea estaciones (cocina, bar, postres)
+   - Crea mesas con QR URLs
+   - Crea usuarios (admin + operadores por estación)
+5. Documentar en README cómo correr el seed
+
+**NO ejecutar hasta que las 3 apps estén integradas y funcionales.**

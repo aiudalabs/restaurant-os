@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RestaurantOS — App Cliente</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --brand: #C8392B;
+    --brand-dark: #9E2A1F;
+    --brand-light: #F5E6E4;
+    --gold: #D4A853;
+    --surface: #FEFAF7;
+    --surface2: #F5EDE8;
+    --text: #1A1008;
+    --text2: #5C4033;
+    --text3: #9E8070;
+    --border: #EDE0D8;
+    --white: #FFFFFF;
+    --green: #2D7A4F;
+    --green-light: #E8F5EE;
+    --radius: 20px;
+    --radius-sm: 12px;
+  }
+
+  body {
+    background: #1A1008;
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px 60px;
+  }
+
+  h1.page-title {
+    font-family: 'Fraunces', serif;
+    color: #F5EDE8;
+    font-size: 13px;
+    font-weight: 300;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  h2.page-subtitle {
+    font-family: 'Fraunces', serif;
+    color: #F5EDE8;
+    font-size: 28px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .screens-row {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .screen-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .screen-label {
+    color: #9E8070;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 320px;
+    background: var(--surface);
+    border-radius: 44px;
+    overflow: hidden;
+    border: 2px solid #2E2010;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.04);
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100px; height: 28px;
+    background: #1A1008;
+    border-radius: 0 0 18px 18px;
+    z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px;
+  }
+  .notch-cam { width: 10px; height: 10px; background: #2E2010; border-radius: 50%; }
+  .notch-pill { width: 40px; height: 4px; background: #2E2010; border-radius: 4px; }
+  .phone-inner {
+    padding-top: 28px;
+    min-height: 640px;
+    background: var(--surface);
+    position: relative;
+  }
+
+  /* ── SCREEN 1: Menú (categorías) ── */
+  .menu-hero {
+    background: linear-gradient(160deg, #8B1A0E 0%, #C8392B 60%, #D4A853 100%);
+    padding: 48px 20px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .menu-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  .menu-hero-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .menu-hero-title { font-family: 'Fraunces', serif; color: white; font-size: 22px; font-weight: 600; line-height: 1.2; }
+  .menu-hero-sub { color: rgba(255,255,255,0.75); font-size: 12px; margin-top: 3px; }
+  .menu-hero-badge {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white;
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .badge-dot { width: 6px; height: 6px; background: #4ADE80; border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .search-bar {
+    background: white;
+    border-radius: 14px;
+    padding: 11px 16px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--text3);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  .search-icon { font-size: 16px; }
+
+  .categories-scroll { padding: 16px 20px 8px; overflow-x: auto; }
+  .categories-scroll::-webkit-scrollbar { display: none; }
+  .cat-chips { display: flex; gap: 8px; white-space: nowrap; }
+  .cat-chip {
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: white;
+    color: var(--text2);
+    flex-shrink: 0;
+  }
+  .cat-chip.active {
+    background: var(--brand);
+    color: white;
+    border-color: var(--brand);
+  }
+
+  .section-title {
+    padding: 12px 20px 8px;
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .products-grid { padding: 0 20px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .product-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
+  }
+  .product-img {
+    height: 90px;
+    position: relative;
+    overflow: hidden;
+  }
+  .product-img-bg {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+  }
+  .product-badge {
+    position: absolute; top: 8px; left: 8px;
+    background: var(--brand);
+    color: white; font-size: 9px; font-weight: 600;
+    padding: 3px 8px; border-radius: 8px;
+    letter-spacing: 0.5px;
+  }
+  .product-info { padding: 10px; }
+  .product-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 4px; }
+  .product-desc { font-size: 10px; color: var(--text3); line-height: 1.4; margin-bottom: 8px; }
+  .product-footer { display: flex; justify-content: space-between; align-items: center; }
+  .product-price { font-family: 'Fraunces', serif; font-size: 14px; font-weight: 600; color: var(--brand); }
+  .add-btn {
+    width: 26px; height: 26px;
+    background: var(--brand);
+    color: white; border: none; border-radius: 8px;
+    font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+
+  .cart-fab {
+    position: sticky; bottom: 16px;
+    margin: 0 20px 16px;
+    background: var(--brand);
+    border-radius: 16px;
+    padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    color: white;
+    box-shadow: 0 8px 24px rgba(200,57,43,0.45);
+  }
+  .cart-fab-left { display: flex; align-items: center; gap: 10px; }
+  .cart-count {
+    background: white; color: var(--brand);
+    font-size: 11px; font-weight: 700;
+    width: 22px; height: 22px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cart-fab-text { font-size: 13px; font-weight: 500; }
+  .cart-fab-price { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; }
+
+  /* ── SCREEN 2: Product Detail ── */
+  .detail-hero {
+    height: 220px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #FFF3ED 0%, #FFE4D6 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .detail-emoji { font-size: 90px; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.15)); }
+  .detail-back {
+    position: absolute; top: 40px; left: 16px;
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: var(--text);
+  }
+  .detail-fav {
+    position: absolute; top: 40px; right: 16px;
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .detail-content { padding: 20px; }
+  .detail-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--green-light); color: var(--green);
+    font-size: 10px; font-weight: 600; padding: 4px 10px;
+    border-radius: 8px; margin-bottom: 10px;
+    letter-spacing: 0.3px;
+  }
+  .detail-name { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; color: var(--text); line-height: 1.2; margin-bottom: 8px; }
+  .detail-desc { font-size: 12px; color: var(--text3); line-height: 1.6; margin-bottom: 16px; }
+  .detail-divider { height: 1px; background: var(--border); margin-bottom: 16px; }
+  .detail-mod-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px; display: flex; justify-content: space-between; }
+  .detail-mod-req { font-size: 10px; color: var(--brand); font-weight: 500; background: var(--brand-light); padding: 2px 8px; border-radius: 6px; }
+  .mod-options { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .mod-opt {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .mod-opt.selected { border-color: var(--brand); background: var(--brand-light); }
+  .mod-opt-left { display: flex; align-items: center; gap: 10px; }
+  .mod-radio {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+  }
+  .mod-opt.selected .mod-radio {
+    border-color: var(--brand);
+    background: var(--brand);
+    box-shadow: inset 0 0 0 3px white;
+  }
+  .mod-opt-name { font-size: 12px; color: var(--text); font-weight: 500; }
+  .mod-opt-price { font-size: 11px; color: var(--text3); }
+
+  .detail-qty {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 16px;
+  }
+  .qty-btn {
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px; background: white;
+    font-size: 20px; color: var(--text); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .qty-val { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; color: var(--text); min-width: 24px; text-align: center; }
+
+  .add-cart-btn {
+    width: 100%;
+    background: var(--brand);
+    color: white; border: none;
+    border-radius: 16px;
+    padding: 15px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 6px 20px rgba(200,57,43,0.35);
+  }
+
+  /* ── SCREEN 3: Carrito ── */
+  .cart-header { padding: 40px 20px 16px; background: white; border-bottom: 1px solid var(--border); }
+  .cart-header h2 { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; color: var(--text); }
+  .cart-header p { font-size: 12px; color: var(--text3); margin-top: 3px; }
+  .cart-items { padding: 12px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .cart-item {
+    display: flex; gap: 12px; align-items: center;
+    background: white; border-radius: 16px;
+    padding: 12px; border: 1px solid var(--border);
+  }
+  .cart-item-img {
+    width: 52px; height: 52px; border-radius: 12px;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+    flex-shrink: 0;
+  }
+  .cart-item-info { flex: 1; }
+  .cart-item-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .cart-item-mod { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+  .cart-item-row { display: flex; justify-content: space-between; align-items: center; }
+  .cart-item-qty {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .cart-qty-btn {
+    width: 24px; height: 24px; border-radius: 8px;
+    border: 1.5px solid var(--border); background: white;
+    font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text2);
+  }
+  .cart-item-price { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 600; color: var(--text); }
+
+  .cart-notes {
+    margin: 0 20px 12px;
+    background: white; border-radius: 16px;
+    padding: 14px; border: 1px solid var(--border);
+  }
+  .cart-notes-label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+  .cart-notes-input {
+    width: 100%; border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 10px 12px;
+    font-size: 12px; color: var(--text3);
+    font-family: 'DM Sans', sans-serif;
+    resize: none; outline: none;
+  }
+
+  .cart-summary {
+    margin: 0 20px;
+    background: white; border-radius: 16px;
+    padding: 16px; border: 1px solid var(--border);
+  }
+  .summary-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+  .summary-divider { height: 1px; background: var(--border); margin: 10px 0; }
+  .summary-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; color: var(--text); }
+  .summary-total span:last-child { font-family: 'Fraunces', serif; color: var(--brand); }
+
+  .send-btn {
+    margin: 16px 20px 24px;
+    width: calc(100% - 40px);
+    background: var(--brand);
+    color: white; border: none; border-radius: 16px;
+    padding: 15px; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 6px 20px rgba(200,57,43,0.35);
+  }
+
+  /* ── SCREEN 4: Tracking ── */
+  .tracking-header {
+    padding: 40px 20px 20px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+  }
+  .tracking-header h2 { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; color: var(--text); }
+  .tracking-header p { font-size: 12px; color: var(--text3); margin-top: 3px; }
+
+  .tracking-stepper {
+    padding: 20px 20px 16px;
+    display: flex; align-items: flex-start; gap: 0;
+  }
+  .step-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
+  .step-circle {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; margin-bottom: 6px;
+    border: 2px solid var(--border);
+    background: white; color: var(--text3);
+    font-weight: 600; font-size: 11px;
+    position: relative; z-index: 1;
+  }
+  .step-circle.done { background: var(--brand); border-color: var(--brand); color: white; }
+  .step-circle.active { background: white; border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 4px var(--brand-light); }
+  .step-label { font-size: 10px; color: var(--text3); text-align: center; line-height: 1.3; }
+  .step-label.active { color: var(--brand); font-weight: 600; }
+  .step-connector { flex: 1; height: 2px; background: var(--border); margin-top: 15px; }
+  .step-connector.done { background: var(--brand); }
+
+  .tracking-order-info {
+    margin: 0 20px 12px;
+    background: white; border-radius: 16px;
+    padding: 16px; border: 1px solid var(--border);
+  }
+  .order-info-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 12px; display: flex; justify-content: space-between; }
+  .order-info-badge {
+    display: flex; align-items: center; gap: 5px;
+    background: #FFF3CD; color: #856404; font-size: 10px; font-weight: 600;
+    padding: 3px 10px; border-radius: 8px;
+  }
+  .order-info-badge.prep { background: #FFF3CD; color: #856404; }
+  .order-info-badge.ready { background: var(--green-light); color: var(--green); }
+
+  .tracking-items { display: flex; flex-direction: column; gap: 8px; }
+  .tracking-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px;
+    background: var(--surface2);
+    border-radius: 12px;
+  }
+  .tracking-item-icon { font-size: 22px; }
+  .tracking-item-info { flex: 1; }
+  .tracking-item-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .tracking-item-status { font-size: 11px; margin-top: 2px; }
+  .status-prep { color: #856404; }
+  .status-done { color: var(--green); }
+  .status-queue { color: var(--text3); }
+  .tracking-item-check { font-size: 18px; }
+
+  .tracking-eta {
+    margin: 12px 20px 16px;
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+    border-radius: 16px; padding: 16px;
+    color: white; text-align: center;
+  }
+  .eta-label { font-size: 11px; opacity: 0.8; margin-bottom: 4px; }
+  .eta-value { font-family: 'Fraunces', serif; font-size: 32px; font-weight: 600; }
+  .eta-unit { font-size: 12px; opacity: 0.8; }
+  .eta-more-btn {
+    margin: 0 20px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 12px;
+    text-align: center; font-size: 13px;
+    color: var(--brand); font-weight: 600; cursor: pointer;
+  }
+
+  /* status bar simulation */
+  .status-bar {
+    background: var(--surface);
+    padding: 8px 24px 4px;
+    display: flex; justify-content: space-between;
+    font-size: 11px; font-weight: 600; color: var(--text2);
+  }
+  .menu-status-bar { background: transparent; position: absolute; top: 0; left: 0; right: 0; color: rgba(255,255,255,0.9); z-index: 5; padding-top: 10px; }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">RestaurantOS</h1>
+<h2 class="page-subtitle">App Cliente</h2>
+
+<div class="screens-row">
+
+  <!-- SCREEN 1: Menú -->
+  <div class="screen-wrap">
+    <div class="phone">
+      <div class="phone-notch">
+        <div class="notch-pill"></div>
+        <div class="notch-cam"></div>
+      </div>
+      <div class="phone-inner" style="background:var(--surface); padding-top:0;">
+        <div class="menu-hero">
+          <div class="status-bar menu-status-bar">
+            <span>9:41</span>
+            <span>●●●</span>
+          </div>
+          <div style="height:28px"></div>
+          <div class="menu-hero-top">
+            <div>
+              <div class="menu-hero-title">El Fogón<br>Panamá</div>
+              <div class="menu-hero-sub">Mesa 7 · Salón principal</div>
+            </div>
+            <div class="menu-hero-badge">
+              <div class="badge-dot"></div>
+              Abierto
+            </div>
+          </div>
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            Buscar en el menú...
+          </div>
+        </div>
+        <div class="categories-scroll">
+          <div class="cat-chips">
+            <div class="cat-chip active">🍽️ Todo</div>
+            <div class="cat-chip">🥩 Carnes</div>
+            <div class="cat-chip">🥗 Ensaladas</div>
+            <div class="cat-chip">🍺 Bebidas</div>
+            <div class="cat-chip">🍮 Postres</div>
+          </div>
+        </div>
+        <div class="section-title">Populares</div>
+        <div class="products-grid">
+          <div class="product-card">
+            <div class="product-img">
+              <div class="product-img-bg" style="background:linear-gradient(135deg,#FFF3ED,#FFE4D6)">🥩</div>
+              <div class="product-badge">Popular</div>
+            </div>
+            <div class="product-info">
+              <div class="product-name">Lomo al trapo</div>
+              <div class="product-desc">500g, papa criolla, chimichurri</div>
+              <div class="product-footer">
+                <div class="product-price">$28</div>
+                <button class="add-btn">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="product-card">
+            <div class="product-img">
+              <div class="product-img-bg" style="background:linear-gradient(135deg,#EDF7F0,#D6F0E0)">🦐</div>
+            </div>
+            <div class="product-info">
+              <div class="product-name">Ceviche de camarón</div>
+              <div class="product-desc">Limón, cilantro, ají</div>
+              <div class="product-footer">
+                <div class="product-price">$18</div>
+                <button class="add-btn">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="product-card">
+            <div class="product-img">
+              <div class="product-img-bg" style="background:linear-gradient(135deg,#FEF9ED,#FDF0CA)">🍺</div>
+            </div>
+            <div class="product-info">
+              <div class="product-name">Cerveza artesanal</div>
+              <div class="product-desc">IPA local, 500ml</div>
+              <div class="product-footer">
+                <div class="product-price">$6</div>
+                <button class="add-btn">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="product-card">
+            <div class="product-img">
+              <div class="product-img-bg" style="background:linear-gradient(135deg,#FDF0F5,#FAD9E8)">🍮</div>
+            </div>
+            <div class="product-info">
+              <div class="product-name">Tres leches</div>
+              <div class="product-desc">Con mermelada de frutos rojos</div>
+              <div class="product-footer">
+                <div class="product-price">$9</div>
+                <button class="add-btn">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cart-fab">
+          <div class="cart-fab-left">
+            <div class="cart-count">3</div>
+            <div class="cart-fab-text">Ver carrito</div>
+          </div>
+          <div class="cart-fab-price">$52.00</div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Menú</div>
+  </div>
+
+  <!-- SCREEN 2: Detalle producto -->
+  <div class="screen-wrap">
+    <div class="phone">
+      <div class="phone-notch">
+        <div class="notch-pill"></div>
+        <div class="notch-cam"></div>
+      </div>
+      <div class="phone-inner" style="padding-top:0; overflow-y:auto;">
+        <div class="detail-hero">
+          <div class="detail-emoji">🥩</div>
+          <div class="detail-back">←</div>
+          <div class="detail-fav">♡</div>
+        </div>
+        <div class="detail-content">
+          <div class="detail-tag">⭐ Popular · 25 min</div>
+          <div class="detail-name">Lomo al trapo premium</div>
+          <div class="detail-desc">Corte de res de primera calidad envuelto en sal gruesa y hierbas, cocinado a las brasas. Acompañado de papa criolla y chimichurri artesanal.</div>
+          <div class="detail-divider"></div>
+          <div class="detail-mod-title">
+            Término de cocción
+            <span class="detail-mod-req">Requerido</span>
+          </div>
+          <div class="mod-options">
+            <div class="mod-opt"><div class="mod-opt-left"><div class="mod-radio"></div><div class="mod-opt-name">Rojo inglés</div></div><div class="mod-opt-price">Incluido</div></div>
+            <div class="mod-opt selected"><div class="mod-opt-left"><div class="mod-radio"></div><div class="mod-opt-name">Término medio</div></div><div class="mod-opt-price">Incluido</div></div>
+            <div class="mod-opt"><div class="mod-opt-left"><div class="mod-radio"></div><div class="mod-opt-name">Bien cocido</div></div><div class="mod-opt-price">Incluido</div></div>
+          </div>
+          <div class="detail-divider"></div>
+          <div class="detail-mod-title">Cantidad</div>
+          <div class="detail-qty">
+            <button class="qty-btn">−</button>
+            <span class="qty-val">1</span>
+            <button class="qty-btn">+</button>
+            <span style="font-size:13px;color:var(--text3);margin-left:4px">× $28.00</span>
+          </div>
+          <button class="add-cart-btn">
+            <span>Agregar al carrito</span>
+            <span style="font-family:'Fraunces',serif;font-size:16px">$28.00</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Detalle</div>
+  </div>
+
+  <!-- SCREEN 3: Carrito -->
+  <div class="screen-wrap">
+    <div class="phone">
+      <div class="phone-notch">
+        <div class="notch-pill"></div>
+        <div class="notch-cam"></div>
+      </div>
+      <div class="phone-inner" style="padding-top:0; overflow-y:auto;">
+        <div class="cart-header">
+          <div class="status-bar" style="padding:8px 0 8px; background:white;">
+            <span>9:41</span><span>●●●</span>
+          </div>
+          <h2>Mi pedido</h2>
+          <p>Mesa 7 · 3 ítems</p>
+        </div>
+        <div class="cart-items">
+          <div class="cart-item">
+            <div class="cart-item-img">🥩</div>
+            <div class="cart-item-info">
+              <div class="cart-item-name">Lomo al trapo</div>
+              <div class="cart-item-mod">Término medio</div>
+              <div class="cart-item-row">
+                <div class="cart-item-qty">
+                  <button class="cart-qty-btn">−</button>
+                  <span style="font-size:13px;font-weight:600">1</span>
+                  <button class="cart-qty-btn">+</button>
+                </div>
+                <div class="cart-item-price">$28.00</div>
+              </div>
+            </div>
+          </div>
+          <div class="cart-item">
+            <div class="cart-item-img">🦐</div>
+            <div class="cart-item-info">
+              <div class="cart-item-name">Ceviche de camarón</div>
+              <div class="cart-item-mod">Porción regular</div>
+              <div class="cart-item-row">
+                <div class="cart-item-qty">
+                  <button class="cart-qty-btn">−</button>
+                  <span style="font-size:13px;font-weight:600">2</span>
+                  <button class="cart-qty-btn">+</button>
+                </div>
+                <div class="cart-item-price">$36.00</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cart-notes">
+          <div class="cart-notes-label">Nota para la cocina (opcional)</div>
+          <textarea class="cart-notes-input" rows="2" placeholder="Ej: sin cebolla en el ceviche..."></textarea>
+        </div>
+        <div class="cart-summary">
+          <div class="summary-row"><span>Subtotal</span><span>$64.00</span></div>
+          <div class="summary-row"><span>ITBMS (7%)</span><span>$4.48</span></div>
+          <div class="summary-divider"></div>
+          <div class="summary-total"><span>Total</span><span>$68.48</span></div>
+        </div>
+        <button class="send-btn">
+          <span>📤</span> Enviar pedido a cocina
+        </button>
+      </div>
+    </div>
+    <div class="screen-label">Carrito</div>
+  </div>
+
+  <!-- SCREEN 4: Tracking -->
+  <div class="screen-wrap">
+    <div class="phone">
+      <div class="phone-notch">
+        <div class="notch-pill"></div>
+        <div class="notch-cam"></div>
+      </div>
+      <div class="phone-inner" style="padding-top:0; overflow-y:auto;">
+        <div class="tracking-header">
+          <div class="status-bar" style="padding:8px 0 8px; background:white;">
+            <span>9:41</span><span>●●●</span>
+          </div>
+          <h2>Pedido #0047</h2>
+          <p>Mesa 7 · Enviado hace 8 min</p>
+        </div>
+
+        <div class="tracking-stepper">
+          <div class="step-item">
+            <div class="step-circle done">✓</div>
+            <div class="step-label">Recibido</div>
+          </div>
+          <div class="step-connector done"></div>
+          <div class="step-item">
+            <div class="step-circle active">⟳</div>
+            <div class="step-label active">Preparando</div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-item">
+            <div class="step-circle">🍽</div>
+            <div class="step-label">Listo</div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-item">
+            <div class="step-circle">✓</div>
+            <div class="step-label">Entregado</div>
+          </div>
+        </div>
+
+        <div class="tracking-eta">
+          <div class="eta-label">Tiempo estimado de espera</div>
+          <div class="eta-value">12</div>
+          <div class="eta-unit">minutos</div>
+        </div>
+
+        <div class="tracking-order-info">
+          <div class="order-info-title">
+            Ítems de tu pedido
+            <span class="order-info-badge prep">⏳ En cocina</span>
+          </div>
+          <div class="tracking-items">
+            <div class="tracking-item">
+              <div class="tracking-item-icon">🥩</div>
+              <div class="tracking-item-info">
+                <div class="tracking-item-name">Lomo al trapo × 1</div>
+                <div class="tracking-item-status status-prep">⟳ En preparación</div>
+              </div>
+              <div class="tracking-item-check">🟡</div>
+            </div>
+            <div class="tracking-item">
+              <div class="tracking-item-icon">🦐</div>
+              <div class="tracking-item-info">
+                <div class="tracking-item-name">Ceviche de camarón × 2</div>
+                <div class="tracking-item-status status-done">✓ ¡Listo!</div>
+              </div>
+              <div class="tracking-item-check">🟢</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="eta-more-btn">+ Agregar más ítems</div>
+      </div>
+    </div>
+    <div class="screen-label">Seguimiento</div>
+  </div>
+
+</div>
+
+</body>
+</html>

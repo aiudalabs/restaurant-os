@@ -4,5 +4,10 @@ publish_to: none
 environment:
   sdk: '>=3.5.0 <4.0.0'
 
+dev_dependencies:
+  melos: ^7.5.0
+
 workspace:
   - packages/core
+  - apps/client_app
+  - apps/kitchen_app

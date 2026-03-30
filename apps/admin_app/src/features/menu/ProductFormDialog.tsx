@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,9 +28,15 @@ const modifierGroupSchema = z.object({
 const productSchema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
   description: z.string().optional(),
-  price: z.number({ error: 'Precio requerido' }).min(0, 'Precio debe ser >= 0'),
+  price: z.preprocess(
+    (val) => (val === '' || val === undefined ? undefined : Number(val)),
+    z.number({ required_error: 'Precio requerido', invalid_type_error: 'Precio debe ser un número' }).min(0, 'Precio debe ser >= 0'),
+  ),
   tags: z.string().optional(),
-  preparationMinutes: z.number().min(0).optional(),
+  preparationMinutes: z.preprocess(
+    (val) => (val === '' || val === undefined || Number.isNaN(Number(val)) ? undefined : Number(val)),
+    z.number().min(0).optional(),
+  ),
   imageUrl: z.string().url('URL inválida').optional().or(z.literal('')),
   modifierGroups: z.array(modifierGroupSchema),
 });
@@ -69,7 +75,7 @@ export default function ProductFormDialog({
     defaultValues: {
       name: '',
       description: '',
-      price: 0,
+      price: undefined as unknown as number,
       tags: '',
       preparationMinutes: undefined,
       imageUrl: '',
@@ -91,7 +97,10 @@ export default function ProductFormDialog({
     }
   }, [product, reset]);
 
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const onSubmit = async (values: ProductFormValues) => {
+    setSubmitError(null);
     const tags = values.tags
       ? values.tags.split(',').map((t) => t.trim()).filter(Boolean)
       : [];
@@ -101,23 +110,28 @@ export default function ProductFormDialog({
       menuId,
       categoryId,
       name: values.name,
-      description: values.description || undefined,
       price: values.price,
       isActive: product?.isActive ?? true,
       sortOrder: product?.sortOrder ?? 0,
       tags,
       modifierGroups: values.modifierGroups as ModifierGroup[],
-      preparationMinutes: values.preparationMinutes,
-      imageUrl: values.imageUrl || undefined,
     };
+    if (values.description) productData.description = values.description;
+    if (values.preparationMinutes != null) productData.preparationMinutes = values.preparationMinutes;
+    if (values.imageUrl) productData.imageUrl = values.imageUrl;
 
-    if (isEditing) {
-      const { orgId: _o, menuId: _m, categoryId: _c, ...updateData } = productData;
-      await onUpdate(product.id, updateData);
-    } else {
-      await onSave(productData);
+    try {
+      if (isEditing) {
+        const { orgId: _o, menuId: _m, categoryId: _c, ...updateData } = productData;
+        await onUpdate(product.id, updateData);
+      } else {
+        await onSave(productData);
+      }
+      onClose();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al guardar producto';
+      setSubmitError(message);
     }
-    onClose();
   };
 
   return (
@@ -139,6 +153,7 @@ export default function ProductFormDialog({
           <Input
             id="name"
             label="Nombre"
+            isRequired
             placeholder="Ej: Hamburguesa clásica"
             error={errors.name?.message}
             {...register('name')}
@@ -161,6 +176,7 @@ export default function ProductFormDialog({
             <Input
               id="price"
               label="Precio"
+              isRequired
               type="number"
               step="0.01"
               min="0"
@@ -206,6 +222,12 @@ export default function ProductFormDialog({
               />
             )}
           />
+
+          {submitError && (
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              {submitError}
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <Button variant="secondary" type="button" onClick={onClose}>
