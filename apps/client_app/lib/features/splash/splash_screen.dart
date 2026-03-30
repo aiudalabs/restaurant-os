@@ -27,7 +27,6 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   bool _initializing = true;
-  String? _error;
 
   @override
   void initState() {
@@ -93,8 +92,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       }
     } on AppException catch (e) {
       _navigateToError(e.message);
-    } catch (e) {
-      _navigateToError('unexpected');
+    } catch (e, stack) {
+      debugPrint('SplashScreen error: $e');
+      debugPrint('Stack: $stack');
+      _navigateToError('unexpected: $e');
     }
   }
 
@@ -103,7 +104,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     setState(() {
       _initializing = false;
-      _error = errorKey;
     });
 
     final l10n = AppLocalizations.of(context);

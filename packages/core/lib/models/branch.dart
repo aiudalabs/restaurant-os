@@ -22,13 +22,13 @@ class Branch with _$Branch {
     required String id,
     required String orgId,
     required String name,
-    required String address,
+    @Default('') String address,
     String? phone,
-    required String menuId,
+    @Default('') String menuId,
     double? taxPercent,
     List<double>? tipOptions,
-    required bool isActive,
-    required Map<String, BusinessHoursEntry> businessHours,
+    @Default(true) bool isActive,
+    @Default({}) Map<String, BusinessHoursEntry> businessHours,
     required DateTime createdAt,
   }) = _Branch;
 

@@ -24,18 +24,19 @@ _$BranchImpl _$$BranchImplFromJson(Map<String, dynamic> json) => _$BranchImpl(
       id: json['id'] as String,
       orgId: json['orgId'] as String,
       name: json['name'] as String,
-      address: json['address'] as String,
+      address: json['address'] as String? ?? '',
       phone: json['phone'] as String?,
-      menuId: json['menuId'] as String,
+      menuId: json['menuId'] as String? ?? '',
       taxPercent: (json['taxPercent'] as num?)?.toDouble(),
       tipOptions: (json['tipOptions'] as List<dynamic>?)
           ?.map((e) => (e as num).toDouble())
           .toList(),
-      isActive: json['isActive'] as bool,
-      businessHours: (json['businessHours'] as Map<String, dynamic>).map(
-        (k, e) =>
-            MapEntry(k, BusinessHoursEntry.fromJson(e as Map<String, dynamic>)),
-      ),
+      isActive: json['isActive'] as bool? ?? true,
+      businessHours: (json['businessHours'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(
+                k, BusinessHoursEntry.fromJson(e as Map<String, dynamic>)),
+          ) ??
+          const {},
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
 

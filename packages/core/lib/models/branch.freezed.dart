@@ -408,13 +408,13 @@ class _$BranchImpl extends _Branch {
       {required this.id,
       required this.orgId,
       required this.name,
-      required this.address,
+      this.address = '',
       this.phone,
-      required this.menuId,
+      this.menuId = '',
       this.taxPercent,
       final List<double>? tipOptions,
-      required this.isActive,
-      required final Map<String, BusinessHoursEntry> businessHours,
+      this.isActive = true,
+      final Map<String, BusinessHoursEntry> businessHours = const {},
       required this.createdAt})
       : _tipOptions = tipOptions,
         _businessHours = businessHours,
@@ -430,10 +430,12 @@ class _$BranchImpl extends _Branch {
   @override
   final String name;
   @override
+  @JsonKey()
   final String address;
   @override
   final String? phone;
   @override
+  @JsonKey()
   final String menuId;
   @override
   final double? taxPercent;
@@ -448,9 +450,11 @@ class _$BranchImpl extends _Branch {
   }
 
   @override
+  @JsonKey()
   final bool isActive;
   final Map<String, BusinessHoursEntry> _businessHours;
   @override
+  @JsonKey()
   Map<String, BusinessHoursEntry> get businessHours {
     if (_businessHours is EqualUnmodifiableMapView) return _businessHours;
     // ignore: implicit_dynamic_type
@@ -525,13 +529,13 @@ abstract class _Branch extends Branch {
       {required final String id,
       required final String orgId,
       required final String name,
-      required final String address,
+      final String address,
       final String? phone,
-      required final String menuId,
+      final String menuId,
       final double? taxPercent,
       final List<double>? tipOptions,
-      required final bool isActive,
-      required final Map<String, BusinessHoursEntry> businessHours,
+      final bool isActive,
+      final Map<String, BusinessHoursEntry> businessHours,
       required final DateTime createdAt}) = _$BranchImpl;
   const _Branch._() : super._();
 
