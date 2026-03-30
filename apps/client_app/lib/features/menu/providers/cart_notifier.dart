@@ -4,7 +4,7 @@ import '../models/cart_item.dart';
 
 part 'cart_notifier.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class CartNotifier extends _$CartNotifier {
   @override
   CartState build() => const CartState();

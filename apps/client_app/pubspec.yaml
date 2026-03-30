@@ -28,6 +28,7 @@ dependencies:
   google_fonts: ^6.2.0
 
 flutter:
+  uses-material-design: true
   generate: true
 
 dev_dependencies:

@@ -69,23 +69,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     );
 
     ref.read(cartNotifierProvider.notifier).addItem(item);
-
-    // Pop first, then show snackbar on the previous screen
     context.pop();
-
-    final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(l10n.addedToCart(product.name)),
-          duration: const Duration(seconds: 2),
-          action: SnackBarAction(
-            label: l10n.viewCart,
-            onPressed: () => context.push('/cart'),
-          ),
-        ),
-      );
   }
 
   @override
