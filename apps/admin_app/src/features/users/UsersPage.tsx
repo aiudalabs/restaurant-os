@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Power, X, Shield, User, Wrench } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useUsers } from '@/hooks/use-users';
+import { useStations } from '@/hooks/use-stations';
 import type { AppUser, UserRole } from '@/types/user';
 
 const USER_FORM_SCHEMA = z.object({
@@ -31,6 +32,7 @@ const ROLE_CONFIG: Record<UserRole, { label: string; icon: typeof Shield; color:
 interface UserFormDialogProps {
   orgId: string;
   branchIds: string[];
+  stations: { id: string; name: string }[];
   onSave: (payload: {
     email: string;
     password: string;
@@ -43,12 +45,13 @@ interface UserFormDialogProps {
   onClose: () => void;
 }
 
-function UserFormDialog({ orgId, branchIds, onSave, onClose }: UserFormDialogProps) {
+function UserFormDialog({ orgId, branchIds, stations, onSave, onClose }: UserFormDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<UserFormValues>({
     resolver: zodResolver(USER_FORM_SCHEMA),
@@ -130,12 +133,23 @@ function UserFormDialog({ orgId, branchIds, onSave, onClose }: UserFormDialogPro
             </select>
           </div>
 
-          <Input
-            id="stationId"
-            label="ID de estacion (solo operadores)"
-            placeholder="Opcional"
-            {...register('stationId')}
-          />
+          <div className="space-y-1">
+            <label htmlFor="stationId" className="block text-sm font-medium text-gray-700">
+              Estacion (solo operadores)
+            </label>
+            <select
+              id="stationId"
+              className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              {...register('stationId')}
+            >
+              <option value="">Sin estacion asignada</option>
+              {stations.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {serverError && (
             <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
@@ -163,8 +177,10 @@ export default function UsersPage() {
   const { appUser } = useAuth();
   const orgId = appUser?.orgId ?? '';
   const branchIds = appUser?.branchIds ?? [];
+  const branchId = branchIds[0] ?? '';
 
   const { users, loading, toggleUser, createOperatorUser } = useUsers(orgId);
+  const { stations } = useStations(orgId, branchId);
   const [showForm, setShowForm] = useState(false);
 
   if (loading) {
@@ -274,6 +290,7 @@ export default function UsersPage() {
         <UserFormDialog
           orgId={orgId}
           branchIds={branchIds}
+          stations={stations.map((s) => ({ id: s.id, name: s.name }))}
           onSave={createOperatorUser}
           onClose={() => setShowForm(false)}
         />

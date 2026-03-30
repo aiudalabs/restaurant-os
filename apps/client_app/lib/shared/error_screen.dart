@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/generated/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -64,7 +65,22 @@ class ErrorScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const _QrScannerScreen(),
+                        builder: (_) => _QrScannerScreen(
+                          onScanned: (uri) {
+                            // Navigate using GoRouter after popping the scanner
+                            final orgId = uri.queryParameters['org'];
+                            final branchId = uri.queryParameters['branch'];
+                            final tableId = uri.queryParameters['table'];
+
+                            if (orgId != null &&
+                                branchId != null &&
+                                tableId != null) {
+                              context.go(
+                                '/?org=$orgId&branch=$branchId&table=$tableId',
+                              );
+                            }
+                          },
+                        ),
                       ),
                     );
                   },
@@ -110,7 +126,9 @@ class ErrorScreen extends StatelessWidget {
 }
 
 class _QrScannerScreen extends StatefulWidget {
-  const _QrScannerScreen();
+  const _QrScannerScreen({required this.onScanned});
+
+  final ValueChanged<Uri> onScanned;
 
   @override
   State<_QrScannerScreen> createState() => _QrScannerScreenState();
@@ -135,19 +153,15 @@ class _QrScannerScreenState extends State<_QrScannerScreen> {
     if (uri == null) return;
 
     _handled = true;
-    Navigator.of(context).pop();
 
-    // Navigate to the scanned URL which should contain org/branch/table params
-    final orgId = uri.queryParameters['org'];
-    final branchId = uri.queryParameters['branch'];
-    final tableId = uri.queryParameters['table'];
-
-    if (orgId != null && branchId != null && tableId != null) {
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/?org=$orgId&branch=$branchId&table=$tableId',
-        (route) => false,
-      );
-    }
+    // Stop the camera before navigating to avoid buffer issues
+    _controller.stop().then((_) {
+      if (!mounted) return;
+      // Pop the scanner screen first
+      Navigator.of(context).pop();
+      // Then trigger the callback to navigate via GoRouter
+      widget.onScanned(uri);
+    });
   }
 
   @override
@@ -157,6 +171,14 @@ class _QrScannerScreenState extends State<_QrScannerScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        title: Text(
+          AppLocalizations.of(context).scanQr,
+          style: GoogleFonts.dmSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
+        ),
       ),
       body: MobileScanner(
         controller: _controller,

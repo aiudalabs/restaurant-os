@@ -128,8 +128,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                     );
                   }
 
+                  final bottomPadding = MediaQuery.of(context).padding.bottom;
                   return SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                    padding: EdgeInsets.fromLTRB(20, 0, 20, 100 + bottomPadding),
                     sliver: SliverGrid(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
@@ -158,7 +159,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             Positioned(
               left: 20,
               right: 20,
-              bottom: 16,
+              bottom: MediaQuery.of(context).padding.bottom + 16,
               child: CartFab(
                 itemCount: cart.itemCount,
                 total: cart.subtotal,

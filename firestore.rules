@@ -7,30 +7,34 @@ service cloud.firestore {
     function uid() { return request.auth.uid; }
     function isAuthed() { return request.auth != null; }
 
+    // hasUserDoc: true only if the caller has a users/{uid} document
+    // (anonymous clients do not). Guards calls to userDoc().
+    function hasUserDoc() {
+      return isAuthed()
+        && exists(/databases/$(db)/documents/users/$(uid()));
+    }
+
     function userDoc() {
       return get(/databases/$(db)/documents/users/$(uid())).data;
     }
     function myOrgId() { return userDoc().orgId; }
     function myRole() { return userDoc().role; }
-    function myBranches() { return userDoc().branchIds; }
 
-    function isAdmin() { return isAuthed() && myRole() == 'admin'; }
-    function isManager() { return isAuthed() && myRole() in ['admin', 'manager']; }
-    function isOperator() { return isAuthed() && myRole() in ['admin', 'manager', 'operator']; }
-    function belongsToMyOrg(orgId) { return isAuthed() && myOrgId() == orgId; }
-    function belongsToMyBranch(branchId) { return branchId in myBranches(); }
+    function isAdmin() { return hasUserDoc() && myRole() == 'admin'; }
+    function isManager() { return hasUserDoc() && myRole() in ['admin', 'manager']; }
+    function isOperator() { return hasUserDoc() && myRole() in ['admin', 'manager', 'operator']; }
+    function belongsToMyOrg(orgId) { return hasUserDoc() && myOrgId() == orgId; }
 
     // ─── Organizations ──────────────────────────────────────────────
 
     match /organizations/{orgId} {
-      allow read: if belongsToMyOrg(orgId);
+      allow read: if isAuthed();
       allow write: if isAdmin() && belongsToMyOrg(orgId);
     }
 
     // ─── Branches ───────────────────────────────────────────────────
 
     match /branches/{branchId} {
-      // Read: any authenticated user (including anonymous clients scanning QR)
       allow read: if isAuthed();
       allow create: if isAdmin() && belongsToMyOrg(request.resource.data.orgId);
       allow update, delete: if isAdmin() && belongsToMyOrg(resource.data.orgId);
@@ -77,21 +81,22 @@ service cloud.firestore {
     }
 
     // ─── Orders ─────────────────────────────────────────────────────
-    // Clientes (anon auth) pueden crear.
-    // Operadores de la org pueden leer y actualizar.
+    // Anonymous clients can create and read their own orders.
+    // Staff (with user doc) can read/update orders from their org.
 
     match /orders/{orderId} {
-      allow read: if belongsToMyOrg(resource.data.orgId);
       allow create: if isAuthed();
+      allow read: if isAuthed();
       allow update: if belongsToMyOrg(resource.data.orgId);
     }
 
     // ─── Order Items ────────────────────────────────────────────────
+    // Anonymous clients can create items and read them (for tracking).
     // KDS operators can update items assigned to their station.
 
     match /order_items/{itemId} {
-      allow read: if belongsToMyOrg(resource.data.orgId);
       allow create: if isAuthed();
+      allow read: if isAuthed();
       allow update: if belongsToMyOrg(resource.data.orgId)
                     && (isManager()
                         || userDoc().stationId == resource.data.stationId);

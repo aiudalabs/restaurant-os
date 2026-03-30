@@ -164,7 +164,18 @@ export const onOrderCreated = functions.firestore
       updatedAt: now,
     });
 
-    // 5. Commit Firestore batch + RTDB multi-path update
+    // 5. Update table status (set currentOrderId so table shows "Ocupada")
+    if (order.tableId) {
+      const tableRef = firestore.collection("tables").doc(order.tableId);
+      batch.update(tableRef, {
+        currentOrderId: orderId,
+      });
+      functions.logger.info(
+        `Table ${order.tableId} marked occupied with order ${orderId}`
+      );
+    }
+
+    // 6. Commit Firestore batch + RTDB multi-path update
     await Promise.all([
       batch.commit(),
       Object.keys(rtdbUpdates).length > 0
@@ -177,7 +188,7 @@ export const onOrderCreated = functions.firestore
       `${itemsSnap.size} items routed to ${stationFcmTokens.size} stations.`
     );
 
-    // 6. Send FCM notifications to station tablets
+    // 7. Send FCM notifications to station tablets
     const fcmPromises: Promise<unknown>[] = [];
 
     for (const [stationId, tokens] of stationFcmTokens.entries()) {

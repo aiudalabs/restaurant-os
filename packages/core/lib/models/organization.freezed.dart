@@ -265,18 +265,18 @@ class __$$OrganizationImplCopyWithImpl<$Res>
 class _$OrganizationImpl extends _Organization {
   const _$OrganizationImpl(
       {required this.id,
-      required this.name,
-      required this.slug,
+      this.name = '',
+      this.slug = '',
       this.logoUrl,
-      required this.plan,
+      this.plan = 'free',
       this.planExpiresAt,
-      required this.defaultCurrency,
-      required this.defaultTaxPercent,
-      required final List<double> defaultTipOptions,
-      required this.timezone,
-      required this.isActive,
+      this.defaultCurrency = 'USD',
+      this.defaultTaxPercent = 0.07,
+      final List<double> defaultTipOptions = const [10, 15, 20],
+      this.timezone = 'America/Panama',
+      this.isActive = true,
       required this.createdAt,
-      required this.ownerId})
+      this.ownerId = ''})
       : _defaultTipOptions = defaultTipOptions,
         super._();
 
@@ -286,21 +286,27 @@ class _$OrganizationImpl extends _Organization {
   @override
   final String id;
   @override
+  @JsonKey()
   final String name;
   @override
+  @JsonKey()
   final String slug;
   @override
   final String? logoUrl;
   @override
+  @JsonKey()
   final String plan;
   @override
   final DateTime? planExpiresAt;
   @override
+  @JsonKey()
   final String defaultCurrency;
   @override
+  @JsonKey()
   final double defaultTaxPercent;
   final List<double> _defaultTipOptions;
   @override
+  @JsonKey()
   List<double> get defaultTipOptions {
     if (_defaultTipOptions is EqualUnmodifiableListView)
       return _defaultTipOptions;
@@ -309,12 +315,15 @@ class _$OrganizationImpl extends _Organization {
   }
 
   @override
+  @JsonKey()
   final String timezone;
   @override
+  @JsonKey()
   final bool isActive;
   @override
   final DateTime createdAt;
   @override
+  @JsonKey()
   final String ownerId;
 
   @override
@@ -386,18 +395,18 @@ class _$OrganizationImpl extends _Organization {
 abstract class _Organization extends Organization {
   const factory _Organization(
       {required final String id,
-      required final String name,
-      required final String slug,
+      final String name,
+      final String slug,
       final String? logoUrl,
-      required final String plan,
+      final String plan,
       final DateTime? planExpiresAt,
-      required final String defaultCurrency,
-      required final double defaultTaxPercent,
-      required final List<double> defaultTipOptions,
-      required final String timezone,
-      required final bool isActive,
+      final String defaultCurrency,
+      final double defaultTaxPercent,
+      final List<double> defaultTipOptions,
+      final String timezone,
+      final bool isActive,
       required final DateTime createdAt,
-      required final String ownerId}) = _$OrganizationImpl;
+      final String ownerId}) = _$OrganizationImpl;
   const _Organization._() : super._();
 
   factory _Organization.fromJson(Map<String, dynamic> json) =

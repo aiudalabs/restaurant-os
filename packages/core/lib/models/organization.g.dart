@@ -9,22 +9,24 @@ part of 'organization.dart';
 _$OrganizationImpl _$$OrganizationImplFromJson(Map<String, dynamic> json) =>
     _$OrganizationImpl(
       id: json['id'] as String,
-      name: json['name'] as String,
-      slug: json['slug'] as String,
+      name: json['name'] as String? ?? '',
+      slug: json['slug'] as String? ?? '',
       logoUrl: json['logoUrl'] as String?,
-      plan: json['plan'] as String,
+      plan: json['plan'] as String? ?? 'free',
       planExpiresAt: json['planExpiresAt'] == null
           ? null
           : DateTime.parse(json['planExpiresAt'] as String),
-      defaultCurrency: json['defaultCurrency'] as String,
-      defaultTaxPercent: (json['defaultTaxPercent'] as num).toDouble(),
-      defaultTipOptions: (json['defaultTipOptions'] as List<dynamic>)
-          .map((e) => (e as num).toDouble())
-          .toList(),
-      timezone: json['timezone'] as String,
-      isActive: json['isActive'] as bool,
+      defaultCurrency: json['defaultCurrency'] as String? ?? 'USD',
+      defaultTaxPercent:
+          (json['defaultTaxPercent'] as num?)?.toDouble() ?? 0.07,
+      defaultTipOptions: (json['defaultTipOptions'] as List<dynamic>?)
+              ?.map((e) => (e as num).toDouble())
+              .toList() ??
+          const [10, 15, 20],
+      timezone: json['timezone'] as String? ?? 'America/Panama',
+      isActive: json['isActive'] as bool? ?? true,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      ownerId: json['ownerId'] as String,
+      ownerId: json['ownerId'] as String? ?? '',
     );
 
 Map<String, dynamic> _$$OrganizationImplToJson(_$OrganizationImpl instance) =>
