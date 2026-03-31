@@ -80,6 +80,9 @@ export const onOrderItemUpdated = onDocumentUpdated(
 
       if (allDone) {
         const orderRef = firestore.collection("orders").doc(orderId);
+        const orderSnap = await orderRef.get();
+        const orderData = orderSnap.data();
+
         await orderRef.update({
           status: "ready",
           updatedAt: now,
@@ -87,6 +90,17 @@ export const onOrderItemUpdated = onDocumentUpdated(
         functions.logger.info(
           `All items done for order ${orderId}, status updated to "ready"`
         );
+
+        // Free the table (clear currentOrderId)
+        if (orderData?.tableId) {
+          await firestore
+            .collection("tables")
+            .doc(orderData.tableId as string)
+            .update({ currentOrderId: null });
+          functions.logger.info(
+            `Table ${orderData.tableId} freed after order ${orderId} ready`
+          );
+        }
       }
     }
   }

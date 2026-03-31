@@ -147,16 +147,20 @@ class ItemStatusUpdater extends _$ItemStatusUpdater {
   }) async {
     final db = ref.read(realtimeDatabaseProvider);
     final firestore = ref.read(firestoreProvider);
-    final key = '${orderId}_$itemId';
+
+    // itemId is already the full RTDB key: "{orderId}_{firestoreItemId}"
+    final rtdbKey = itemId;
+    // Extract the Firestore document ID (part after first underscore)
+    final firestoreItemId = itemId.substring(itemId.indexOf('_') + 1);
 
     // Realtime DB first (speed - KDS sees it in <50ms)
-    await db.ref('order_items/$stationId/$key').update({
+    await db.ref('order_items/$stationId/$rtdbKey').update({
       'status': newStatus.toFirestore(),
       'updatedAt': ServerValue.timestamp,
     });
 
     // Then Firestore (source of truth)
-    await firestore.doc(FirestorePaths.orderItem(itemId)).update({
+    await firestore.doc(FirestorePaths.orderItem(firestoreItemId)).update({
       'status': newStatus.toFirestore(),
       'updatedAt': FieldValue.serverTimestamp(),
       if (newStatus == ItemStatus.inProgress)

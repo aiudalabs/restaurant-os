@@ -13,7 +13,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController(text: 'operator@demo.restaurantos.local');
-  final _passwordController = TextEditingController(text: 'DemoOpr123!');
+  final _passwordController = TextEditingController(text: 'DemoOps123!');
   bool _obscurePassword = true;
 
   @override
