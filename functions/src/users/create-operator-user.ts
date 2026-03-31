@@ -4,6 +4,7 @@ import * as crypto from "crypto";
 
 interface CreateOperatorRequest {
   email: string;
+  password: string;
   displayName: string;
   orgId: string;
   branchIds: string[];
@@ -62,15 +63,15 @@ export const createOperatorUser = functions.https.onCall(
       );
     }
 
-    // 4. Generate a temporary password
-    const tempPassword = crypto.randomBytes(16).toString("hex");
+    // 4. Use provided password or generate a temporary one
+    const password = data.password || crypto.randomBytes(16).toString("hex");
 
     try {
       // 5. Create Firebase Auth user
       const userRecord = await admin.auth().createUser({
         email: data.email,
         displayName: data.displayName,
-        password: tempPassword,
+        password: password,
       });
 
       const now = admin.firestore.Timestamp.now();
@@ -110,7 +111,7 @@ export const createOperatorUser = functions.https.onCall(
 
       return {
         uid: userRecord.uid,
-        tempPassword: tempPassword,
+        tempPassword: password,
         success: true,
       };
     } catch (error: unknown) {
