@@ -1,1 +1,33 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"restaurant-os-68c79","appId":"1:839468636765:android:4eed72f797659119b70bb4","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"restaurant-os-68c79","appId":"1:839468636765:ios:ecbe476208e1868db70bb4","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"restaurant-os-68c79","configurations":{"android":"1:839468636765:android:4eed72f797659119b70bb4","ios":"1:839468636765:ios:ecbe476208e1868db70bb4"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "restaurant-os-68c79",
+          "appId": "1:839468636765:android:4eed72f797659119b70bb4",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "restaurant-os-68c79",
+          "appId": "1:839468636765:ios:ecbe476208e1868db70bb4",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "restaurant-os-68c79",
+          "configurations": {
+            "android": "1:839468636765:android:4eed72f797659119b70bb4",
+            "ios": "1:839468636765:ios:ecbe476208e1868db70bb4"
+          }
+        }
+      }
+    }
+  },
+  "database": {
+    "rules": "database.rules.json"
+  }
+}

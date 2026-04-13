@@ -6,6 +6,12 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "hosting": {
+    "public": "apps/admin_app/dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{"source": "**", "destination": "/index.html"}],
+    "predeploy": "npm --prefix apps/admin_app run build"
+  },
   "functions": [
     {
       "source": "functions",

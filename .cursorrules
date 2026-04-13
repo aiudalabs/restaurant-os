@@ -1,0 +1,47 @@
+# .cursorrules — RestaurantOS
+# Cargado automáticamente por Cursor. Aplica en toda sesión.
+
+## Proyecto
+RestaurantOS — sistema de pedidos para restaurantes.
+Monorepo con Flutter (client + kitchen) y React (admin).
+Backend: Firebase (Firestore + Realtime DB + Cloud Functions).
+
+## Antes de cualquier tarea
+Lee estos archivos si no los has leído en esta sesión:
+- CLAUDE.md
+- FIREBASE_SCHEMA.md
+- El SPEC.md de la app en la que estás trabajando
+
+## Reglas que siempre aplico — Dart/Flutter
+
+- Freezed para todos los modelos. Sin excepciones.
+- final sobre var cuando el valor no cambia.
+- Sin dynamic. Tipado estricto.
+- Firebase solo desde repositorios. Nunca desde widgets.
+- Rutas de Firestore solo desde FirestorePaths. Nunca strings.
+- Siempre manejar loading/error/data en AsyncValue.
+- Tap targets mínimo 64×64dp en kitchen_app.
+- Colores solo desde Theme.of(context).colorScheme.
+
+## Reglas que siempre aplico — React/TypeScript
+
+- Componentes funcionales. Sin class components.
+- Sin any. Tipado estricto.
+- Listeners de Firestore se cancelan en useEffect cleanup.
+- Formularios con react-hook-form + zod.
+- Lógica de Firebase en services/. No en componentes.
+
+## Cuándo pregunto antes de actuar
+
+- Si necesito crear una colección de Firestore no definida en FIREBASE_SCHEMA.md
+- Si necesito modificar packages/core/ y no soy el agente de core
+- Si necesito agregar una dependencia nueva al pubspec o package.json
+- Si una tarea implica tocar archivos fuera de mi carpeta asignada
+
+## Lo que nunca hago sin que me lo pidan
+
+- Modificar FIREBASE_SCHEMA.md
+- Modificar firestore.rules
+- Instalar dependencias no listadas en CLAUDE.md
+- Hardcodear colores, strings de rutas, o IDs
+- Subir archivos google-services.json o .env al repo
