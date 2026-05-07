@@ -12,13 +12,16 @@ def get_firebase_app() -> firebase_admin.App:
     if _app is not None:
         return _app
 
+    project_id = settings.firebase_project_id
     cred_path = settings.google_application_credentials
-    if os.path.exists(cred_path):
+
+    if cred_path and os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)
-        _app = firebase_admin.initialize_app(cred, {"projectId": settings.firebase_project_id})
+        _app = firebase_admin.initialize_app(cred, {"projectId": project_id})
     else:
-        # In CI / Cloud Run: use application default credentials
-        _app = firebase_admin.initialize_app(options={"projectId": settings.firebase_project_id})
+        # Use Application Default Credentials (gcloud auth application-default login)
+        adc = credentials.ApplicationDefault()
+        _app = firebase_admin.initialize_app(adc, {"projectId": project_id})
 
     return _app
 
