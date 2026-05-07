@@ -27,7 +27,7 @@ def sync_catalog() -> SyncStats:
     odoo_products = odoo_client.search_read(
         "product.product",
         [["available_in_pos", "=", True]],
-        ["id", "name", "list_price", "pos_category_id", "description_sale", "active"],
+        ["id", "name", "list_price", "pos_categ_ids", "description_sale", "active"],
     )
 
     # ── 3. Read Firestore menu_id for this branch ────────────────────────────
@@ -62,9 +62,10 @@ def sync_catalog() -> SyncStats:
     synced_ids: set[str] = set()
 
     for i, p in enumerate(odoo_products):
-        odoo_cat = p.get("pos_category_id")
-        cat_id_odoo: int | None = odoo_cat[0] if odoo_cat else None
-        cat_name: str = odoo_cat[1] if odoo_cat else "Sin categoría"
+        # pos_categ_ids is many2many in Odoo 17 — take first category
+        categ_ids = p.get("pos_categ_ids") or []
+        cat_id_odoo: int | None = categ_ids[0] if categ_ids else None
+        cat_name: str = cat_map.get(cat_id_odoo, {}).get("name", "Sin categoría") if cat_id_odoo else "Sin categoría"
 
         # Firestore category doc id: odoo category id prefixed
         fs_category_id = f"odoo_cat_{cat_id_odoo}" if cat_id_odoo else "odoo_cat_uncategorized"

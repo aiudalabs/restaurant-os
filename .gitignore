@@ -14,3 +14,4 @@ pubspec.lock
 tools/reports/
 __pycache__/
 *.py[cod]
+serviceAccountKey.json

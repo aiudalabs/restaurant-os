@@ -19,9 +19,12 @@ def get_firebase_app() -> firebase_admin.App:
         cred = credentials.Certificate(cred_path)
         _app = firebase_admin.initialize_app(cred, {"projectId": project_id})
     else:
-        # Use Application Default Credentials (gcloud auth application-default login)
+        # ADC (gcloud auth application-default login) + service account ID for token signing
         adc = credentials.ApplicationDefault()
-        _app = firebase_admin.initialize_app(adc, {"projectId": project_id})
+        options: dict = {"projectId": project_id}
+        if settings.firebase_service_account:
+            options["serviceAccountId"] = settings.firebase_service_account
+        _app = firebase_admin.initialize_app(adc, options)
 
     return _app
 

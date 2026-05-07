@@ -106,7 +106,7 @@ def main():
                 "name": prod["name"],
                 "list_price": prod["price"],
                 "available_in_pos": True,
-                "pos_category_id": cat_ids[prod["category"]],
+                "pos_categ_ids": [(6, 0, [cat_ids[prod["category"]]])],  # many2many Odoo 17
                 "type": "consu",
             }]
         )

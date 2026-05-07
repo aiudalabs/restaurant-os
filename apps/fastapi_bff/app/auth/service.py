@@ -31,12 +31,16 @@ def login(username: str, password: str) -> tuple[str, EmployeeInfo]:
 
     uid = client.authenticate(username, password)
 
-    employees = client.search_read(
-        "hr.employee",
-        [["user_id.login", "=", username], ["active", "=", True]],
-        ["id", "name", "job_title"],
-        limit=1,
-    )
+    try:
+        employees = client.search_read(
+            "hr.employee",
+            [["user_id.login", "=", username], ["active", "=", True]],
+            ["id", "name", "job_title"],
+            limit=1,
+        )
+    except OdooRPCError:
+        # HR module not installed — fall through to uid-based fallback
+        employees = []
 
     if employees:
         emp = employees[0]
@@ -44,7 +48,6 @@ def login(username: str, password: str) -> tuple[str, EmployeeInfo]:
         name: str = emp["name"]
         role = _map_role(emp.get("job_title"))
     else:
-        # Fallback: use the Odoo uid as employee id, admin role
         emp_id = uid
         name = username
         role = "manager"

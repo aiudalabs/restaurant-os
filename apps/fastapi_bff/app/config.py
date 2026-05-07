@@ -11,8 +11,9 @@ class Settings(BaseSettings):
     odoo_password: str = "admin"
 
     # Firebase
-    google_application_credentials: str = "./serviceAccountKey.json"
+    google_application_credentials: str = ""
     firebase_project_id: str = ""
+    firebase_service_account: str = ""  # required for custom token signing with ADC
 
     # App
     org_id: str = "org_demo_001"
