@@ -46,7 +46,7 @@ PRODUCTS = [
         "preparationMinutes": 15,
     },
     {
-        "name": "Pizza Queso",
+        "name": "Pizza 4 Quesos",
         "description": "Pizza clásica de mozzarella.",
         "price": 10.00,
         "category_key": "pizzas",
@@ -55,7 +55,7 @@ PRODUCTS = [
         "preparationMinutes": 15,
     },
     {
-        "name": "Cerveza Panamá",
+        "name": "Cerveza Panama",
         "description": "Cerveza pilsner panameña 355 ml.",
         "price": 2.50,
         "category_key": "cervezas",

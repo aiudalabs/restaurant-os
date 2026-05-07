@@ -1,4 +1,5 @@
 import logging
+import unicodedata
 from datetime import datetime, timezone
 
 import httpx
@@ -128,6 +129,27 @@ def _route_to_kds(order_id: str) -> None:
         logger.error("KDS routing failed for order %s: %s", order_id, exc)
 
 
+def _ascii_name(name: str) -> str:
+    return "".join(
+        c for c in unicodedata.normalize("NFD", name)
+        if unicodedata.category(c) != "Mn"
+    ).strip()
+
+
+def _find_odoo_product(client: "OdooClient", product_name: str) -> int | None:
+    ascii = _ascii_name(product_name)
+    for domain in [
+        [["name", "=", product_name]],
+        [["name", "=", ascii]],
+        [["name", "ilike", product_name]],
+        [["name", "ilike", ascii]],
+    ]:
+        results = client.search_read("product.product", domain, ["id", "name"], limit=1)
+        if results:
+            return results[0]["id"]
+    return None
+
+
 def _sync_to_odoo(order_id: str, cod_oper: str) -> None:
     """Create a pos.order in Odoo — non-blocking (logs errors, never raises)."""
     try:
@@ -162,22 +184,14 @@ def _sync_to_odoo(order_id: str, cod_oper: str) -> None:
 
         lines = []
         for item in items:
-            products = client.search_read(
-                "product.product",
-                [["name", "=", item.get("productName", "")]],
-                ["id"],
-                limit=1,
-            )
-            if not products:
-                products = client.search_read(
-                    "product.product",
-                    [["available_in_pos", "=", True]],
-                    ["id"],
-                    limit=1,
+            product_name = item.get("productName", "")
+            product_id = _find_odoo_product(client, product_name)
+            if product_id is None:
+                logger.warning(
+                    "No Odoo product found for '%s' — skipping line in order %s",
+                    product_name, order_id,
                 )
-            if not products:
                 continue
-            product_id: int = products[0]["id"]
             qty = item.get("quantity", 1)
             unit_price = float(item.get("unitPrice", 0))
             lines.append((0, 0, {
