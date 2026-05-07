@@ -12,3 +12,5 @@ pubspec.lock
 *.g.dart
 .venv/
 tools/reports/
+__pycache__/
+*.py[cod]
