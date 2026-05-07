@@ -217,7 +217,7 @@ class _NewOrderScreenState extends ConsumerState<NewOrderScreen> {
       children: [
         _Header(
           branchName: session?.branchName ?? '',
-          email: session?.email ?? '',
+          displayName: session?.displayName ?? '',
           addToName: widget.addToArgs?.customerName,
         ),
         _CustomerField(
@@ -287,11 +287,11 @@ class _NewOrderScreenState extends ConsumerState<NewOrderScreen> {
 class _Header extends StatelessWidget {
   const _Header({
     required this.branchName,
-    required this.email,
+    required this.displayName,
     this.addToName,
   });
   final String branchName;
-  final String email;
+  final String displayName;
   final String? addToName;
 
   @override
@@ -320,7 +320,7 @@ class _Header extends StatelessWidget {
           Text(
             isAdd
                 ? 'Agrega más ítems al pedido activo'
-                : (branchName.isEmpty ? email : branchName),
+                : (branchName.isEmpty ? displayName : branchName),
             style: GoogleFonts.dmSans(
               fontSize: 12,
               color: Colors.white70,

@@ -12,8 +12,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _email = TextEditingController(text: 'bar2@restauranteos.com');
-  final _pass  = TextEditingController(text: 'restaurante2026');
+  final _username = TextEditingController(text: 'admin');
+  final _pass     = TextEditingController(text: 'admin');
   final _formKey = GlobalKey<FormState>();
   bool _busy = false;
   bool _triedRestore = false;
@@ -31,7 +31,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
-    _email.dispose();
+    _username.dispose();
     _pass.dispose();
     super.dispose();
   }
@@ -40,7 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_formKey.currentState!.validate() || _busy) return;
     setState(() => _busy = true);
     try {
-      await ref.read(sessionControllerProvider).signIn(_email.text, _pass.text);
+      await ref.read(sessionControllerProvider).signIn(_username.text, _pass.text);
     } catch (_) {
       // error message is already populated in sessionErrorProvider
     } finally {
@@ -80,17 +80,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-              _sectionLabel('Email'),
+              _sectionLabel('Usuario'),
               const SizedBox(height: 8),
               TextFormField(
-                controller: _email,
-                autofillHints: const [AutofillHints.email],
-                keyboardType: TextInputType.emailAddress,
+                controller: _username,
+                autofillHints: const [AutofillHints.username],
+                keyboardType: TextInputType.text,
                 autocorrect: false,
                 textInputAction: TextInputAction.next,
-                decoration: _inputDecoration('tu@restauranteos.com'),
+                decoration: _inputDecoration('usuario de Odoo'),
                 validator: (v) =>
-                    (v == null || !v.contains('@')) ? 'Email inválido' : null,
+                    (v == null || v.isEmpty) ? 'Campo requerido' : null,
               ),
               const SizedBox(height: 16),
               _sectionLabel('Contraseña'),
