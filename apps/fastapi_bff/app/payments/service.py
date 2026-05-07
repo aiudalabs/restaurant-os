@@ -196,6 +196,7 @@ def _sync_to_odoo(order_id: str, cod_oper: str) -> None:
             unit_price = float(item.get("unitPrice", 0))
             lines.append((0, 0, {
                 "product_id": product_id,
+                "full_product_name": product_name,
                 "qty": qty,
                 "price_unit": unit_price,
                 "price_subtotal": unit_price * qty,
@@ -205,13 +206,24 @@ def _sync_to_odoo(order_id: str, cod_oper: str) -> None:
         if not lines:
             return
 
+        # Get next POS order sequence number
+        try:
+            order_name = client._models.execute_kw(
+                client._db, client._uid, client._password,
+                "ir.sequence", "next_by_code", [["pos.order"]]
+            )
+        except Exception:
+            order_name = f"ROS-{order_id[:8].upper()}"
+
         pos_order_id = client.create("pos.order", {
+            "name": order_name,
             "session_id": session_id,
             "lines": lines,
             "amount_total": float(order.get("total", 0)),
             "amount_tax": float(order.get("taxAmount", 0)),
             "amount_paid": float(order.get("total", 0)),
             "amount_return": 0,
+            "to_invoice": True,
             "state": "done",
             "note": f"RestaurantOS #{order_id[:8]} | PF:{cod_oper}",
         })
