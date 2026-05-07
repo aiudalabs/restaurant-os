@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from app.auth.router import router as auth_router
 from app.catalog.router import router as catalog_router
+from app.payments.router import router as payments_router
 from app.core.firebase import firebase_ping
 from app.core.odoo import odoo_client
 
@@ -13,6 +14,7 @@ app = FastAPI(
 
 app.include_router(auth_router)
 app.include_router(catalog_router)
+app.include_router(payments_router)
 
 
 @app.get("/health")

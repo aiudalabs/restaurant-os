@@ -1,6 +1,6 @@
 import os
 import firebase_admin
-from firebase_admin import auth, credentials, firestore as fb_firestore
+from firebase_admin import auth, credentials, db as rtdb, firestore as fb_firestore
 
 from app.config import settings
 
@@ -14,19 +14,24 @@ def get_firebase_app() -> firebase_admin.App:
 
     project_id = settings.firebase_project_id
     cred_path = settings.google_application_credentials
+    rtdb_url = settings.firebase_rtdb_url
 
     if cred_path and os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)
-        _app = firebase_admin.initialize_app(cred, {"projectId": project_id})
+        _app = firebase_admin.initialize_app(cred, {"projectId": project_id, "databaseURL": rtdb_url})
     else:
-        # ADC (gcloud auth application-default login) + service account ID for token signing
         adc = credentials.ApplicationDefault()
-        options: dict = {"projectId": project_id}
+        options: dict = {"projectId": project_id, "databaseURL": rtdb_url}
         if settings.firebase_service_account:
             options["serviceAccountId"] = settings.firebase_service_account
         _app = firebase_admin.initialize_app(adc, options)
 
     return _app
+
+
+def get_rtdb():
+    get_firebase_app()
+    return rtdb
 
 
 def get_firestore():

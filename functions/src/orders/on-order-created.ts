@@ -104,6 +104,10 @@ export const onOrderCreated = functions.firestore
       return;
     }
 
+    // Client orders (source != 'waiter') wait for payment before going to KDS.
+    // We assign stationId in Firestore but skip RTDB until payment confirmed.
+    const isWaiterOrder = (order as any).source === "waiter";
+
     // 3. Route items to stations and build batch updates
     const batch = firestore.batch();
     const rtdbUpdates: Record<string, unknown> = {};
@@ -129,7 +133,10 @@ export const onOrderCreated = functions.firestore
         sentToStationAt: now,
       });
 
-      // Mirror to RTDB: /order_items/{stationId}/{orderId}_{itemId}
+      // Only mirror to RTDB immediately for waiter orders.
+      // Client orders are pushed to RTDB by the BFF after payment confirmation.
+      if (!isWaiterOrder) continue;
+
       const rtdbKey = `order_items/${station.id}/${orderId}_${item.id}`;
       rtdbUpdates[rtdbKey] = {
         status: "queued",

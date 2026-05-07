@@ -66,9 +66,18 @@ class Order with _$Order {
 
   factory Order.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
+    final rawPayment = data['payment'] as Map<String, dynamic>? ?? {};
+    final paidAtRaw = rawPayment['paidAt'];
+    final payment = {
+      ...rawPayment,
+      'paidAt': paidAtRaw is Timestamp
+          ? paidAtRaw.toDate().toIso8601String()
+          : paidAtRaw,
+    };
     return Order.fromJson({
       ...data,
       'id': doc.id,
+      'payment': payment,
       'status': OrderStatus.fromString(data['status'] as String).name,
       'createdAt':
           (data['createdAt'] as Timestamp).toDate().toIso8601String(),

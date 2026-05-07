@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'features/cart/screens/cart_screen.dart';
 import 'features/menu/screens/category_screen.dart';
+import 'features/payment/payment_screen.dart';
 import 'features/menu/screens/menu_screen.dart';
 import 'features/menu/screens/product_detail_screen.dart';
 import 'features/splash/splash_screen.dart';
@@ -68,6 +69,12 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/cart',
         builder: (_, __) => const CartScreen(),
+      ),
+      GoRoute(
+        path: '/payment/:orderId',
+        builder: (_, state) => PaymentScreen(
+          orderId: state.pathParameters['orderId']!,
+        ),
       ),
       GoRoute(
         path: '/tracking/:orderId',

@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     google_application_credentials: str = ""
     firebase_project_id: str = ""
     firebase_service_account: str = ""  # required for custom token signing with ADC
+    firebase_rtdb_url: str = ""  # e.g. https://<project>-default-rtdb.firebaseio.com
 
     # App
     org_id: str = "org_demo_001"
@@ -22,9 +23,10 @@ class Settings(BaseSettings):
 
     # PagueloFácil
     paguelofacil_cclw: str = ""
-    paguelofacil_token: str = ""
     paguelofacil_env: str = "sandbox"
-    paguelofacil_webhook_secret: str = ""
+    # Public URL where PagueloFácil can POST the callback.
+    # In dev: use ngrok (ngrok http 8000) or set to http://10.0.2.2:8000 for Android emulator.
+    bff_base_url: str = "http://10.0.2.2:8000"
 
     # Server
     host: str = "0.0.0.0"

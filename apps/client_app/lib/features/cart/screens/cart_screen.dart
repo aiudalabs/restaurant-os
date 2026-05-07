@@ -99,7 +99,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       ref.read(cartNotifierProvider.notifier).clear();
 
       if (mounted) {
-        context.go('/tracking/${orderRef.id}');
+        context.go('/payment/${orderRef.id}');
       }
     } on FirebaseException catch (e) {
       if (mounted) {

@@ -1,6 +1,7 @@
 from app.config import settings
 from app.core.exceptions import OdooAuthError, OdooRPCError
 from app.core.firebase import create_custom_token
+from app.core.firestore import USERS, db
 from app.core.odoo import OdooClient
 from app.auth.models import EmployeeInfo
 
@@ -64,6 +65,15 @@ def login(username: str, password: str) -> tuple[str, EmployeeInfo]:
         "org_id": org_id,
     }
     token = create_custom_token(firebase_uid, claims)
+
+    # Upsert user doc so Firestore security rules (which read users/{uid}) work
+    db().collection(USERS).document(firebase_uid).set({
+        "orgId": org_id,
+        "branchIds": [branch_id],
+        "role": role,
+        "displayName": name,
+        "isActive": True,
+    }, merge=True)
 
     employee = EmployeeInfo(
         id=emp_id,
