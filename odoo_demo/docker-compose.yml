@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: odoo_demo_db
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo_demo_2024
+    volumes:
+      - odoo_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  odoo:
+    image: odoo:17.0
+    container_name: odoo_demo
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      HOST: db
+      USER: odoo
+      PASSWORD: odoo_demo_2024
+    ports:
+      - "8069:8069"   # Web UI + JSON-RPC API
+      - "8072:8072"   # Longpolling (websockets)
+    volumes:
+      - odoo_data:/var/lib/odoo
+      - ./odoo_config:/etc/odoo
+      - ./odoo_addons:/mnt/extra-addons
+    command: >
+      odoo
+      --db_host=db
+      --db_port=5432
+      --db_user=odoo
+      --db_password=odoo_demo_2024
+      --database=restaurantes_demo
+      --without-demo=False
+    restart: unless-stopped
+
+volumes:
+  odoo_db_data:
+  odoo_data:

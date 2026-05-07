@@ -10,3 +10,5 @@ build/
 pubspec.lock
 *.freezed.dart
 *.g.dart
+.venv/
+tools/reports/

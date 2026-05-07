@@ -11,3 +11,4 @@ workspace:
   - packages/core
   - apps/client_app
   - apps/kitchen_app
+  - apps/waiter_app

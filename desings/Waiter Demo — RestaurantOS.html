@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<!-- saved from url=(0057)file:///Users/nmlemus/Downloads/waiter_demo_mockup_1.html -->
+<html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Waiter Demo — RestaurantOS</title>
+<link href="./Waiter Demo — RestaurantOS_files/css2" rel="stylesheet">
+<style>
+/* ── Reset & tokens ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#C8392B;--brand-dark:#9E2A1F;--brand-light:#F5E6E4;
+  --gold:#D4A853;
+  --bg:#FEFAF7;--surface:#FFFFFF;--surface2:#F5EDE8;--border:#EDE0D8;
+  --text:#1A1008;--text2:#5C4033;--text3:#9E8070;
+  --green:#2D7A4F;--green-bg:#E8F5EE;
+  --amber:#F59E0B;--amber-bg:#FEF3C7;--amber-text:#92400E;
+  --red:#EF4444;--red-bg:#FEF2F2;--red-text:#991B1B;
+  --header:#1A1008;
+}
+body{
+  background:#E8DDD5;
+  font-family:'DM Sans',sans-serif;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:24px 16px 48px;
+}
+
+/* ── Page chrome ── */
+.page-title{
+  font-family:'Fraunces',serif;font-size:20px;font-weight:700;
+  color:#1A1008;margin-bottom:4px;text-align:center;
+}
+.page-sub{font-size:12px;color:#5C4033;margin-bottom:20px;text-align:center}
+
+/* ── Screen tabs ── */
+.tabs{display:flex;gap:8px;margin-bottom:24px}
+.tab{
+  padding:8px 20px;border-radius:999px;font-size:13px;font-weight:600;
+  cursor:pointer;border:1.5px solid var(--border);
+  background:var(--surface);color:var(--text2);transition:all .15s;
+}
+.tab.on{background:var(--header);color:#fff;border-color:var(--header)}
+
+/* ── Phone frame ── */
+.phone{
+  width:375px;min-height:700px;
+  background:var(--bg);
+  border-radius:20px;
+  overflow:hidden;
+  box-shadow:0 24px 64px rgba(0,0,0,.2),0 0 0 1px rgba(0,0,0,.06);
+  display:flex;flex-direction:column;
+}
+.hidden{display:none!important}
+
+/* ── Status bar ── */
+.sbar{
+  height:44px;background:var(--header);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;flex-shrink:0;
+}
+.sbar-time{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:#fff}
+
+/* ── Top bar ── */
+.topbar{
+  background:var(--header);padding:12px 20px 14px;flex-shrink:0;
+}
+.topbar-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.topbar-title{font-family:'Fraunces',serif;font-size:19px;font-weight:700;color:#fff}
+.topbar-badge{
+  background:var(--brand);color:#fff;
+  font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;
+}
+.topbar-sub{font-size:12px;color:rgba(255,255,255,.5)}
+
+/* ── Screen body ── */
+.body{flex:1;overflow-y:auto;padding:16px}
+.body::-webkit-scrollbar{display:none}
+
+/* ════════════════════════════════════
+   SCREEN 1 — NEW ORDER
+════════════════════════════════════ */
+
+/* Name input */
+.name-section{margin-bottom:20px}
+.section-label{
+  font-size:11px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.09em;margin-bottom:8px;
+}
+.name-input-wrap{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:12px;padding:0 14px;height:52px;
+}
+.name-input-wrap svg{width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:1.8;flex-shrink:0}
+.name-input-wrap input{
+  flex:1;border:none;outline:none;background:none;
+  font-family:'DM Sans',sans-serif;font-size:16px;font-weight:500;color:var(--text);
+}
+.name-input-wrap input::placeholder{color:var(--text3)}
+.name-clear{
+  width:28px;height:28px;border-radius:999px;
+  background:var(--surface2);border:none;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.name-clear svg{width:13px;height:13px;stroke:var(--text2);fill:none;stroke-width:2.5}
+
+/* Menu items */
+.menu-section{margin-bottom:20px}
+.menu-grid{display:flex;flex-direction:column;gap:8px}
+
+.item-card{
+  display:flex;align-items:center;gap:12px;
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:14px;padding:12px 14px;
+  transition:border-color .12s,background .12s;
+  cursor:pointer;
+}
+.item-card.has-qty{
+  border-color:var(--brand);
+  background:rgba(200,57,43,.04);
+}
+.item-emoji{
+  width:44px;height:44px;border-radius:12px;
+  background:var(--surface2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+}
+.item-card.has-qty .item-emoji{background:var(--brand-light)}
+.item-info{flex:1;min-width:0}
+.item-name{font-size:15px;font-weight:600;color:var(--text);line-height:1.2}
+.item-price{font-size:12px;font-weight:500;color:var(--text3);margin-top:2px}
+.item-note{
+  font-size:11px;color:var(--text2);margin-top:3px;
+  font-style:italic;
+}
+
+/* Counter */
+.counter{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.ctr-btn{
+  width:40px;height:40px;border-radius:10px;
+  border:1.5px solid var(--border);background:var(--surface);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:all .1s;
+}
+.ctr-btn:active{transform:scale(.93)}
+.ctr-btn.add{background:var(--brand);border-color:var(--brand)}
+.ctr-btn svg{width:17px;height:17px;fill:none;stroke-width:2.8;stroke-linecap:round}
+.ctr-btn:not(.add) svg{stroke:var(--text2)}
+.ctr-btn.add svg{stroke:#fff}
+.ctr-btn:disabled,.ctr-btn[disabled]{opacity:.3;cursor:default}
+.ctr-qty{
+  width:30px;text-align:center;
+  font-size:17px;font-weight:700;color:var(--brand);
+  font-family:'DM Mono',monospace;
+}
+.ctr-qty.zero{color:var(--text3)}
+
+/* Order summary bar */
+.order-bar{
+  padding:12px 16px;background:var(--surface);
+  border-top:1px solid var(--border);flex-shrink:0;
+}
+.order-bar-info{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.order-count{font-size:13px;color:var(--text2)}
+.order-count strong{color:var(--text);font-weight:700}
+.order-total{font-size:16px;font-weight:700;color:var(--text);font-family:'DM Mono',monospace}
+.btn-send{
+  height:52px;border-radius:16px;background:var(--brand);
+  color:#fff;font-size:15px;font-weight:700;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;border:none;
+  box-shadow:0 6px 20px rgba(200,57,43,.35);
+  transition:opacity .12s,transform .1s;
+}
+.btn-send:active{transform:scale(.98);opacity:.9}
+.btn-send svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn-send.disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
+
+/* ════════════════════════════════════
+   SCREEN 2 — ACTIVE ORDERS
+════════════════════════════════════ */
+.orders-list{display:flex;flex-direction:column;gap:10px}
+
+.order-card{
+  background:var(--surface);border-radius:14px;
+  border:1.5px solid var(--border);overflow:hidden;
+}
+.order-card-accent{height:3px;background:var(--amber)}
+.order-card-accent.ready{background:var(--green)}
+.order-card-accent.new{background:var(--brand)}
+
+.order-card-body{padding:12px 14px 10px}
+.order-card-row1{
+  display:flex;align-items:flex-start;
+  justify-content:space-between;gap:8px;
+  margin-bottom:8px;
+}
+.order-customer{font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:var(--text)}
+.order-status-chip{
+  padding:3px 10px;border-radius:999px;
+  font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;
+}
+.chip-new{background:#EFF6FF;color:#1E40AF}
+.chip-preparing{background:var(--amber-bg);color:var(--amber-text)}
+.chip-ready{background:var(--green-bg);color:var(--green)}
+
+.order-items-summary{
+  display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;
+}
+.item-pill{
+  display:flex;align-items:center;gap:4px;
+  padding:4px 9px;border-radius:999px;
+  background:var(--surface2);font-size:12px;font-weight:500;color:var(--text2);
+}
+.item-pill .qty{color:var(--brand);font-weight:700}
+
+.order-meta{
+  display:flex;align-items:center;gap:10px;
+  font-size:12px;color:var(--text3);
+}
+.order-time{
+  display:flex;align-items:center;gap:3px;
+  font-family:'DM Mono',monospace;
+}
+.order-time svg{width:12px;height:12px;stroke:var(--text3);fill:none;stroke-width:2}
+
+.order-card-footer{
+  border-top:1px solid var(--border);
+  display:flex;
+}
+.btn-close{
+  flex:1;height:48px;display:flex;align-items:center;justify-content:center;
+  gap:7px;font-size:13px;font-weight:600;cursor:pointer;
+  color:var(--green);background:none;border:none;
+  transition:background .12s;
+}
+.btn-close:hover{background:var(--green-bg)}
+.btn-close svg{width:15px;height:15px;stroke:var(--green);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.btn-add-more{
+  flex:1;height:48px;display:flex;align-items:center;justify-content:center;
+  gap:7px;font-size:13px;font-weight:600;cursor:pointer;
+  color:var(--brand);background:none;border:none;border-left:1px solid var(--border);
+  transition:background .12s;
+}
+.btn-add-more:hover{background:var(--brand-light)}
+.btn-add-more svg{width:15px;height:15px;stroke:var(--brand);fill:none;stroke-width:2.5;stroke-linecap:round}
+
+/* Empty state */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;
+  padding:40px 20px;gap:10px;text-align:center;
+}
+.empty-state svg{width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5}
+.empty-state h3{font-family:'Fraunces',serif;font-size:17px;font-weight:600;color:var(--text2)}
+.empty-state p{font-size:13px;color:var(--text3)}
+
+/* Success toast */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--header);color:#fff;
+  padding:12px 20px;border-radius:12px;
+  font-size:14px;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+  z-index:999;
+  transition:opacity .3s,transform .3s;
+  white-space:nowrap;
+}
+.toast.hide{opacity:0;transform:translateX(-50%) translateY(12px);pointer-events:none}
+.toast svg{width:16px;height:16px;stroke:var(--green);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* Bottom nav */
+.bnav{
+  height:68px;background:var(--surface);
+  border-top:1px solid var(--border);
+  display:flex;flex-shrink:0;
+}
+.bnav-item{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;
+  cursor:pointer;position:relative;
+}
+.bnav-item svg{width:22px;height:22px;stroke:var(--text3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bnav-item span{font-size:11px;font-weight:500;color:var(--text3)}
+.bnav-item.on svg{stroke:var(--brand)}
+.bnav-item.on span{color:var(--brand)}
+.bnav-dot{
+  position:absolute;top:8px;right:calc(50% - 18px);
+  width:16px;height:16px;border-radius:999px;
+  background:var(--brand);color:#fff;
+  font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--surface);
+}
+</style>
+</head>
+<body>
+
+<p class="page-title">Waiter Demo — RestaurantOS</p>
+<p class="page-sub">2 pantallas · Demo fin de semana · Pizza + Cerveza + Soda</p>
+
+<div class="tabs">
+  <div class="tab on" onclick="show(&#39;new&#39;)">Nuevo pedido</div>
+  <div class="tab" onclick="show(&#39;orders&#39;)">Pedidos activos</div>
+</div>
+
+<div class="phone">
+  <div class="sbar">
+    <span class="sbar-time">9:41</span>
+    <span style="font-size:12px;color:rgba(255,255,255,.6);font-family:&#39;DM Mono&#39;,monospace">🔋 87%</span>
+  </div>
+
+  <!-- ══ SCREEN 1 — NEW ORDER ══ -->
+  <div id="scr-new">
+    <div class="topbar">
+      <div class="topbar-row1">
+        <div class="topbar-title">Nuevo pedido</div>
+        <div class="topbar-badge" id="active-badge">2 activos</div>
+      </div>
+      <div class="topbar-sub">Demo · Pizza &amp; Drinks</div>
+    </div>
+
+    <div class="body" id="body-new">
+
+      <!-- Name -->
+      <div class="name-section">
+        <div class="section-label">Nombre del cliente</div>
+        <div class="name-input-wrap">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <input type="text" id="customer-name" placeholder="Ej: Carlos, Mesa del fondo…" autocomplete="off">
+          <button class="name-clear" onclick="clearName()">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Menu -->
+      <div class="menu-section">
+        <div class="section-label">Elige ítems</div>
+        <div class="menu-grid">
+
+          <!-- Pizzas -->
+          <div class="item-card" id="card-0">
+            <div class="item-emoji">🍕</div>
+            <div class="item-info">
+              <div class="item-name">Margarita</div>
+              <div class="item-price">$12.00</div>
+            </div>
+            <div class="counter">
+              <button class="ctr-btn" onclick="dec(0)" id="dec-0" disabled="">
+                <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <div class="ctr-qty zero" id="qty-0">0</div>
+              <button class="ctr-btn add" onclick="inc(0)">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="item-card" id="card-1">
+            <div class="item-emoji">🍕</div>
+            <div class="item-info">
+              <div class="item-name">Pepperoni</div>
+              <div class="item-price">$14.00</div>
+            </div>
+            <div class="counter">
+              <button class="ctr-btn" onclick="dec(1)" id="dec-1" disabled="">
+                <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <div class="ctr-qty zero" id="qty-1">0</div>
+              <button class="ctr-btn add" onclick="inc(1)">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="item-card" id="card-2">
+            <div class="item-emoji">🍕</div>
+            <div class="item-info">
+              <div class="item-name">Vegetariana</div>
+              <div class="item-price">$13.00</div>
+            </div>
+            <div class="counter">
+              <button class="ctr-btn" onclick="dec(2)" id="dec-2" disabled="">
+                <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <div class="ctr-qty zero" id="qty-2">0</div>
+              <button class="ctr-btn add" onclick="inc(2)">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Bebidas -->
+          <div class="item-card" id="card-3">
+            <div class="item-emoji">🍺</div>
+            <div class="item-info">
+              <div class="item-name">Cerveza</div>
+              <div class="item-price">$4.00</div>
+            </div>
+            <div class="counter">
+              <button class="ctr-btn" onclick="dec(3)" id="dec-3" disabled="">
+                <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <div class="ctr-qty zero" id="qty-3">0</div>
+              <button class="ctr-btn add" onclick="inc(3)">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="item-card" id="card-4">
+            <div class="item-emoji">🥤</div>
+            <div class="item-info">
+              <div class="item-name">Soda</div>
+              <div class="item-price">$2.50</div>
+              <div class="item-note">Cola / Naranja / Agua</div>
+            </div>
+            <div class="counter">
+              <button class="ctr-btn" onclick="dec(4)" id="dec-4" disabled="">
+                <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <div class="ctr-qty zero" id="qty-4">0</div>
+              <button class="ctr-btn add" onclick="inc(4)">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer: send button -->
+    <div class="order-bar">
+      <div class="order-bar-info">
+        <div class="order-count"><strong id="total-qty">0</strong> ítems seleccionados</div>
+        <div class="order-total" id="total-price">$0.00</div>
+      </div>
+      <button class="btn-send disabled" id="btn-send" onclick="sendOrder()">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        Enviar a cocina
+      </button>
+    </div>
+
+    <!-- Bottom nav -->
+    <div class="bnav">
+      <div class="bnav-item on" onclick="show(&#39;new&#39;)">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Nuevo</span>
+      </div>
+      <div class="bnav-item" onclick="show(&#39;orders&#39;)">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        <span>Pedidos</span>
+        <div class="bnav-dot" id="nav-badge">2</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 2 — ACTIVE ORDERS ══ -->
+  <div id="scr-orders" class="hidden">
+    <div class="topbar">
+      <div class="topbar-row1">
+        <div class="topbar-title">Pedidos activos</div>
+        <div class="topbar-badge" id="orders-count-badge">2 abiertos</div>
+      </div>
+      <div class="topbar-sub">Toca "Cerrar" cuando cobres</div>
+    </div>
+
+    <div class="body">
+      <div class="orders-list" id="orders-list">
+
+        <!-- Order 1 — ready -->
+        <div class="order-card" id="order-ana">
+          <div class="order-card-accent ready"></div>
+          <div class="order-card-body">
+            <div class="order-card-row1">
+              <div class="order-customer">Ana</div>
+              <div class="order-status-chip chip-ready">✓ Listo</div>
+            </div>
+            <div class="order-items-summary">
+              <div class="item-pill"><span class="qty">2×</span> Pepperoni</div>
+              <div class="item-pill"><span class="qty">3×</span> Cerveza</div>
+            </div>
+            <div class="order-meta">
+              <div class="order-time">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                18 min
+              </div>
+              <div style="font-family:&#39;DM Mono&#39;,monospace">$40.00</div>
+            </div>
+          </div>
+          <div class="order-card-footer">
+            <button class="btn-close" onclick="closeOrder(&#39;ana&#39;)">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Cerrar pedido
+            </button>
+            <button class="btn-add-more" onclick="show(&#39;new&#39;)">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Agregar
+            </button>
+          </div>
+        </div>
+
+        <!-- Order 2 — preparing -->
+        <div class="order-card" id="order-carlos">
+          <div class="order-card-accent"></div>
+          <div class="order-card-body">
+            <div class="order-card-row1">
+              <div class="order-customer">Carlos</div>
+              <div class="order-status-chip chip-preparing">🔥 En cocina</div>
+            </div>
+            <div class="order-items-summary">
+              <div class="item-pill"><span class="qty">1×</span> Margarita</div>
+              <div class="item-pill"><span class="qty">1×</span> Vegetariana</div>
+              <div class="item-pill"><span class="qty">2×</span> Soda</div>
+            </div>
+            <div class="order-meta">
+              <div class="order-time">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                7 min
+              </div>
+              <div style="font-family:&#39;DM Mono&#39;,monospace">$30.00</div>
+            </div>
+          </div>
+          <div class="order-card-footer">
+            <button class="btn-close" onclick="closeOrder(&#39;carlos&#39;)">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Cerrar pedido
+            </button>
+            <button class="btn-add-more" onclick="show(&#39;new&#39;)">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Agregar
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bottom nav -->
+    <div class="bnav">
+      <div class="bnav-item" onclick="show(&#39;new&#39;)">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Nuevo</span>
+      </div>
+      <div class="bnav-item on">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        <span>Pedidos</span>
+        <div class="bnav-dot" id="nav-badge-2">2</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+
+<!-- Toast -->
+<div class="toast hide" id="toast">
+  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  <span id="toast-msg">Pedido enviado a cocina</span>
+</div>
+
+<script>
+/* ── Menu data ── */
+const MENU = [
+  {name:'Margarita',   price:12.00, emoji:'🍕'},
+  {name:'Pepperoni',   price:14.00, emoji:'🍕'},
+  {name:'Vegetariana', price:13.00, emoji:'🍕'},
+  {name:'Cerveza',     price:4.00,  emoji:'🍺'},
+  {name:'Soda',        price:2.50,  emoji:'🥤'},
+];
+const qtys = [0,0,0,0,0];
+
+/* ── Screen switching ── */
+function show(screen){
+  document.getElementById('scr-new').classList.toggle('hidden', screen!=='new');
+  document.getElementById('scr-orders').classList.toggle('hidden', screen!=='orders');
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('on', (i===0&&screen==='new')||(i===1&&screen==='orders'));
+  });
+}
+
+/* ── Counter logic ── */
+function inc(i){
+  qtys[i]++;
+  updateItem(i);
+  updateTotals();
+}
+function dec(i){
+  if(qtys[i]>0){ qtys[i]--; }
+  updateItem(i);
+  updateTotals();
+}
+function updateItem(i){
+  const qty = qtys[i];
+  const el = document.getElementById('qty-'+i);
+  const dec = document.getElementById('dec-'+i);
+  const card = document.getElementById('card-'+i);
+  el.textContent = qty;
+  el.className = qty>0 ? 'ctr-qty' : 'ctr-qty zero';
+  dec.disabled = qty===0;
+  card.className = qty>0 ? 'item-card has-qty' : 'item-card';
+}
+function updateTotals(){
+  let totalQty=0, totalPrice=0;
+  for(let i=0;i<MENU.length;i++){
+    totalQty += qtys[i];
+    totalPrice += qtys[i]*MENU[i].price;
+  }
+  document.getElementById('total-qty').textContent = totalQty;
+  document.getElementById('total-price').textContent = '$'+totalPrice.toFixed(2);
+  const btn = document.getElementById('btn-send');
+  const name = document.getElementById('customer-name').value.trim();
+  if(totalQty>0 && name.length>0){
+    btn.classList.remove('disabled');
+  } else {
+    btn.classList.add('disabled');
+  }
+}
+
+/* ── Name input → enable send ── */
+document.getElementById('customer-name').addEventListener('input', updateTotals);
+function clearName(){
+  document.getElementById('customer-name').value='';
+  updateTotals();
+}
+
+/* ── Send order ── */
+function sendOrder(){
+  const btn = document.getElementById('btn-send');
+  if(btn.classList.contains('disabled')) return;
+  const name = document.getElementById('customer-name').value.trim();
+  const items = MENU.map((m,i)=>({...m,qty:qtys[i]})).filter(x=>x.qty>0);
+
+  // Build order card in active orders
+  addOrderCard(name, items);
+
+  // Reset form
+  for(let i=0;i<5;i++){ qtys[i]=0; updateItem(i); }
+  document.getElementById('customer-name').value='';
+  updateTotals();
+  updateActiveBadge();
+
+  // Show toast
+  showToast(`Pedido de ${name} enviado a cocina`);
+}
+
+let orderCount = 2;
+function addOrderCard(name, items){
+  orderCount++;
+  const id = 'order-'+name.toLowerCase().replace(/\s+/g,'-')+'-'+Date.now();
+  const total = items.reduce((s,x)=>s+x.qty*x.price,0);
+  const pillsHtml = items.map(x=>`<div class="item-pill"><span class="qty">${x.qty}×</span> ${x.name}</div>`).join('');
+
+  const html = `
+    <div class="order-card" id="${id}">
+      <div class="order-card-accent new"></div>
+      <div class="order-card-body">
+        <div class="order-card-row1">
+          <div class="order-customer">${name}</div>
+          <div class="order-status-chip chip-new">📨 Enviado</div>
+        </div>
+        <div class="order-items-summary">${pillsHtml}</div>
+        <div class="order-meta">
+          <div class="order-time">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Ahora
+          </div>
+          <div style="font-family:'DM Mono',monospace">$${total.toFixed(2)}</div>
+        </div>
+      </div>
+      <div class="order-card-footer">
+        <button class="btn-close" onclick="closeOrder('${id}')">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Cerrar pedido
+        </button>
+        <button class="btn-add-more" onclick="show('new')">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Agregar
+        </button>
+      </div>
+    </div>`;
+
+  const list = document.getElementById('orders-list');
+  const empty = list.querySelector('.empty-state');
+  if(empty) empty.remove();
+  list.insertAdjacentHTML('afterbegin', html);
+}
+
+function closeOrder(id){
+  const el = document.getElementById('order-'+id) || document.getElementById(id);
+  if(el){
+    el.style.transition='opacity .25s,transform .25s';
+    el.style.opacity='0';
+    el.style.transform='translateX(20px)';
+    setTimeout(()=>{
+      el.remove();
+      orderCount = Math.max(0, orderCount-1);
+      updateActiveBadge();
+      if(document.getElementById('orders-list').children.length===0){
+        document.getElementById('orders-list').innerHTML=`
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <h3>Sin pedidos activos</h3>
+            <p>Los pedidos que envíes a cocina aparecen aquí</p>
+          </div>`;
+      }
+    }, 250);
+  }
+  showToast('Pedido cerrado');
+}
+
+function updateActiveBadge(){
+  const count = document.getElementById('orders-list').querySelectorAll('.order-card').length;
+  document.getElementById('active-badge').textContent = count+' activos';
+  document.getElementById('orders-count-badge').textContent = count+' abiertos';
+  document.getElementById('nav-badge').textContent = count;
+  document.getElementById('nav-badge-2').textContent = count;
+}
+
+/* ── Toast ── */
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.remove('hide');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.add('hide'), 2500);
+}
+</script>
+
+
+</body></html>

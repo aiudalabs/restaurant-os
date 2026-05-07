@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1A1008">
+<title>Waiter Demo — RestaurantOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --brand:#C8392B;--brand-dark:#9E2A1F;--brand-light:#F5E6E4;
+  --bg:#FEFAF7;--surface:#FFFFFF;--surface2:#F5EDE8;--border:#EDE0D8;
+  --text:#1A1008;--text2:#5C4033;--text3:#9E8070;
+  --green:#2D7A4F;--green-bg:#E8F5EE;
+  --amber:#F59E0B;--amber-bg:#FEF3C7;--amber-text:#92400E;
+  --red:#EF4444;--red-bg:#FEF2F2;--red-text:#991B1B;
+  --header:#1A1008;
+}
+html,body{height:100%;overscroll-behavior:none}
+body{
+  background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);
+  min-height:100vh;display:flex;flex-direction:column;
+}
+.hidden{display:none!important}
+
+/* ── Boot / login overlay ── */
+.overlay{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px;z-index:1000;gap:16px;
+}
+.overlay h1{font-family:'Fraunces',serif;font-size:22px;color:var(--text);text-align:center}
+.overlay p{font-size:13px;color:var(--text2);text-align:center;max-width:280px}
+.overlay .spinner{
+  width:36px;height:36px;border:3px solid var(--border);
+  border-top-color:var(--brand);border-radius:50%;
+  animation:spin 0.9s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay .error{color:var(--red);font-weight:600;font-size:13px}
+.overlay input{
+  width:100%;max-width:280px;height:48px;padding:0 14px;
+  border:1.5px solid var(--border);border-radius:12px;
+  font-family:'DM Sans',sans-serif;font-size:15px;background:var(--surface);
+}
+.overlay button{
+  width:100%;max-width:280px;height:48px;border-radius:12px;
+  background:var(--brand);color:#fff;font-size:15px;font-weight:700;
+  border:none;cursor:pointer;
+}
+
+/* ── Status bar (safe area on iOS) ── */
+.sbar{
+  background:var(--header);height:env(safe-area-inset-top,0);flex-shrink:0;
+}
+
+/* ── Top bar ── */
+.topbar{
+  background:var(--header);padding:14px 20px 16px;flex-shrink:0;
+}
+.topbar-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.topbar-title{font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:#fff}
+.topbar-badge{
+  background:var(--brand);color:#fff;
+  font-size:12px;font-weight:700;padding:4px 11px;border-radius:999px;
+}
+.topbar-sub{font-size:12px;color:rgba(255,255,255,.55)}
+
+/* ── Body ── */
+.body{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+
+/* ── Section label ── */
+.section-label{
+  font-size:11px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.09em;margin-bottom:8px;
+}
+
+/* ── Name input ── */
+.name-section{margin-bottom:20px}
+.name-input-wrap{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:12px;padding:0 14px;height:52px;
+}
+.name-input-wrap svg{width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:1.8;flex-shrink:0}
+.name-input-wrap input{
+  flex:1;border:none;outline:none;background:none;
+  font-family:'DM Sans',sans-serif;font-size:16px;font-weight:500;color:var(--text);
+}
+.name-input-wrap input::placeholder{color:var(--text3)}
+.name-clear{
+  width:28px;height:28px;border-radius:999px;
+  background:var(--surface2);border:none;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.name-clear svg{width:13px;height:13px;stroke:var(--text2);fill:none;stroke-width:2.5}
+
+/* ── Menu items ── */
+.menu-section{margin-bottom:20px}
+.menu-grid{display:flex;flex-direction:column;gap:8px}
+.item-card{
+  display:flex;align-items:center;gap:12px;
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:14px;padding:12px 14px;
+  transition:border-color .12s,background .12s;
+}
+.item-card.has-qty{
+  border-color:var(--brand);
+  background:rgba(200,57,43,.04);
+}
+.item-emoji{
+  width:44px;height:44px;border-radius:12px;
+  background:var(--surface2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+}
+.item-card.has-qty .item-emoji{background:var(--brand-light)}
+.item-info{flex:1;min-width:0}
+.item-name{font-size:15px;font-weight:600;color:var(--text);line-height:1.2}
+.item-price{font-size:12px;font-weight:500;color:var(--text3);margin-top:2px}
+.item-note{font-size:11px;color:var(--text2);margin-top:3px;font-style:italic}
+
+/* ── Counter ── */
+.counter{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.ctr-btn{
+  width:40px;height:40px;border-radius:10px;
+  border:1.5px solid var(--border);background:var(--surface);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:all .1s;
+}
+.ctr-btn:active{transform:scale(.93)}
+.ctr-btn.add{background:var(--brand);border-color:var(--brand)}
+.ctr-btn svg{width:17px;height:17px;fill:none;stroke-width:2.8;stroke-linecap:round}
+.ctr-btn:not(.add) svg{stroke:var(--text2)}
+.ctr-btn.add svg{stroke:#fff}
+.ctr-btn:disabled,.ctr-btn[disabled]{opacity:.3;cursor:default}
+.ctr-qty{
+  width:30px;text-align:center;
+  font-size:17px;font-weight:700;color:var(--brand);
+  font-family:'DM Mono',monospace;
+}
+.ctr-qty.zero{color:var(--text3)}
+
+/* ── Order summary bar ── */
+.order-bar{
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom,0));
+  background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;
+}
+.order-bar-info{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.order-count{font-size:13px;color:var(--text2)}
+.order-count strong{color:var(--text);font-weight:700}
+.order-total{font-size:16px;font-weight:700;color:var(--text);font-family:'DM Mono',monospace}
+.btn-send{
+  height:52px;border-radius:16px;background:var(--brand);
+  color:#fff;font-size:15px;font-weight:700;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;border:none;
+  box-shadow:0 6px 20px rgba(200,57,43,.35);
+  transition:opacity .12s,transform .1s;
+}
+.btn-send:active{transform:scale(.98);opacity:.9}
+.btn-send svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn-send.disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
+.btn-send .mini-spinner{
+  width:18px;height:18px;border:2.5px solid rgba(255,255,255,.35);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+
+/* ── Active orders ── */
+.orders-list{display:flex;flex-direction:column;gap:10px}
+.order-card{
+  background:var(--surface);border-radius:14px;
+  border:1.5px solid var(--border);overflow:hidden;
+}
+.order-card-accent{height:3px;background:var(--amber)}
+.order-card-accent.ready{background:var(--green)}
+.order-card-accent.new{background:#3B82F6}
+.order-card-accent.delivered{background:var(--text3)}
+.order-card-body{padding:12px 14px 10px}
+.order-card-row1{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:8px;margin-bottom:8px;
+}
+.order-customer{font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:var(--text)}
+.order-status-chip{
+  padding:3px 10px;border-radius:999px;
+  font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;
+}
+.chip-new{background:#EFF6FF;color:#1E40AF}
+.chip-preparing{background:var(--amber-bg);color:var(--amber-text)}
+.chip-ready{background:var(--green-bg);color:var(--green)}
+.chip-delivered{background:var(--surface2);color:var(--text2)}
+
+.order-items-summary{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.item-pill{
+  display:flex;align-items:center;gap:4px;
+  padding:4px 9px;border-radius:999px;
+  background:var(--surface2);font-size:12px;font-weight:500;color:var(--text2);
+}
+.item-pill .qty{color:var(--brand);font-weight:700}
+
+.order-meta{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text3)}
+.order-time{display:flex;align-items:center;gap:3px;font-family:'DM Mono',monospace}
+.order-time svg{width:12px;height:12px;stroke:var(--text3);fill:none;stroke-width:2}
+
+.order-card-footer{border-top:1px solid var(--border);display:flex}
+.btn-close,.btn-add-more{
+  flex:1;height:48px;display:flex;align-items:center;justify-content:center;
+  gap:7px;font-size:13px;font-weight:600;cursor:pointer;
+  background:none;border:none;transition:background .12s;
+}
+.btn-close{color:var(--green)}
+.btn-close:hover{background:var(--green-bg)}
+.btn-close svg{width:15px;height:15px;stroke:var(--green);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.btn-add-more{color:var(--brand);border-left:1px solid var(--border)}
+.btn-add-more:hover{background:var(--brand-light)}
+.btn-add-more svg{width:15px;height:15px;stroke:var(--brand);fill:none;stroke-width:2.5;stroke-linecap:round}
+
+/* ── Empty state ── */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;
+  padding:48px 20px;gap:10px;text-align:center;
+}
+.empty-state svg{width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5}
+.empty-state h3{font-family:'Fraunces',serif;font-size:17px;font-weight:600;color:var(--text2)}
+.empty-state p{font-size:13px;color:var(--text3)}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;bottom:calc(92px + env(safe-area-inset-bottom,0));
+  left:50%;transform:translateX(-50%);
+  background:var(--header);color:#fff;
+  padding:12px 20px;border-radius:12px;
+  font-size:14px;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+  z-index:999;transition:opacity .3s,transform .3s;
+  max-width:90%;
+}
+.toast.hide{opacity:0;transform:translateX(-50%) translateY(12px);pointer-events:none}
+.toast.error{background:var(--red)}
+.toast svg{width:16px;height:16px;stroke:var(--green);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.toast.error svg{stroke:#fff}
+
+/* ── Bottom nav ── */
+.bnav{
+  height:calc(68px + env(safe-area-inset-bottom,0));
+  padding-bottom:env(safe-area-inset-bottom,0);
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;flex-shrink:0;
+}
+.bnav-item{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;
+  cursor:pointer;position:relative;
+}
+.bnav-item svg{width:22px;height:22px;stroke:var(--text3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bnav-item span{font-size:11px;font-weight:500;color:var(--text3)}
+.bnav-item.on svg{stroke:var(--brand)}
+.bnav-item.on span{color:var(--brand)}
+.bnav-dot{
+  position:absolute;top:8px;right:calc(50% - 18px);
+  min-width:16px;height:16px;padding:0 4px;border-radius:999px;
+  background:var(--brand);color:#fff;
+  font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--surface);
+}
+.bnav-dot.zero{display:none}
+
+/* ── Larger phones ── */
+@media (min-width:520px){
+  .body{max-width:480px;margin:0 auto;width:100%}
+  .order-bar>*{max-width:480px;margin:0 auto}
+  .topbar{padding-left:max(20px,calc((100% - 480px)/2));padding-right:max(20px,calc((100% - 480px)/2))}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Boot / login overlay ── -->
+<div class="overlay" id="boot-overlay">
+  <div class="spinner" id="boot-spinner"></div>
+  <h1 id="boot-title">Conectando con RestaurantOS…</h1>
+  <p id="boot-msg">Autenticando y cargando configuración del restaurante.</p>
+  <div id="login-form" class="hidden" style="display:flex;flex-direction:column;gap:10px;align-items:center;width:100%">
+    <input type="email" id="login-email" placeholder="email@restauranteos.com" autocomplete="email">
+    <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password">
+    <button onclick="manualLogin()">Entrar</button>
+  </div>
+  <div class="error hidden" id="boot-error"></div>
+</div>
+
+<!-- ── App shell ── -->
+<div id="app" class="hidden" style="display:flex;flex-direction:column;min-height:100vh">
+  <div class="sbar"></div>
+
+  <!-- Screen: New order -->
+  <div id="scr-new" style="display:flex;flex-direction:column;flex:1">
+    <div class="topbar">
+      <div class="topbar-row1">
+        <div class="topbar-title">Nuevo pedido</div>
+        <div class="topbar-badge" id="active-badge">0 activos</div>
+      </div>
+      <div class="topbar-sub" id="topbar-sub-new">Demo · Pizza &amp; Drinks</div>
+    </div>
+    <div class="body" id="body-new">
+      <div class="name-section">
+        <div class="section-label">Nombre del cliente</div>
+        <div class="name-input-wrap">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <input type="text" id="customer-name" placeholder="Ej: Carlos, Mesa del fondo…" autocomplete="off" autocapitalize="words">
+          <button class="name-clear" onclick="clearName()" aria-label="Limpiar nombre">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      </div>
+      <div class="menu-section">
+        <div class="section-label">Elige ítems</div>
+        <div class="menu-grid" id="menu-grid"></div>
+      </div>
+    </div>
+    <div class="order-bar">
+      <div class="order-bar-info">
+        <div class="order-count"><strong id="total-qty">0</strong> ítems seleccionados</div>
+        <div class="order-total" id="total-price">$0.00</div>
+      </div>
+      <button class="btn-send disabled" id="btn-send" onclick="sendOrder()">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        <span id="btn-send-label">Enviar a cocina</span>
+      </button>
+    </div>
+    <div class="bnav">
+      <div class="bnav-item on" id="nav-new" onclick="show('new')">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Nuevo</span>
+      </div>
+      <div class="bnav-item" id="nav-orders" onclick="show('orders')">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        <span>Pedidos</span>
+        <div class="bnav-dot zero" id="nav-badge">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen: Active orders -->
+  <div id="scr-orders" class="hidden" style="display:flex;flex-direction:column;flex:1">
+    <div class="topbar">
+      <div class="topbar-row1">
+        <div class="topbar-title">Pedidos activos</div>
+        <div class="topbar-badge" id="orders-count-badge">0 abiertos</div>
+      </div>
+      <div class="topbar-sub">Toca "Cerrar" cuando cobres</div>
+    </div>
+    <div class="body">
+      <div class="orders-list" id="orders-list">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <h3>Sin pedidos activos</h3>
+          <p>Los pedidos que envíes a cocina aparecen aquí</p>
+        </div>
+      </div>
+    </div>
+    <div class="bnav">
+      <div class="bnav-item" onclick="show('new')">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Nuevo</span>
+      </div>
+      <div class="bnav-item on">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        <span>Pedidos</span>
+        <div class="bnav-dot zero" id="nav-badge-2">0</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast hide" id="toast">
+  <svg id="toast-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  <span id="toast-msg">Pedido enviado a cocina</span>
+</div>
+
+<!-- Firebase Web SDK (compat mode via CDN, no build) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+
+<script>
+/* ============================================================
+   1. Firebase config — same project as client/kitchen/admin
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: 'AIzaSyCBCwt3GmpxVcGWH58CULtWRh-4snbJ1IY',
+  authDomain: 'restaurant-os-68c79.firebaseapp.com',
+  projectId: 'restaurant-os-68c79',
+  storageBucket: 'restaurant-os-68c79.firebasestorage.app',
+  messagingSenderId: '839468636765',
+  appId: '1:839468636765:web:6f029569314405bfb70bb4',
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+/* ============================================================
+   2. Menu (hardcoded, no Firebase fetch)
+   ============================================================ */
+const MENU = [
+  { id:'margarita',   name:'Margarita',   price:12.00, category:'pizza', emoji:'🍕' },
+  { id:'pepperoni',   name:'Pepperoni',   price:14.00, category:'pizza', emoji:'🍕' },
+  { id:'vegetariana', name:'Vegetariana', price:13.00, category:'pizza', emoji:'🍕' },
+  { id:'cerveza',     name:'Cerveza',     price: 4.00, category:'drink', emoji:'🍺' },
+  { id:'soda',        name:'Soda',        price: 2.50, category:'drink', emoji:'🥤', note:'Cola / Naranja / Agua' },
+];
+const qtys = MENU.map(() => 0);
+
+/* Session-scoped runtime context */
+const ctx = {
+  user: null,          // firebase user
+  orgId: null,
+  branchId: null,
+  pizzaCategoryId: '', // real categoryId so Cloud Function can route
+  drinkCategoryId: '',
+  ordersUnsub: null,
+  orders: [],          // active orders from Firestore snapshot
+};
+
+/* ============================================================
+   3. Bootstrap — auth + resolve org/branch + category routing
+   ============================================================
+   We don't hardcode credentials (seeded users vary per environment).
+   First run: user types email+pass → saved to localStorage.
+   Next runs: auto-login from storage. Wrong creds → form shown.
+*/
+const CREDS_KEY = 'waiterDemo.creds.v1';
+
+async function boot() {
+  const saved = readSavedCreds();
+  if (!saved) {
+    showLoginForm('Usa tu email y contraseña de operador.');
+    return;
+  }
+  try {
+    setBootMsg('Autenticando con el servidor…');
+    await auth.signInWithEmailAndPassword(saved.email, saved.pass);
+    await resolveContext();
+    startOrdersListener();
+    renderMenu();
+    showApp();
+  } catch (err) {
+    console.error('[boot]', err);
+    clearSavedCreds();
+    showLoginForm('Sesión guardada inválida. Vuelve a iniciar sesión.');
+    showBootError(err);
+  }
+}
+
+async function manualLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  if (!email || !pass) return;
+  hideBootError();
+  setBootMsg('Autenticando…');
+  hideLoginForm();
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+    saveCreds(email, pass);
+    await resolveContext();
+    startOrdersListener();
+    renderMenu();
+    showApp();
+  } catch (err) {
+    console.error('[manualLogin]', err);
+    clearSavedCreds();
+    showLoginForm('Email o contraseña incorrectos');
+    showBootError(err);
+    // Restore typed values so user doesn't retype the email
+    document.getElementById('login-email').value = email;
+    document.getElementById('login-pass').value  = '';
+  }
+}
+
+function readSavedCreds() {
+  try {
+    const raw = localStorage.getItem(CREDS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function saveCreds(email, pass) {
+  try { localStorage.setItem(CREDS_KEY, JSON.stringify({ email, pass })); } catch {}
+}
+function clearSavedCreds() {
+  try { localStorage.removeItem(CREDS_KEY); } catch {}
+}
+
+async function resolveContext() {
+  setBootMsg('Cargando configuración del restaurante…');
+  ctx.user = auth.currentUser;
+  if (!ctx.user) throw new Error('No authenticated user');
+
+  const userDoc = await db.collection('users').doc(ctx.user.uid).get();
+  if (!userDoc.exists) {
+    throw new Error('Tu usuario no tiene perfil en users/. Pide al admin que te agregue.');
+  }
+  const u = userDoc.data();
+  ctx.orgId = u.orgId;
+  if (!u.branchIds || u.branchIds.length === 0) {
+    throw new Error('Tu usuario no tiene branchIds asignados.');
+  }
+  ctx.branchId = u.branchIds[0];
+
+  // Resolve category IDs for routing via stations
+  const stationsSnap = await db.collection('stations')
+    .where('branchId', '==', ctx.branchId)
+    .where('isActive', '==', true)
+    .get();
+
+  if (stationsSnap.empty) {
+    throw new Error('No hay estaciones activas en este branch. Configura al menos una en el admin.');
+  }
+
+  // Build (station name) -> categoryIds map to pick routing targets
+  const stations = stationsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const pickByName = (re) => stations.find(s => re.test(String(s.name || '').toLowerCase()));
+
+  const kitchenStation = pickByName(/cocina|kitchen|comida|food|pizza/) || stations[0];
+  const barStation     = pickByName(/bar|bebida|drink|cantina/) || (stations[1] || stations[0]);
+
+  ctx.pizzaCategoryId = (kitchenStation.categoryIds || [])[0] || '';
+  ctx.drinkCategoryId = (barStation.categoryIds || [])[0]     || '';
+
+  if (!ctx.pizzaCategoryId || !ctx.drinkCategoryId) {
+    throw new Error('Estaciones existen pero sin categoryIds. Configura routing en el admin.');
+  }
+
+  const branchDoc = await db.collection('branches').doc(ctx.branchId).get();
+  const branchName = branchDoc.exists ? (branchDoc.data().name || 'Sucursal') : 'Sucursal';
+  document.getElementById('topbar-sub-new').textContent = `${branchName} · ${ctx.user.email}`;
+}
+
+function setBootMsg(msg) {
+  document.getElementById('boot-msg').textContent = msg;
+}
+function showBootError(err) {
+  const e = document.getElementById('boot-error');
+  e.textContent = err?.message || String(err);
+  e.classList.remove('hidden');
+  document.getElementById('boot-spinner').classList.add('hidden');
+}
+function hideBootError() {
+  document.getElementById('boot-error').classList.add('hidden');
+  document.getElementById('boot-spinner').classList.remove('hidden');
+}
+function showLoginForm(msg) {
+  document.getElementById('login-form').classList.remove('hidden');
+  document.getElementById('boot-spinner').classList.add('hidden');
+  document.getElementById('boot-title').textContent = 'Inicia sesión';
+  document.getElementById('boot-msg').textContent = msg || '';
+}
+function hideLoginForm() {
+  document.getElementById('login-form').classList.add('hidden');
+  document.getElementById('boot-spinner').classList.remove('hidden');
+  document.getElementById('boot-title').textContent = 'Conectando…';
+}
+function showApp() {
+  document.getElementById('boot-overlay').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+}
+
+/* ============================================================
+   4. Menu rendering + counter logic
+   ============================================================ */
+function renderMenu() {
+  const grid = document.getElementById('menu-grid');
+  grid.innerHTML = MENU.map((m, i) => `
+    <div class="item-card" id="card-${i}">
+      <div class="item-emoji">${m.emoji}</div>
+      <div class="item-info">
+        <div class="item-name">${m.name}</div>
+        <div class="item-price">$${m.price.toFixed(2)}</div>
+        ${m.note ? `<div class="item-note">${m.note}</div>` : ''}
+      </div>
+      <div class="counter">
+        <button class="ctr-btn" onclick="dec(${i})" id="dec-${i}" disabled aria-label="Quitar">
+          <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <div class="ctr-qty zero" id="qty-${i}">0</div>
+        <button class="ctr-btn add" onclick="inc(${i})" aria-label="Agregar">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function inc(i){ qtys[i]++; updateItem(i); updateTotals(); }
+function dec(i){ if (qtys[i] > 0) qtys[i]--; updateItem(i); updateTotals(); }
+
+function updateItem(i) {
+  const q = qtys[i];
+  const qtyEl = document.getElementById('qty-'+i);
+  const decEl = document.getElementById('dec-'+i);
+  const card  = document.getElementById('card-'+i);
+  qtyEl.textContent = q;
+  qtyEl.className = q > 0 ? 'ctr-qty' : 'ctr-qty zero';
+  decEl.disabled = q === 0;
+  card.className = q > 0 ? 'item-card has-qty' : 'item-card';
+}
+
+function updateTotals() {
+  let totalQty = 0, totalPrice = 0;
+  for (let i = 0; i < MENU.length; i++) {
+    totalQty   += qtys[i];
+    totalPrice += qtys[i] * MENU[i].price;
+  }
+  document.getElementById('total-qty').textContent = totalQty;
+  document.getElementById('total-price').textContent = '$' + totalPrice.toFixed(2);
+  refreshSendButton();
+}
+
+function refreshSendButton() {
+  const btn   = document.getElementById('btn-send');
+  const name  = document.getElementById('customer-name').value.trim();
+  const total = qtys.reduce((s, q) => s + q, 0);
+  if (total > 0 && name.length > 0 && !btn.dataset.busy) {
+    btn.classList.remove('disabled');
+  } else {
+    btn.classList.add('disabled');
+  }
+}
+
+function clearName() {
+  document.getElementById('customer-name').value = '';
+  refreshSendButton();
+}
+
+/* Capitalize name on blur (initial letter of each word) */
+function capitalizeName(s) {
+  return s.replace(/\b([a-záéíóúñ])([a-záéíóúñ']*)/gi,
+    (_, a, b) => a.toUpperCase() + b.toLowerCase());
+}
+
+/* ============================================================
+   5. Create order in Firestore (batch)
+   ============================================================ */
+async function sendOrder() {
+  const btn = document.getElementById('btn-send');
+  if (btn.classList.contains('disabled')) return;
+
+  const rawName = document.getElementById('customer-name').value.trim();
+  const name = capitalizeName(rawName);
+  const items = MENU
+    .map((m, i) => ({ ...m, qty: qtys[i] }))
+    .filter(x => x.qty > 0);
+  if (items.length === 0 || !name) return;
+
+  setSending(true);
+
+  try {
+    const subtotal = items.reduce((s, it) => s + it.qty * it.price, 0);
+    const orderRef = db.collection('orders').doc();
+    const batch    = db.batch();
+    const now      = firebase.firestore.FieldValue.serverTimestamp();
+
+    // Summary denormalized so active-orders screen renders without reading items
+    const itemsSummary = items.map(it => ({
+      name: it.name, qty: it.qty, unitPrice: it.price,
+    }));
+
+    batch.set(orderRef, {
+      orgId:       ctx.orgId,
+      branchId:    ctx.branchId,
+      tableId:     '',              // falsy → Cloud Function skips tables/ update
+      tableNumber: name,            // KDS displays this as the ticket title ("Mesa {name}")
+      status:      'pending',
+      subtotal:    subtotal,
+      taxAmount:   0,
+      taxPercent:  0,
+      tipAmount:   0,
+      total:       subtotal,
+      itemCount:   items.reduce((s, it) => s + it.qty, 0),
+      payment:     { method: null, status: null },
+      source:      'waiter',        // lets the listener filter waiter orders
+      waiterName:  name,            // explicit display name (distinct from tableNumber use)
+      waiterItemsSummary: itemsSummary,
+      createdAt:   now,
+      updatedAt:   now,
+    });
+
+    for (const it of items) {
+      const itemRef = db.collection('order_items').doc();
+      const categoryId = it.category === 'pizza' ? ctx.pizzaCategoryId : ctx.drinkCategoryId;
+      batch.set(itemRef, {
+        id:            itemRef.id,
+        orgId:         ctx.orgId,
+        branchId:      ctx.branchId,
+        orderId:       orderRef.id,
+        stationId:     '',              // Cloud Function routes via categoryId
+        tableNumber:   name,
+        productId:     `waiter-demo-${it.id}`,
+        productName:   it.name,
+        categoryId:    categoryId,
+        quantity:      it.qty,
+        unitPrice:     it.price,
+        totalPrice:    it.price * it.qty,
+        modifiers:     [],
+        status:        'queued',
+        sentToStationAt: now,
+      });
+    }
+
+    await batch.commit();
+
+    // Reset form
+    for (let i = 0; i < MENU.length; i++) { qtys[i] = 0; updateItem(i); }
+    document.getElementById('customer-name').value = '';
+    updateTotals();
+    showToast(`Pedido de ${name} enviado ✓`, 'success');
+  } catch (err) {
+    console.error('[sendOrder]', err);
+    showToast(`Error al enviar: ${err.message || err}`, 'error');
+  } finally {
+    setSending(false);
+  }
+}
+
+function setSending(busy) {
+  const btn = document.getElementById('btn-send');
+  if (busy) {
+    btn.dataset.busy = '1';
+    btn.classList.add('disabled');
+    btn.innerHTML = '<span class="mini-spinner"></span><span>Enviando…</span>';
+  } else {
+    delete btn.dataset.busy;
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line>' +
+      '<polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>' +
+      '<span id="btn-send-label">Enviar a cocina</span>';
+    refreshSendButton();
+  }
+}
+
+/* ============================================================
+   6. Active orders listener + rendering
+   ============================================================ */
+function startOrdersListener() {
+  if (ctx.ordersUnsub) ctx.ordersUnsub();
+
+  // Closed orders excluded; filter on client to keep query simple.
+  ctx.ordersUnsub = db.collection('orders')
+    .where('orgId',    '==', ctx.orgId)
+    .where('branchId', '==', ctx.branchId)
+    .where('source',   '==', 'waiter')
+    .onSnapshot(
+      snap => {
+        const orders = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(o => o.status !== 'closed' && o.status !== 'cancelled')
+          .sort((a, b) => {
+            const ta = a.createdAt?.toMillis?.() ?? 0;
+            const tb = b.createdAt?.toMillis?.() ?? 0;
+            return tb - ta; // newest first
+          });
+        ctx.orders = orders;
+        renderActiveOrders();
+        updateBadges();
+      },
+      err => {
+        console.error('[orders listener]', err);
+        showToast(`Listener error: ${err.message}`, 'error');
+      }
+    );
+}
+
+function renderActiveOrders() {
+  const list = document.getElementById('orders-list');
+  if (ctx.orders.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <h3>Sin pedidos activos</h3>
+        <p>Los pedidos que envíes a cocina aparecen aquí</p>
+      </div>`;
+    return;
+  }
+  list.innerHTML = ctx.orders.map(renderOrderCard).join('');
+}
+
+function renderOrderCard(o) {
+  const chip = statusChip(o.status);
+  const accent = statusAccent(o.status);
+  const name = escapeHtml(o.waiterName || o.tableNumber || 'Cliente');
+  const items = o.waiterItemsSummary || [];
+  const pills = items.map(it => `
+    <div class="item-pill"><span class="qty">${it.qty}×</span> ${escapeHtml(it.name)}</div>
+  `).join('');
+  const total = Number(o.total || 0).toFixed(2);
+  const elapsed = elapsedLabel(o.createdAt);
+  return `
+    <div class="order-card" id="order-${o.id}">
+      <div class="order-card-accent ${accent}"></div>
+      <div class="order-card-body">
+        <div class="order-card-row1">
+          <div class="order-customer">${name}</div>
+          <div class="order-status-chip ${chip.cls}">${chip.label}</div>
+        </div>
+        <div class="order-items-summary">${pills}</div>
+        <div class="order-meta">
+          <div class="order-time">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${elapsed}
+          </div>
+          <div style="font-family:'DM Mono',monospace">$${total}</div>
+        </div>
+      </div>
+      <div class="order-card-footer">
+        <button class="btn-close" onclick="closeOrder('${o.id}')">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Cerrar pedido
+        </button>
+        <button class="btn-add-more" onclick="show('new')">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Agregar
+        </button>
+      </div>
+    </div>`;
+}
+
+function statusChip(status) {
+  switch (status) {
+    case 'pending':         return { cls: 'chip-new',       label: '📨 Enviado' };
+    case 'confirmed':       return { cls: 'chip-preparing', label: '✓ Recibido' };
+    case 'in_preparation':  return { cls: 'chip-preparing', label: '🔥 En cocina' };
+    case 'ready':           return { cls: 'chip-ready',     label: '✓ Listo' };
+    case 'delivered':       return { cls: 'chip-delivered', label: '🍽 Entregado' };
+    default:                return { cls: 'chip-new',       label: status || '—' };
+  }
+}
+function statusAccent(status) {
+  if (status === 'ready')     return 'ready';
+  if (status === 'pending' || status === 'confirmed') return 'new';
+  if (status === 'delivered') return 'delivered';
+  return '';
+}
+
+function elapsedLabel(ts) {
+  const ms = ts?.toMillis?.();
+  if (!ms) return 'Ahora';
+  const diffMin = Math.floor((Date.now() - ms) / 60000);
+  if (diffMin < 1)  return 'Ahora';
+  if (diffMin < 60) return `${diffMin} min`;
+  const h = Math.floor(diffMin / 60);
+  return `${h} h`;
+}
+
+function updateBadges() {
+  const count = ctx.orders.length;
+  document.getElementById('active-badge').textContent = `${count} activo${count === 1 ? '' : 's'}`;
+  document.getElementById('orders-count-badge').textContent = `${count} abierto${count === 1 ? '' : 's'}`;
+  for (const id of ['nav-badge', 'nav-badge-2']) {
+    const el = document.getElementById(id);
+    el.textContent = count;
+    el.classList.toggle('zero', count === 0);
+  }
+}
+
+/* Keep the elapsed time labels fresh */
+setInterval(() => {
+  if (ctx.orders.length && !document.getElementById('scr-orders').classList.contains('hidden')) {
+    renderActiveOrders();
+  }
+}, 30000);
+
+/* ============================================================
+   7. Close order
+   ============================================================ */
+async function closeOrder(orderId) {
+  const card = document.getElementById('order-' + orderId);
+  if (card) card.style.opacity = '0.5';
+  try {
+    await db.collection('orders').doc(orderId).update({
+      status: 'closed',
+      completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt:   firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    showToast('Pedido cerrado ✓', 'success');
+  } catch (err) {
+    console.error('[closeOrder]', err);
+    if (card) card.style.opacity = '1';
+    showToast(`Error al cerrar: ${err.message || err}`, 'error');
+  }
+}
+
+/* ============================================================
+   8. UI helpers
+   ============================================================ */
+function show(screen) {
+  document.getElementById('scr-new').classList.toggle('hidden', screen !== 'new');
+  document.getElementById('scr-orders').classList.toggle('hidden', screen !== 'orders');
+}
+
+let toastTimer;
+function showToast(msg, kind) {
+  const t    = document.getElementById('toast');
+  const icon = document.getElementById('toast-icon');
+  t.classList.toggle('error', kind === 'error');
+  icon.innerHTML = kind === 'error'
+    ? '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'
+    : '<polyline points="20 6 9 17 4 12"/>';
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.remove('hide');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hide'), 2800);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
+  }[c]));
+}
+
+/* Wire up name input */
+document.getElementById('customer-name').addEventListener('input', refreshSendButton);
+document.getElementById('customer-name').addEventListener('blur', e => {
+  e.target.value = capitalizeName(e.target.value.trim());
+  refreshSendButton();
+});
+
+boot();
+</script>
+</body>
+</html>
