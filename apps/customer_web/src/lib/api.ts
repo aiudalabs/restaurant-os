@@ -3,14 +3,14 @@ import {
   doc,
   getDoc,
   getDocs,
-  limit,
   onSnapshot,
   query,
   serverTimestamp,
   where,
   writeBatch,
 } from 'firebase/firestore';
-import { db, ensureAnonAuth } from './firebase';
+import { httpsCallable } from 'firebase/functions';
+import { auth, db, ensureAnonAuth, functions } from './firebase';
 import { paths } from './paths';
 import { generatePickupCode } from './pickup';
 import type {
@@ -75,19 +75,15 @@ export async function loadMenu(branchId: string): Promise<MenuData> {
 }
 
 /**
- * Resolves the tax rate for checkout: branch override, else org default, else 0.
- * Anonymous clients may read organizations/branches per security rules.
+ * Resolves the tax rate for checkout from the branch. We intentionally do NOT
+ * read the organization doc from the client — it holds Odoo credentials and is
+ * locked to staff by security rules.
  */
-export async function loadTaxPercent(orgId: string, branchId: string): Promise<number> {
+export async function loadTaxPercent(branchId: string): Promise<number> {
   await ensureAnonAuth();
-  const [branchSnap, orgSnap] = await Promise.all([
-    getDoc(doc(db, paths.branches, branchId)),
-    getDoc(doc(db, paths.organizations, orgId)),
-  ]);
+  const branchSnap = await getDoc(doc(db, paths.branches, branchId));
   const branchTax = branchSnap.data()?.taxPercent;
-  if (typeof branchTax === 'number') return branchTax;
-  const orgTax = orgSnap.data()?.defaultTaxPercent;
-  return typeof orgTax === 'number' ? orgTax : 0;
+  return typeof branchTax === 'number' ? branchTax : 0;
 }
 
 export interface CreateOrderInput {
@@ -117,6 +113,7 @@ export interface CreatedOrder {
 export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder> {
   await ensureAnonAuth();
   const { branch, customerName, lines, notes, taxPercent, requirePayment } = input;
+  const uid = auth.currentUser?.uid ?? '';
 
   const pickupCode = generatePickupCode();
   const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
@@ -134,6 +131,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
     tableId: '', // no physical table — pickup/counter service
     tableNumber: pickupCode,
     source: 'qr',
+    createdByUid: uid, // lets the customer read only their own order (rules)
     customerName: customerName || 'Cliente',
     pickupCode,
     status: requirePayment ? 'pending_payment' : 'pending',
@@ -156,6 +154,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
       orgId: branch.orgId,
       branchId: branch.id,
       orderId: orderRef.id,
+      createdByUid: uid,
       stationId: '', // assigned by onOrderCreated
       tableNumber: pickupCode,
       productId: line.productId,
@@ -232,12 +231,22 @@ export async function findOrderByPickupCode(
   branchId?: string,
 ): Promise<OrderDoc | null> {
   await ensureAnonAuth();
-  const constraints = [where('pickupCode', '==', pickupCode)];
-  if (branchId) constraints.push(where('branchId', '==', branchId));
-  const snap = await getDocs(
-    query(collection(db, paths.orders), ...constraints, limit(1)),
-  );
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return mapOrder(d.id, d.data());
+  // Order reads are locked to the creating device, so recovery goes through a
+  // Cloud Function: it looks the order up by code and transfers the claim to
+  // this device (the pickup code is the claim ticket). Then we can read it.
+  try {
+    const call = httpsCallable<{ pickupCode: string; branchId?: string }, { orderId?: string }>(
+      functions,
+      'recoverOrder',
+    );
+    const res = await call({ pickupCode, branchId });
+    const orderId = res.data?.orderId;
+    if (!orderId) return null;
+    const snap = await getDoc(doc(db, paths.orders, orderId));
+    if (!snap.exists()) return null;
+    return mapOrder(snap.id, snap.data());
+  } catch {
+    // 'not-found' etc. → treat as no match.
+    return null;
+  }
 }

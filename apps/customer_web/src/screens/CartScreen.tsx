@@ -22,7 +22,7 @@ export function CartScreen() {
       navigate('/', { replace: true });
       return;
     }
-    loadTaxPercent(session.orgId, session.branchId)
+    loadTaxPercent(session.branchId)
       .then(setTaxPercent)
       .catch(() => setTaxPercent(0));
   }, [session, navigate]);

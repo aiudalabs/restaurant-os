@@ -27,8 +27,9 @@ service cloud.firestore {
 
     // ─── Organizations ──────────────────────────────────────────────
 
+    // Org doc holds Odoo credentials — readable only by its own staff.
     match /organizations/{orgId} {
-      allow read: if isAuthed();
+      allow read: if belongsToMyOrg(orgId);
       allow write: if isAdmin() && belongsToMyOrg(orgId);
     }
 
@@ -67,7 +68,7 @@ service cloud.firestore {
     // ─── Tables ─────────────────────────────────────────────────────
 
     match /tables/{tableId} {
-      allow read: if isAuthed();
+      allow read: if belongsToMyOrg(resource.data.orgId);
       allow create: if isManager() && belongsToMyOrg(request.resource.data.orgId);
       allow update, delete: if isManager() && belongsToMyOrg(resource.data.orgId);
     }
@@ -81,22 +82,23 @@ service cloud.firestore {
     }
 
     // ─── Orders ─────────────────────────────────────────────────────
-    // Anonymous clients can create and read their own orders.
-    // Staff (with user doc) can read/update orders from their org.
+    // A customer reads ONLY the orders they created (createdByUid).
+    // Staff read/update orders from their own org (no cross-tenant leak).
 
     match /orders/{orderId} {
       allow create: if isAuthed();
-      allow read: if isAuthed();
+      allow read: if belongsToMyOrg(resource.data.orgId)
+                  || resource.data.createdByUid == uid();
       allow update: if belongsToMyOrg(resource.data.orgId);
     }
 
     // ─── Order Items ────────────────────────────────────────────────
-    // Anonymous clients can create items and read them (for tracking).
-    // KDS operators can update items assigned to their station.
+    // Same scoping as orders. KDS operators update items of their station.
 
     match /order_items/{itemId} {
       allow create: if isAuthed();
-      allow read: if isAuthed();
+      allow read: if belongsToMyOrg(resource.data.orgId)
+                  || resource.data.createdByUid == uid();
       allow update: if belongsToMyOrg(resource.data.orgId)
                     && (isManager()
                         || userDoc().stationId == resource.data.stationId);

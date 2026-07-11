@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import type { User } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
 import type { AppUser } from '@/types/user';
 import { subscribeToAuth, signIn, signOut, fetchAppUser } from '@/services/auth.service';
+import { auth, functions } from '@/lib/firebase';
 
 interface AuthState {
   firebaseUser: User | null;
@@ -10,8 +13,16 @@ interface AuthState {
   error: string | null;
 }
 
+interface RegisterInput {
+  orgName: string;
+  ownerName: string;
+  email: string;
+  password: string;
+}
+
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<void>;
+  register: (input: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -30,6 +41,9 @@ export function useAuthProvider(): AuthContextValue {
     loading: true,
     error: null,
   });
+  // While onboarding a brand-new owner, the user is signed in for a moment
+  // before their users/{uid} doc exists — don't auto-sign-them-out during that.
+  const registering = useRef(false);
 
   useEffect(() => {
     const unsubscribe = subscribeToAuth(async (user) => {
@@ -37,6 +51,8 @@ export function useAuthProvider(): AuthContextValue {
         const appUser = await fetchAppUser(user.uid);
         if (appUser && (appUser.role === 'admin' || appUser.role === 'manager')) {
           setState({ firebaseUser: user, appUser, loading: false, error: null });
+        } else if (registering.current) {
+          setState({ firebaseUser: user, appUser: null, loading: true, error: null });
         } else {
           setState({
             firebaseUser: null,
@@ -63,9 +79,30 @@ export function useAuthProvider(): AuthContextValue {
     }
   }, []);
 
+  const register = useCallback(async ({ orgName, ownerName, email, password }: RegisterInput) => {
+    setState((s) => ({ ...s, loading: true, error: null }));
+    registering.current = true;
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      const call = httpsCallable(functions, 'createOrganization');
+      await call({ orgName, ownerName });
+      // Reload so auth picks up the newly-created owner doc → dashboard.
+      window.location.reload();
+    } catch (err) {
+      registering.current = false;
+      const message = err instanceof Error ? err.message : 'No se pudo crear la organización';
+      try {
+        await signOut();
+      } catch {
+        /* ignore */
+      }
+      setState((s) => ({ ...s, loading: false, error: message }));
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     await signOut();
   }, []);
 
-  return { ...state, login, logout };
+  return { ...state, login, register, logout };
 }

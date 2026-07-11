@@ -5,11 +5,12 @@
 cliente escanee el QR de una mesa vea **el menú del restaurante donde está**, aunque
 ese dueño tenga 20 restaurantes.
 
-> **Estado (2026-07-11):** ✅ **P0** (QR apunta al customer_web, configurable), ✅ **P1**
-> (página **Sucursales**: crear/editar + asignar menú; branch context lista por org en
-> vivo), ✅ **P4** (datos duplicados eliminados) — **implementados y desplegados**.
-> Pendientes: **P2** (onboarding `createOrganization` + reglas aisladas por org) y
-> **P3** (BFF multi-tenant).
+> **Estado (2026-07-11):** ✅ **P0** (QR→customer_web configurable), ✅ **P1** (página
+> **Sucursales** + asignar menú; menú del admin scopeado a la sucursal), ✅ **P4**
+> (datos duplicados eliminados), ✅ **P2** (onboarding self-serve `createOrganization`
+> + signup; reglas de Firestore **aisladas por org**: org protegida, cliente lee solo
+> su orden vía `createdByUid` + recuperación server-side `recoverOrder`) — **todo
+> implementado, desplegado y verificado**. Pendiente: **P3** (BFF multi-tenant).
 
 ---
 
