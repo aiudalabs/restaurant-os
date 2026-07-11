@@ -83,6 +83,26 @@ export function CartScreen() {
     }
   };
 
+  // Full-screen loader during checkout so the (now-cleared) cart never flashes
+  // its empty state while we create the order and fetch the payment link.
+  if (submitting) {
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center gap-5 px-8 text-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-brand border-t-transparent" />
+        <div>
+          <p className="font-display text-xl font-semibold">
+            {paymentsEnabled ? 'Te llevamos al pago seguro…' : 'Enviando tu pedido…'}
+          </p>
+          <p className="mt-2 text-sm text-hint">
+            {paymentsEnabled
+              ? '🔒 Pago protegido por PagueloFácil. No cierres esta ventana.'
+              : 'Un momento, por favor.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-full flex-col">
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-black/5 bg-white/90 px-4 py-4 backdrop-blur safe-top">
