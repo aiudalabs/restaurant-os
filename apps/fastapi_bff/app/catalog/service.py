@@ -3,20 +3,25 @@ from typing import Any
 
 from app.catalog.models import SyncStats
 from app.config import settings
+from app.core.exceptions import OdooRPCError
 from app.core.firestore import CATEGORIES, PRODUCTS, STATIONS, batch_write, db
-from app.core.odoo import odoo_client
+from app.core.odoo import odoo_client_for_org
 
 # Simple in-process cache: (timestamp, data)
 _products_cache: tuple[float, list] | None = None
 _CACHE_TTL = 60  # seconds
 
 
-def sync_catalog() -> SyncStats:
-    org_id = settings.org_id
-    branch_id = settings.branch_id
+def sync_catalog(org_id: str | None = None, branch_id: str | None = None) -> SyncStats:
+    org_id = org_id or settings.org_id
+    branch_id = branch_id or settings.branch_id
+
+    client = odoo_client_for_org(org_id)
+    if client is None:
+        raise OdooRPCError(f"No hay Odoo configurado para la organización '{org_id}'")
 
     # ── 1. Read Odoo POS categories ──────────────────────────────────────────
-    odoo_categories = odoo_client.search_read(
+    odoo_categories = client.search_read(
         "pos.category",
         [],
         ["id", "name", "sequence"],
@@ -24,7 +29,7 @@ def sync_catalog() -> SyncStats:
     cat_map: dict[int, dict] = {c["id"]: c for c in odoo_categories}
 
     # ── 2. Read Odoo products available in POS ───────────────────────────────
-    odoo_products = odoo_client.search_read(
+    odoo_products = client.search_read(
         "product.product",
         [["available_in_pos", "=", True]],
         ["id", "name", "list_price", "pos_categ_ids", "description_sale", "active"],
@@ -128,13 +133,13 @@ def sync_catalog() -> SyncStats:
     return SyncStats(synced=len(synced_ids), created=created, updated=updated, deleted=deleted)
 
 
-def get_products() -> list[dict[str, Any]]:
+def get_products(org_id: str | None = None) -> list[dict[str, Any]]:
     global _products_cache
     now = time.time()
     if _products_cache and (now - _products_cache[0]) < _CACHE_TTL:
         return _products_cache[1]
 
-    org_id = settings.org_id
+    org_id = org_id or settings.org_id
     docs = (
         db()
         .collection(PRODUCTS)

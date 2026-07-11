@@ -4,7 +4,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # Odoo
+    # Odoo — SINGLE-TENANT FALLBACK only. In multi-tenant, each org's Odoo
+    # connection is read from organizations/{orgId} (odooUrl/odooDb/odooUser/
+    # odooPassword) via app.core.odoo.odoo_client_for_org(). These env values are
+    # used when an org has no Odoo configured (dev / one-tenant deploy).
     odoo_url: str = "http://localhost:8069"
     odoo_db: str = "restaurantes_demo"
     odoo_user: str = "admin"

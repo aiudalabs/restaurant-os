@@ -9,8 +9,11 @@ ese dueño tenga 20 restaurantes.
 > **Sucursales** + asignar menú; menú del admin scopeado a la sucursal), ✅ **P4**
 > (datos duplicados eliminados), ✅ **P2** (onboarding self-serve `createOrganization`
 > + signup; reglas de Firestore **aisladas por org**: org protegida, cliente lee solo
-> su orden vía `createdByUid` + recuperación server-side `recoverOrder`) — **todo
-> implementado, desplegado y verificado**. Pendiente: **P3** (BFF multi-tenant).
+> su orden vía `createdByUid` + recuperación server-side `recoverOrder`), ✅ **P3**
+> (BFF multi-tenant: Odoo **por-org** leído de `organizations/{orgId}`, auth/catalog/
+> pagos derivan el org del usuario/orden; env queda como fallback single-tenant) —
+> **todo implementado y desplegado.** Nota: el path Odoo por-org no se puede probar
+> end-to-end aquí porque no hay una instancia Odoo por tenant desplegada.
 
 ---
 

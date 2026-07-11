@@ -7,7 +7,7 @@ import httpx
 from app.config import settings
 from app.core.firebase import get_rtdb
 from app.core.firestore import ORDERS, ORDER_ITEMS, STATIONS, db
-from app.core.odoo import OdooClient
+from app.core.odoo import OdooClient, odoo_client_for_org
 
 logger = logging.getLogger(__name__)
 
@@ -230,7 +230,13 @@ def _sync_to_odoo(order_id: str, cod_oper: str) -> None:
         if not items:
             return
 
-        client = OdooClient()
+        # Use THIS order's org Odoo connection (multi-tenant). A tenant without
+        # Odoo configured simply skips the sync — the order stays paid in Firebase.
+        client = odoo_client_for_org(order.get("orgId"))
+        if client is None:
+            logger.info("No Odoo configured for org %s — skipping sync for order %s",
+                        order.get("orgId"), order_id)
+            return
         client.authenticate()
 
         sessions = client.search_read(

@@ -12,7 +12,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/login", response_model=LoginResponse)
 def auth_login(body: LoginRequest):
     try:
-        token, employee = login(body.username, body.password)
+        token, employee = login(body.username, body.password, body.org_id, body.branch_id)
     except OdooAuthError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     except OdooRPCError as e:

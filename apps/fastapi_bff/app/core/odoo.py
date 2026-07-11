@@ -1,13 +1,35 @@
+import logging
 import time
 import xmlrpc.client
+from dataclasses import dataclass
 from functools import wraps
 from typing import Any
 
 from app.core.exceptions import OdooAuthError, OdooRPCError
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
 _RETRY_ATTEMPTS = 3
 _RETRY_BACKOFF = [1, 2, 4]  # seconds
+
+
+@dataclass(frozen=True)
+class OdooConfig:
+    """Connection to ONE tenant's Odoo. Multi-tenant: each org has its own."""
+    url: str
+    db: str
+    user: str
+    password: str
+
+    @classmethod
+    def from_env(cls) -> "OdooConfig":
+        return cls(
+            url=settings.odoo_url,
+            db=settings.odoo_db,
+            user=settings.odoo_user,
+            password=settings.odoo_password,
+        )
 
 
 def _with_retry(fn):
@@ -26,11 +48,12 @@ def _with_retry(fn):
 
 
 class OdooClient:
-    def __init__(self):
-        self._url = settings.odoo_url
-        self._db = settings.odoo_db
-        self._user = settings.odoo_user
-        self._password = settings.odoo_password
+    def __init__(self, config: OdooConfig | None = None):
+        cfg = config or OdooConfig.from_env()
+        self._url = cfg.url
+        self._db = cfg.db
+        self._user = cfg.user
+        self._password = cfg.password
         self._uid: int | None = None
 
     @property
@@ -128,4 +151,47 @@ class OdooClient:
             return False
 
 
+# Env-based client — the single-tenant fallback (and dev default).
 odoo_client = OdooClient()
+
+
+def resolve_odoo_config(org_id: str | None) -> OdooConfig | None:
+    """Reads a tenant's Odoo connection from organizations/{orgId}.
+
+    Only Cloud Functions / the BFF (Admin SDK) can read the org doc, which holds
+    these credentials. Returns None if the org has no Odoo configured (a brand-new
+    tenant that hasn't connected Odoo yet) — callers then skip Odoo gracefully.
+    """
+    if not org_id:
+        return None
+    # Local import avoids a circular import at module load.
+    from app.core.firestore import db
+
+    try:
+        snap = db().collection("organizations").document(org_id).get()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not read org %s for Odoo config: %s", org_id, exc)
+        return None
+    if not snap.exists:
+        return None
+    data = snap.to_dict() or {}
+    url = data.get("odooUrl")
+    odb = data.get("odooDb")
+    user = data.get("odooUser")
+    password = data.get("odooPassword")
+    if url and odb and user and password:
+        return OdooConfig(url=url, db=odb, user=user, password=password)
+    return None
+
+
+def odoo_client_for_org(org_id: str | None) -> OdooClient | None:
+    """Odoo client for a specific org. Falls back to the env client when a single
+    org is configured there; returns None if no Odoo is available for this tenant."""
+    cfg = resolve_odoo_config(org_id)
+    if cfg is not None:
+        return OdooClient(cfg)
+    # Fallback: env-configured Odoo (single-tenant deploy). If neither is set,
+    # there is simply no Odoo for this org.
+    if settings.odoo_url and settings.odoo_db:
+        return OdooClient()
+    return None
