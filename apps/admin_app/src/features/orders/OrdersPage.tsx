@@ -253,7 +253,7 @@ export default function OrdersPage() {
 
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
-    fetchItems(order.id);
+    fetchItems(order.id, order.orgId);
   };
 
   if (loading) {

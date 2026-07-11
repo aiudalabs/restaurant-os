@@ -79,10 +79,10 @@ export function useOrderItems() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchItems = useCallback(async (orderId: string) => {
+  const fetchItems = useCallback(async (orderId: string, orgId: string) => {
     setLoading(true);
     try {
-      const data = await fetchOrderItemsService(orderId);
+      const data = await fetchOrderItemsService(orderId, orgId);
       setItems(data);
     } finally {
       setLoading(false);

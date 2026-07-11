@@ -200,8 +200,14 @@ export function watchOrder(
     cb(latestOrder, latestItems);
   });
 
+  // Filter by createdByUid too — security rules scope order_items to their
+  // creator, and a list query must be constrained to only readable docs.
   const unsubItems = onSnapshot(
-    query(collection(db, paths.orderItems), where('orderId', '==', orderId)),
+    query(
+      collection(db, paths.orderItems),
+      where('createdByUid', '==', auth.currentUser?.uid ?? '__none__'),
+      where('orderId', '==', orderId),
+    ),
     (snap) => {
       latestItems = snap.docs.map(
         (d) =>

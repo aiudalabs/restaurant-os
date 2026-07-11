@@ -68,9 +68,13 @@ export async function fetchOrdersByDateRange(
 
 export async function fetchOrderItems(
   orderId: string,
+  orgId: string,
 ): Promise<OrderItem[]> {
+  // Filter by orgId too: security rules scope order_items to the org, and a list
+  // query must be constrained to only match readable docs ("rules aren't filters").
   const q = query(
     collection(db, paths.orderItems),
+    where('orgId', '==', orgId),
     where('orderId', '==', orderId),
   );
   const snap = await getDocs(q);
