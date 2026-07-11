@@ -105,14 +105,17 @@ export const onOrderCreated = functions.firestore
     }
 
     // Which orders go to the KDS immediately (mirror to RTDB now) vs. wait for
-    // payment confirmation (pushed to RTDB by the BFF later).
+    // payment confirmation (pushed to RTDB by the BFF after PagueloFácil approves).
     // - waiter: staff-created, always immediate.
-    // - qr: customer web (pickup by number) — no payment step in the demo, so it
-    //   goes straight to the kitchen like a waiter order.
-    // Any future card-paid flow keeps the deferred path (assign stationId now,
-    // RTDB after payment).
+    // - qr with status 'pending_payment': prepaid flow — the customer must pay
+    //   BEFORE the kitchen sees it (prevents unpaid orders wasting prepared food).
+    //   The BFF's payment callback assigns nothing here; we only pre-route the
+    //   stationId now and the BFF mirrors to RTDB once the payment is approved.
+    // - qr without prepayment (demo / pay-at-counter): goes straight to the KDS.
     const source = (order as any).source;
-    const goesToKdsNow = source === "waiter" || source === "qr";
+    const awaitingPayment = order.status === "pending_payment";
+    const goesToKdsNow =
+      source === "waiter" || (source === "qr" && !awaitingPayment);
 
     // 3. Route items to stations and build batch updates
     const batch = firestore.batch();
@@ -171,11 +174,15 @@ export const onOrderCreated = functions.firestore
       );
     }
 
-    // 4. Update order status to "confirmed"
-    batch.update(snap.ref, {
-      status: "confirmed",
-      updatedAt: now,
-    });
+    // 4. Update order status to "confirmed" — but NOT for prepaid orders still
+    // awaiting payment: those stay 'pending_payment' until the BFF marks them
+    // 'paid'. We keep the assigned stationId so the BFF can route instantly then.
+    batch.update(
+      snap.ref,
+      awaitingPayment
+        ? { updatedAt: now }
+        : { status: "confirmed", updatedAt: now },
+    );
 
     // 5. Update table status (set currentOrderId so table shows "Ocupada")
     if (order.tableId) {

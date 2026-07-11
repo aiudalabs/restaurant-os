@@ -27,6 +27,15 @@ class Settings(BaseSettings):
     # Public URL where PagueloFácil can POST the callback.
     # In dev: use ngrok (ngrok http 8000) or set to http://10.0.2.2:8000 for Android emulator.
     bff_base_url: str = "http://10.0.2.2:8000"
+    # Where to send the customer's browser back to after paying (the web app).
+    customer_app_url: str = "https://restaurant-os-pedir.web.app"
+    # Server-to-server verification (go-live hardening). The PagueloFácil callback
+    # is NOT signed, so before releasing an order to the kitchen we should re-check
+    # the transaction against PagueloFácil's REST API. Provide the access token +
+    # the verified status endpoint to enable it. Leave blank in sandbox/demo.
+    # TODO(go-live): confirm the exact REST status URL in PagueloFácil's docs.
+    paguelofacil_access_token: str = ""
+    paguelofacil_verify_url: str = ""  # e.g. https://secure.paguelofacil.com/rest/...
 
     # Server
     host: str = "0.0.0.0"

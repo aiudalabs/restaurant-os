@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createOrder, loadTaxPercent } from '../lib/api';
+import { paymentsEnabled } from '../lib/config';
+import { initPayment } from '../lib/payments';
 import { money } from '../lib/format';
 import { saveActiveOrder } from '../lib/session';
 import { useCart } from '../store/cart';
@@ -35,7 +37,7 @@ export function CartScreen() {
     setSubmitting(true);
     setError('');
     try {
-      const { orderId, pickupCode } = await createOrder({
+      const { orderId, pickupCode, total } = await createOrder({
         branch: {
           id: session.branchId,
           orgId: session.orgId,
@@ -46,6 +48,7 @@ export function CartScreen() {
         lines: cart.lines,
         notes,
         taxPercent,
+        requirePayment: paymentsEnabled,
       });
       saveActiveOrder({
         orderId,
@@ -57,6 +60,22 @@ export function CartScreen() {
         createdAt: Date.now(),
       });
       cart.clear();
+
+      if (paymentsEnabled) {
+        // Redirect to PagueloFácil's hosted page. The BFF confirms the payment
+        // and only then releases the order to the kitchen. If we can't reach the
+        // gateway, land on tracking — the order is 'pending_payment' and the
+        // customer can retry payment from there.
+        try {
+          const url = await initPayment(orderId, total, `Pedido ${pickupCode}`);
+          window.location.href = url;
+          return;
+        } catch {
+          navigate(`/order/${orderId}`, { replace: true });
+          return;
+        }
+      }
+
       navigate(`/order/${orderId}`, { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No pudimos enviar tu pedido. Intenta de nuevo.');
@@ -150,10 +169,18 @@ export function CartScreen() {
               disabled={submitting}
               className="mt-3 w-full rounded-2xl bg-brand py-4 text-base font-semibold text-white shadow-lg shadow-brand/25 active:scale-[0.99] disabled:opacity-60"
             >
-              {submitting ? 'Enviando…' : 'Confirmar pedido'}
+              {submitting
+                ? paymentsEnabled
+                  ? 'Redirigiendo al pago…'
+                  : 'Enviando…'
+                : paymentsEnabled
+                  ? `Pagar ${money(total)}`
+                  : 'Confirmar pedido'}
             </button>
             <p className="mt-2 text-center text-xs text-hint">
-              Pagas al retirar. Te daremos tu número de pedido.
+              {paymentsEnabled
+                ? 'Pago seguro con PagueloFácil. Tu pedido va a cocina solo cuando el pago se confirma.'
+                : 'Pagas al retirar. Te daremos tu número de pedido.'}
             </p>
           </div>
         </>

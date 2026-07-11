@@ -42,15 +42,68 @@ def create_payment_link(order_id: str, amount: float, description: str) -> dict:
     }
 
 
-def handle_callback(form: dict) -> None:
-    """Process the POST callback PagueloFácil sends after payment."""
+def _verify_with_paguelofacil(cod_oper: str, expected_amount: float) -> bool:
+    """Server-to-server re-check of an approved transaction.
+
+    The PagueloFácil callback is NOT signed, so a forged 'Aprobada' POST could
+    otherwise release food for free. When a verify URL + access token are
+    configured we re-query PagueloFácil and confirm the operation is really
+    approved for the expected amount. If not configured (sandbox/demo), we log a
+    loud warning and trust the callback — DO NOT run production without this.
+
+    TODO(go-live): confirm PagueloFácil's REST status endpoint + request/response
+    schema (from their official Postman collection) and implement the real call.
+    """
+    if not settings.paguelofacil_verify_url or not settings.paguelofacil_access_token:
+        logger.warning(
+            "PagueloFácil server-side verification NOT configured — trusting the "
+            "unsigned callback (codOper=%s). Configure paguelofacil_verify_url + "
+            "paguelofacil_access_token before going live.",
+            cod_oper,
+        )
+        return True
+    try:
+        resp = httpx.get(
+            settings.paguelofacil_verify_url,
+            params={"codOper": cod_oper},
+            headers={"Authorization": settings.paguelofacil_access_token},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        # TODO(go-live): map the real fields returned by PagueloFácil.
+        status_ok = str(data.get("status", "")).lower().startswith("aprob")
+        return status_ok
+    except Exception as exc:
+        logger.error("PagueloFácil verification failed for codOper %s: %s", cod_oper, exc)
+        return False
+
+
+def handle_callback(form: dict) -> str | None:
+    """Process the callback PagueloFácil sends after payment. Returns the order_id
+    (so the HTTP layer can redirect the browser back to the app)."""
     # PF field names vary; normalise to lowercase for safety
     f = {k.lower(): v for k, v in form.items()}
 
     order_id = f.get("parm_1") or f.get("parm1")
     if not order_id:
         logger.warning("PagueloFácil callback missing order_id (PARM_1)")
-        return
+        return None
+
+    # Idempotency: PagueloFácil may hit the callback more than once (browser
+    # redirect + webhook). Never route to the kitchen or sync Odoo twice.
+    try:
+        snap = db().collection(ORDERS).document(order_id).get()
+    except Exception as exc:
+        logger.error("Failed to read order %s: %s", order_id, exc)
+        return order_id
+    if not snap.exists:
+        logger.warning("PagueloFácil callback for unknown order %s", order_id)
+        return order_id
+    current = snap.to_dict() or {}
+    if current.get("status") == "paid":
+        logger.info("Order %s already paid — ignoring duplicate callback", order_id)
+        return order_id
 
     # "Aprobada" = approved, anything else = rejected
     estado = f.get("estado") or f.get("state") or ""
@@ -58,8 +111,13 @@ def handle_callback(form: dict) -> None:
 
     cod_oper = f.get("codoper") or f.get("cod_oper") or f.get("noaprobacion") or ""
     card_type = f.get("tipotarjeta") or f.get("tarjeta") or "card"
-    payment_status = "approved" if approved else "rejected"
 
+    # Re-verify approvals server-to-server before trusting them.
+    if approved and not _verify_with_paguelofacil(cod_oper, float(current.get("total", 0))):
+        logger.error("Order %s: callback said approved but verification failed", order_id)
+        approved = False
+
+    payment_status = "approved" if approved else "rejected"
     now = datetime.now(timezone.utc)
 
     update: dict = {
@@ -78,12 +136,14 @@ def handle_callback(form: dict) -> None:
         db().collection(ORDERS).document(order_id).update(update)
     except Exception as exc:
         logger.error("Failed to update order %s in Firestore: %s", order_id, exc)
-        return
+        return order_id
     logger.info("Order %s payment → %s (codOper=%s)", order_id, payment_status, cod_oper)
 
     if approved:
         _route_to_kds(order_id)
         _sync_to_odoo(order_id, cod_oper)
+
+    return order_id
 
 
 def _route_to_kds(order_id: str) -> None:

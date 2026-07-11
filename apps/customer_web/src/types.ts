@@ -39,8 +39,14 @@ export interface CartLine {
 }
 
 // Order lifecycle used by the tracking screen. Mirrors OrderStatus in
-// FIREBASE_SCHEMA.md. onOrderCreated flips 'pending' → 'confirmed'.
+// FIREBASE_SCHEMA.md, plus the payment states the BFF sets:
+//   pending_payment → (customer pays) → paid → confirmed → in_preparation → …
+//   pending_payment → (declined)      → payment_failed
+// Without prepayment, onOrderCreated flips 'pending' → 'confirmed' directly.
 export type OrderStatus =
+  | 'pending_payment'
+  | 'payment_failed'
+  | 'paid'
   | 'pending'
   | 'confirmed'
   | 'in_preparation'

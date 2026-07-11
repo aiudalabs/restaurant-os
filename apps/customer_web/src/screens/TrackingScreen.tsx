@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { watchOrder } from '../lib/api';
+import { initPayment } from '../lib/payments';
 import { money } from '../lib/format';
 import { clearActiveOrder } from '../lib/session';
 import { useSession } from '../store/session';
@@ -8,7 +9,7 @@ import { Spinner } from '../components/Spinner';
 import type { OrderDoc, OrderItemDoc, OrderStatus } from '../types';
 
 const STEPS: { key: string; label: string; icon: string; statuses: OrderStatus[] }[] = [
-  { key: 'received', label: 'Recibido', icon: '📝', statuses: ['pending', 'confirmed'] },
+  { key: 'received', label: 'Recibido', icon: '📝', statuses: ['pending', 'confirmed', 'paid'] },
   { key: 'preparing', label: 'En preparación', icon: '👨‍🍳', statuses: ['in_preparation'] },
   { key: 'ready', label: 'Listo para retirar', icon: '🔔', statuses: ['ready'] },
   { key: 'done', label: 'Entregado', icon: '✅', statuses: ['delivered', 'closed'] },
@@ -26,6 +27,7 @@ export function TrackingScreen() {
   const [order, setOrder] = useState<OrderDoc | null>(null);
   const [items, setItems] = useState<OrderItemDoc[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     if (!orderId) return;
@@ -60,11 +62,24 @@ export function TrackingScreen() {
   const active = stepIndex(order.status);
   const cancelled = order.status === 'cancelled';
   const isReady = order.status === 'ready';
+  const awaitingPayment = order.status === 'pending_payment';
+  const paymentFailed = order.status === 'payment_failed';
+  const paymentPending = awaitingPayment || paymentFailed;
 
   const startNewOrder = () => {
     clearActiveOrder();
     clearSession();
     navigate('/', { replace: true });
+  };
+
+  const payNow = async () => {
+    setPaying(true);
+    try {
+      const url = await initPayment(order.id, order.total, `Pedido ${order.pickupCode}`);
+      window.location.href = url;
+    } catch {
+      setPaying(false);
+    }
   };
 
   return (
@@ -76,16 +91,41 @@ export function TrackingScreen() {
       {/* The number the customer must keep to pick up the order */}
       <div
         className={`rounded-3xl p-7 text-center text-white shadow-xl ${
-          isReady ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-brand shadow-brand/25'
+          isReady
+            ? 'bg-emerald-500 shadow-emerald-500/30'
+            : paymentPending
+              ? 'bg-ink/80 shadow-black/20'
+              : 'bg-brand shadow-brand/25'
         }`}
       >
         <div className="font-display text-6xl font-bold tracking-tight">{order.pickupCode}</div>
         <p className="mt-2 text-sm text-white/80">
-          {order.customerName && order.customerName !== 'Cliente'
-            ? `A nombre de ${order.customerName}`
-            : 'Guarda este número para retirar'}
+          {paymentPending
+            ? 'Reservado — se envía a cocina al pagar'
+            : order.customerName && order.customerName !== 'Cliente'
+              ? `A nombre de ${order.customerName}`
+              : 'Guarda este número para retirar'}
         </p>
       </div>
+
+      {/* Payment gate — order is held until paid */}
+      {paymentPending && (
+        <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+          <p className="text-center text-sm font-semibold text-ink">
+            {paymentFailed ? 'Tu pago fue rechazado' : 'Falta completar el pago'}
+          </p>
+          <p className="mt-1 text-center text-xs text-hint">
+            Nadie prepara tu pedido hasta confirmar el pago. Total {money(order.total)}.
+          </p>
+          <button
+            onClick={payNow}
+            disabled={paying}
+            className="mt-3 w-full rounded-2xl bg-brand py-3.5 text-sm font-semibold text-white active:scale-[0.99] disabled:opacity-60"
+          >
+            {paying ? 'Redirigiendo…' : paymentFailed ? 'Reintentar pago' : `Pagar ${money(order.total)}`}
+          </button>
+        </div>
+      )}
 
       {isReady && (
         <div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-700">
@@ -99,7 +139,7 @@ export function TrackingScreen() {
       )}
 
       {/* Status stepper */}
-      {!cancelled && (
+      {!cancelled && !paymentPending && (
         <div className="mt-7">
           {STEPS.map((step, i) => {
             const state = i < active ? 'done' : i === active ? 'current' : 'todo';

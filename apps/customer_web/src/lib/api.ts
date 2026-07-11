@@ -96,11 +96,16 @@ export interface CreateOrderInput {
   lines: CartLine[];
   notes: string;
   taxPercent: number;
+  // When true the order is created as 'pending_payment' and is NOT routed to the
+  // kitchen until the BFF confirms payment. When false (demo / pay-at-counter)
+  // it goes straight to the KDS via onOrderCreated.
+  requirePayment: boolean;
 }
 
 export interface CreatedOrder {
   orderId: string;
   pickupCode: string;
+  total: number;
 }
 
 /**
@@ -111,11 +116,12 @@ export interface CreatedOrder {
  */
 export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder> {
   await ensureAnonAuth();
-  const { branch, customerName, lines, notes, taxPercent } = input;
+  const { branch, customerName, lines, notes, taxPercent, requirePayment } = input;
 
   const pickupCode = generatePickupCode();
   const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
   const taxAmount = subtotal * taxPercent;
+  const total = subtotal + taxAmount;
   const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
 
   const batch = writeBatch(db);
@@ -130,15 +136,15 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
     source: 'qr',
     customerName: customerName || 'Cliente',
     pickupCode,
-    status: 'pending',
+    status: requirePayment ? 'pending_payment' : 'pending',
     subtotal,
     taxAmount,
     taxPercent,
     tipAmount: 0,
-    total: subtotal + taxAmount,
+    total,
     notes,
     itemCount,
-    payment: { method: null, status: null },
+    payment: { method: null, status: requirePayment ? 'pending' : null },
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -166,7 +172,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
   }
 
   await batch.commit();
-  return { orderId: orderRef.id, pickupCode };
+  return { orderId: orderRef.id, pickupCode, total };
 }
 
 function mapOrder(id: string, data: Record<string, unknown>): OrderDoc {
