@@ -11,6 +11,23 @@ esperar a Google Play / App Store.
 - **URL demo:** https://restaurant-os-pedir.web.app
   - QR / deep link: `?org=demo-org&branch=demo-branch`
 
+## Tarjeta de prueba (PagueloFácil sandbox)
+
+Para completar un pago en la página de checkout de PagueloFácil (ambiente de pruebas).
+Fuente: [developers.paguelofacil.com/guias/enlace-de-pago](https://developers.paguelofacil.com/guias/enlace-de-pago).
+
+| Campo | Valor |
+|---|---|
+| **Tarjeta (Visa)** | `4059310181757001` |
+| **Tarjeta (Mastercard)** | `5517747952039692` |
+| **Vencimiento** | cualquier fecha ≥ hoy (ej. `12/28`) |
+| **CVV** | cualquier 3 dígitos (ej. `123`) |
+| **Nombre** | cualquiera |
+
+> Monto mínimo: **$1.00 USD**. Las tarjetas oficiales listadas producen pagos
+> **aprobados**; no hay tarjeta documentada para simular un pago rechazado (usa el
+> flujo de "cerrar sin pagar" para ese caso).
+
 ## Flujo
 
 1. **/** (`EntryScreen`) — lee `org`/`branch` del QR, nombre opcional. Si ya hay un
