@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, AlertTriangle } from 'lucide-react';
+import { Plus, UtensilsCrossed, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
@@ -13,18 +13,17 @@ import type { Product } from '@/types/product';
 export default function MenuPage() {
   const { appUser } = useAuth();
   const orgId = appUser?.orgId ?? '';
-  const { selectedBranch, updateBranch } = useBranchContext();
+  const { selectedBranch, updateBranch, loading: branchLoading } = useBranchContext();
 
   const { menus, loading: menusLoading, createMenu } = useMenus(orgId);
-  const [selectedMenuId, setSelectedMenuId] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showMenuForm, setShowMenuForm] = useState(false);
-  const [linkingMenu, setLinkingMenu] = useState(false);
 
-  // Auto-select first menu
-  const activeMenuId = selectedMenuId ?? menus[0]?.id ?? '';
+  // The menu is determined by the SELECTED BRANCH — never the whole org.
+  const activeMenuId = selectedBranch?.menuId ?? '';
+  const branchMenu = menus.find((m) => m.id === activeMenuId) ?? null;
 
   const {
     categories,
@@ -45,6 +44,14 @@ export default function MenuPage() {
     toggleProduct,
   } = useProducts(activeMenuId, activeCategoryId);
 
+  // Create a brand-new menu AND assign it to the current branch in one step, so a
+  // branch's menu is always its own (no orphan org-wide menus).
+  const createMenuForBranch = async (data: { orgId: string; name: string; isActive: boolean }) => {
+    const id = await createMenu(data);
+    if (selectedBranch) await updateBranch(selectedBranch.id, { menuId: id });
+    return id;
+  };
+
   const handleCreateCategory = async (name: string) => {
     if (!orgId || !activeMenuId) return;
     await createCategory({
@@ -56,25 +63,16 @@ export default function MenuPage() {
     });
   };
 
-  const handleUpdateCategory = async (id: string, name: string) => {
-    await updateCategory(id, { name });
-  };
-
-  const handleToggleCategory = async (id: string, isActive: boolean) => {
-    await updateCategory(id, { isActive });
-  };
-
   const handleAddProduct = () => {
     setEditingProduct(null);
     setShowProductForm(true);
   };
-
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setShowProductForm(true);
   };
 
-  if (menusLoading) {
+  if (menusLoading || branchLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-600 border-t-transparent" />
@@ -82,31 +80,33 @@ export default function MenuPage() {
     );
   }
 
-  const handleLinkMenu = async () => {
-    if (!selectedBranch || !activeMenuId) return;
-    setLinkingMenu(true);
-    try {
-      await updateBranch(selectedBranch.id, { menuId: activeMenuId });
-    } finally {
-      setLinkingMenu(false);
-    }
-  };
-
-  if (menus.length === 0) {
+  // No branch selected/created yet → can't have a menu.
+  if (!selectedBranch) {
     return (
-      <div className="m3-card flex flex-col items-center gap-3 p-10 text-center">
-        <div className="text-4xl">🍽️</div>
-        <p className="text-gray-500">No hay menús creados.</p>
+      <div className="m3-card flex flex-col items-center gap-3 p-12 text-center">
+        <Store className="h-10 w-10 text-gray-400" />
+        <p className="text-gray-500">Primero crea una sucursal en la sección «Sucursales».</p>
+      </div>
+    );
+  }
+
+  // Branch has no menu yet → create one FOR THIS BRANCH (never show another branch's menu).
+  if (!activeMenuId) {
+    return (
+      <div className="m3-card flex flex-col items-center gap-3 p-12 text-center">
+        <UtensilsCrossed className="h-10 w-10 text-gray-400" />
+        <p className="font-semibold text-gray-900">
+          «{selectedBranch.name}» todavía no tiene menú
+        </p>
+        <p className="max-w-sm text-sm text-gray-500">
+          Crea el menú de esta sucursal. Será el que vean sus clientes al escanear el QR.
+          Para reutilizar el menú de otra sucursal, asígnalo desde «Sucursales».
+        </p>
         <Button onClick={() => setShowMenuForm(true)}>
-          <Plus className="mr-1.5 h-4 w-4" />
-          Crear menú
+          <Plus className="h-5 w-5" /> Crear menú para esta sucursal
         </Button>
         {showMenuForm && (
-          <MenuFormDialog
-            orgId={orgId}
-            onSave={createMenu}
-            onClose={() => setShowMenuForm(false)}
-          />
+          <MenuFormDialog orgId={orgId} onSave={createMenuForBranch} onClose={() => setShowMenuForm(false)} />
         )}
       </div>
     );
@@ -114,70 +114,35 @@ export default function MenuPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end gap-2">
-        {menus.length > 1 && (
-          <div className="relative">
-            <select
-              value={activeMenuId}
-              onChange={(e) => {
-                setSelectedMenuId(e.target.value);
-                setSelectedCategoryId(null);
-              }}
-              className="appearance-none rounded-full bg-[var(--color-surface-container-high)] py-2.5 pl-4 pr-9 text-sm font-medium text-gray-900"
-            >
-              {menus.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <Button variant="outlined" size="sm" onClick={() => setShowMenuForm(true)}>
-          <Plus className="mr-1 h-4 w-4" />
-          Nuevo menú
-        </Button>
+      {/* Which branch's menu you're editing — no org-wide menu picker. */}
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary-container)] px-4 py-2 text-sm font-semibold text-[var(--color-on-primary-container)]">
+          <Store className="h-4 w-4" />
+          {selectedBranch.name}
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-surface-container-high)] px-4 py-2 text-sm font-medium text-gray-700">
+          <UtensilsCrossed className="h-4 w-4 text-orange-600" />
+          {branchMenu?.name ?? 'Menú'}
+        </span>
       </div>
 
-      {/* Link menu to branch banner */}
-      {selectedBranch && !selectedBranch.menuId && (
-        <div className="m3-card flex items-center gap-3 border border-amber-200 bg-amber-50 p-5">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-amber-800">
-              La sucursal &quot;{selectedBranch.name}&quot; no tiene un menú asignado.
-            </p>
-            <p className="text-xs text-amber-600">
-              Asigna un menú para que los clientes puedan hacer pedidos.
-            </p>
-          </div>
-          <Button
-            size="sm"
-            disabled={linkingMenu}
-            onClick={handleLinkMenu}
-          >
-            {linkingMenu ? 'Asignando...' : 'Asignar menú actual'}
-          </Button>
-        </div>
-      )}
-
       <div className="flex gap-6">
-        {/* Left panel — Categories */}
+        {/* Categories */}
         <div className="m3-card w-64 shrink-0 self-start p-4">
           <CategoryList
             categories={categories}
             selectedId={activeCategoryId}
             onSelect={(id) => setSelectedCategoryId(id)}
             onCreate={handleCreateCategory}
-            onUpdate={handleUpdateCategory}
+            onUpdate={(id, name) => updateCategory(id, { name })}
             onDelete={deleteCategory}
-            onToggle={handleToggleCategory}
+            onToggle={(id, isActive) => updateCategory(id, { isActive })}
             loading={categoriesLoading}
           />
         </div>
 
-        {/* Right panel — Products */}
-        <div className="flex-1 min-w-0">
+        {/* Products */}
+        <div className="min-w-0 flex-1">
           {activeCategoryId ? (
             <ProductList
               products={products}
@@ -189,7 +154,7 @@ export default function MenuPage() {
             />
           ) : (
             <div className="m3-card flex items-center justify-center p-10 text-gray-400">
-              Selecciona una categoría para ver los productos.
+              Crea una categoría para empezar a agregar productos.
             </div>
           )}
         </div>
@@ -204,14 +169,6 @@ export default function MenuPage() {
           onSave={createProduct}
           onUpdate={updateProduct}
           onClose={() => setShowProductForm(false)}
-        />
-      )}
-
-      {showMenuForm && (
-        <MenuFormDialog
-          orgId={orgId}
-          onSave={createMenu}
-          onClose={() => setShowMenuForm(false)}
         />
       )}
     </div>
