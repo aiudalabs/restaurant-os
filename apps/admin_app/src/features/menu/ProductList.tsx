@@ -74,9 +74,9 @@ export default function ProductList({
                 </span>
               </div>
 
-              {product.tags.length > 0 && (
+              {(product.tags?.length ?? 0) > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {product.tags.map((tag) => (
+                  {product.tags?.map((tag) => (
                     <span
                       key={tag}
                       className="inline-block rounded-full bg-[var(--color-surface-container-high)] px-2.5 py-0.5 text-xs font-semibold text-gray-600"
@@ -87,9 +87,9 @@ export default function ProductList({
                 </div>
               )}
 
-              {product.modifierGroups.length > 0 && (
+              {(product.modifierGroups?.length ?? 0) > 0 && (
                 <p className="mt-2 text-xs text-gray-400">
-                  {product.modifierGroups.length} grupo(s) de modificadores
+                  {product.modifierGroups?.length} grupo(s) de modificadores
                 </p>
               )}
 

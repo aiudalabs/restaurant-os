@@ -89,10 +89,10 @@ export default function ProductFormDialog({
         name: product.name,
         description: product.description ?? '',
         price: product.price,
-        tags: product.tags.join(', '),
+        tags: (product.tags ?? []).join(', '),
         preparationMinutes: product.preparationMinutes,
         imageUrl: product.imageUrl ?? '',
-        modifierGroups: product.modifierGroups,
+        modifierGroups: product.modifierGroups ?? [],
       });
     }
   }, [product, reset]);

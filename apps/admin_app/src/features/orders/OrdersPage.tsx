@@ -138,9 +138,9 @@ function OrderDetailDialog({ order, items, itemsLoading, onClose, onUpdateStatus
                       <p className="text-sm font-medium text-gray-900">
                         {item.quantity}x {item.productName}
                       </p>
-                      {item.modifiers.length > 0 && (
+                      {(item.modifiers?.length ?? 0) > 0 && (
                         <p className="text-xs text-gray-500">
-                          {item.modifiers.map((m) => m.value).join(', ')}
+                          {item.modifiers?.map((m) => m.value).join(', ')}
                         </p>
                       )}
                       {item.specialInstructions && (

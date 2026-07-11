@@ -268,9 +268,9 @@ export default function StationsPage() {
                   <div>
                     <h3 className="font-semibold text-gray-900">{station.name}</h3>
                     <p className="text-sm text-gray-500">
-                      {station.categoryIds.length === 0
+                      {(station.categoryIds?.length ?? 0) === 0
                         ? 'Sin categorias asignadas'
-                        : `${station.categoryIds.length} categoria(s) asignada(s)`}
+                        : `${station.categoryIds?.length} categoria(s) asignada(s)`}
                     </p>
                   </div>
                 </div>

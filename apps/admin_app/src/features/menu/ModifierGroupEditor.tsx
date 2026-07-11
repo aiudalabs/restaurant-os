@@ -173,7 +173,7 @@ export default function ModifierGroupEditor({
 
           {/* Options */}
           <div className="space-y-1.5 pl-6">
-            {group.options.map((opt, oi) => (
+            {(group.options ?? []).map((opt, oi) => (
               <div key={opt.id} className="flex items-center gap-2">
                 <Input
                   value={opt.name}
