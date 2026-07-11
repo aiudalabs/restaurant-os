@@ -104,9 +104,15 @@ export const onOrderCreated = functions.firestore
       return;
     }
 
-    // Client orders (source != 'waiter') wait for payment before going to KDS.
-    // We assign stationId in Firestore but skip RTDB until payment confirmed.
-    const isWaiterOrder = (order as any).source === "waiter";
+    // Which orders go to the KDS immediately (mirror to RTDB now) vs. wait for
+    // payment confirmation (pushed to RTDB by the BFF later).
+    // - waiter: staff-created, always immediate.
+    // - qr: customer web (pickup by number) — no payment step in the demo, so it
+    //   goes straight to the kitchen like a waiter order.
+    // Any future card-paid flow keeps the deferred path (assign stationId now,
+    // RTDB after payment).
+    const source = (order as any).source;
+    const goesToKdsNow = source === "waiter" || source === "qr";
 
     // 3. Route items to stations and build batch updates
     const batch = firestore.batch();
@@ -133,9 +139,9 @@ export const onOrderCreated = functions.firestore
         sentToStationAt: now,
       });
 
-      // Only mirror to RTDB immediately for waiter orders.
-      // Client orders are pushed to RTDB by the BFF after payment confirmation.
-      if (!isWaiterOrder) continue;
+      // Only mirror to RTDB immediately for orders that go to the KDS now.
+      // Deferred (card-paid) orders are pushed to RTDB by the BFF after payment.
+      if (!goesToKdsNow) continue;
 
       const rtdbKey = `order_items/${station.id}/${orderId}_${item.id}`;
       rtdbUpdates[rtdbKey] = {

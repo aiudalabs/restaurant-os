@@ -6,12 +6,22 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "hosting": {
-    "public": "apps/admin_app/dist",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [{"source": "**", "destination": "/index.html"}],
-    "predeploy": "npm --prefix apps/admin_app run build"
-  },
+  "hosting": [
+    {
+      "target": "admin",
+      "public": "apps/admin_app/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [{"source": "**", "destination": "/index.html"}],
+      "predeploy": "npm --prefix apps/admin_app run build"
+    },
+    {
+      "target": "customer",
+      "public": "apps/customer_web/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [{"source": "**", "destination": "/index.html"}],
+      "predeploy": "npm --prefix apps/customer_web run build"
+    }
+  ],
   "functions": [
     {
       "source": "functions",

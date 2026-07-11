@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "restaurant-os-68c79"
+  },
+  "targets": {
+    "restaurant-os-68c79": {
+      "hosting": {
+        "admin": ["restaurant-os-68c79"],
+        "customer": ["restaurant-os-pedir"]
+      }
+    }
   }
 }
