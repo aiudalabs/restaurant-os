@@ -7,6 +7,7 @@ import {
 import AdminLayout from '@/layouts/admin-layout';
 import LoginPage from '@/features/auth/LoginPage';
 import DashboardPage from '@/features/dashboard/DashboardPage';
+import BranchesPage from '@/features/branches/BranchesPage';
 import MenuPage from '@/features/menu/MenuPage';
 import TablesPage from '@/features/tables/TablesPage';
 import StationsPage from '@/features/stations/StationsPage';
@@ -49,6 +50,12 @@ const dashboardRoute = createRoute({
   component: DashboardPage,
 });
 
+const branchesRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/branches',
+  component: BranchesPage,
+});
+
 const menuRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/menu',
@@ -89,6 +96,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   adminRoute.addChildren([
     dashboardRoute,
+    branchesRoute,
     menuRoute,
     tablesRoute,
     stationsRoute,

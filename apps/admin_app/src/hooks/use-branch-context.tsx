@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { Branch } from '@/types/branch';
+import type { NewBranch } from '@/services/branch.service';
 import { useAuth } from './use-auth';
 import { useBranches } from './use-branches';
 
@@ -10,6 +11,7 @@ interface BranchContextValue {
   selectedBranch: Branch | null;
   selectedBranchId: string;
   setSelectedBranchId: (id: string) => void;
+  createBranch: (data: NewBranch) => Promise<string>;
   updateBranch: (id: string, data: Partial<Branch>) => Promise<void>;
   loading: boolean;
 }
@@ -25,7 +27,9 @@ export function useBranchContext() {
 export function BranchProvider({ children }: { children: ReactNode }) {
   const { appUser } = useAuth();
   const branchIds = appUser?.branchIds ?? [];
-  const { branches, loading, updateBranch } = useBranches(branchIds);
+  const orgId = appUser?.orgId ?? '';
+  const isOwner = appUser?.role === 'admin';
+  const { branches, loading, createBranch, updateBranch } = useBranches(orgId, branchIds, isOwner);
 
   const [selectedBranchId, setSelectedBranchIdState] = useState<string>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -57,6 +61,7 @@ export function BranchProvider({ children }: { children: ReactNode }) {
         selectedBranch,
         selectedBranchId: selectedBranch?.id ?? '',
         setSelectedBranchId,
+        createBranch,
         updateBranch,
         loading,
       }}

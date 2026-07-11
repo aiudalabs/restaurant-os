@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useTables } from '@/hooks/use-tables';
+import { buildCustomerQrUrl } from '@/lib/config';
 import type { Table } from '@/types/table';
 
 const TABLE_FORM_SCHEMA = z.object({
@@ -30,9 +31,7 @@ const TABLE_FORM_SCHEMA = z.object({
 
 type TableFormValues = z.infer<typeof TABLE_FORM_SCHEMA>;
 
-function buildQrUrl(orgId: string, branchId: string, tableId: string): string {
-  return `https://aiudalabs.github.io/restaurant/qr/?org=${orgId}&branch=${branchId}&table=${tableId}`;
-}
+const buildQrUrl = buildCustomerQrUrl;
 
 // ─── QR Preview Dialog ───
 
@@ -45,7 +44,9 @@ interface QrPreviewDialogProps {
 function QrPreviewDialog({ table, orgId, onClose }: QrPreviewDialogProps) {
   const [copied, setCopied] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
-  const qrUrl = table.qrData || buildQrUrl(orgId, table.branchId, table.id);
+  // Always rebuild from current config so a table saved with an old base URL
+  // still shows the correct QR (no migration needed for display).
+  const qrUrl = buildQrUrl(orgId, table.branchId, table.id);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(qrUrl);

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Outlet, useMatchRoute, useRouterState } from '@tanstack/react-router';
 import {
   LayoutDashboard,
+  Store,
   UtensilsCrossed,
   Grid3X3,
   Radio,
@@ -22,6 +23,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/branches', label: 'Sucursales', icon: Store },
   { to: '/menu', label: 'Menú', icon: UtensilsCrossed },
   { to: '/tables', label: 'Mesas', icon: Grid3X3 },
   { to: '/stations', label: 'Estaciones', icon: Radio },
