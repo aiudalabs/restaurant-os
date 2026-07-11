@@ -80,14 +80,14 @@ export default function CategoryList({
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Nombre de categoría"
-            className="h-8 text-sm"
+            className="h-10 text-sm"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleCreate();
               if (e.key === 'Escape') setIsAdding(false);
             }}
           />
-          <Button size="sm" className="h-8" onClick={handleCreate}>
+          <Button size="sm" onClick={handleCreate}>
             Crear
           </Button>
         </div>
@@ -101,14 +101,14 @@ export default function CategoryList({
                 <Input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="h-8 text-sm"
+                  className="h-10 text-sm"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleUpdate(cat.id);
                     if (e.key === 'Escape') setEditingId(null);
                   }}
                 />
-                <Button size="sm" className="h-8" onClick={() => handleUpdate(cat.id)}>
+                <Button size="sm" onClick={() => handleUpdate(cat.id)}>
                   OK
                 </Button>
               </div>
@@ -116,10 +116,10 @@ export default function CategoryList({
               <button
                 onClick={() => onSelect(cat.id)}
                 className={cn(
-                  'flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors group',
+                  'm3-state flex w-full items-center justify-between rounded-full px-4 py-2.5 text-sm transition-colors group',
                   selectedId === cat.id
-                    ? 'bg-orange-50 text-orange-700 font-medium'
-                    : 'text-gray-700 hover:bg-gray-100',
+                    ? 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] font-semibold'
+                    : 'text-gray-700',
                   !cat.isActive && 'opacity-50',
                 )}
               >
@@ -127,7 +127,7 @@ export default function CategoryList({
                 <span className="hidden group-hover:flex items-center gap-1">
                   <span
                     role="button"
-                    className="p-0.5 rounded hover:bg-gray-200"
+                    className="m3-state rounded-full p-1"
                     onClick={(e) => {
                       e.stopPropagation();
                       startEdit(cat);
@@ -137,17 +137,17 @@ export default function CategoryList({
                   </span>
                   <span
                     role="button"
-                    className="p-0.5 rounded hover:bg-gray-200"
+                    className="m3-state rounded-full px-1.5 py-0.5"
                     onClick={(e) => {
                       e.stopPropagation();
                       onToggle(cat.id, !cat.isActive);
                     }}
                   >
-                    <span className="text-xs">{cat.isActive ? 'OFF' : 'ON'}</span>
+                    <span className="text-xs font-semibold">{cat.isActive ? 'OFF' : 'ON'}</span>
                   </span>
                   <span
                     role="button"
-                    className="p-0.5 rounded hover:bg-red-100 text-red-500"
+                    className="m3-state rounded-full p-1 text-red-500"
                     onClick={(e) => {
                       e.stopPropagation();
                       onDelete(cat.id);

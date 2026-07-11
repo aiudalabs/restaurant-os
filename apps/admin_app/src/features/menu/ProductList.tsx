@@ -31,7 +31,7 @@ export default function ProductList({
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">{categoryName}</h3>
+        <h3 className="text-lg font-bold text-gray-900">{categoryName}</h3>
         <Button size="sm" onClick={onAdd}>
           <Plus className="mr-1.5 h-4 w-4" />
           Agregar producto
@@ -39,28 +39,28 @@ export default function ProductList({
       </div>
 
       {products.length === 0 ? (
-        <div className="rounded-lg border-2 border-dashed border-gray-200 py-12 text-center">
+        <div className="m3-card flex flex-col items-center gap-2 p-10 text-center">
           <p className="text-sm text-gray-500">
             No hay productos en esta categoría.
           </p>
-          <Button variant="ghost" size="sm" className="mt-2" onClick={onAdd}>
+          <Button variant="ghost" size="sm" onClick={onAdd}>
             <Plus className="mr-1 h-4 w-4" />
             Crear el primero
           </Button>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((product) => (
             <div
               key={product.id}
               className={cn(
-                'rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm',
+                'm3-card p-5',
                 !product.isActive && 'opacity-50',
               )}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-medium text-gray-900 truncate">
+                  <h4 className="font-semibold text-gray-900 truncate">
                     {product.name}
                   </h4>
                   {product.description && (
@@ -69,7 +69,7 @@ export default function ProductList({
                     </p>
                   )}
                 </div>
-                <span className="text-sm font-semibold text-orange-700 whitespace-nowrap">
+                <span className="text-sm font-bold text-orange-700 whitespace-nowrap">
                   ${product.price.toFixed(2)}
                 </span>
               </div>
@@ -79,7 +79,7 @@ export default function ProductList({
                   {product.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                      className="inline-block rounded-full bg-[var(--color-surface-container-high)] px-2.5 py-0.5 text-xs font-semibold text-gray-600"
                     >
                       {tag}
                     </span>
@@ -93,11 +93,11 @@ export default function ProductList({
                 </p>
               )}
 
-              <div className="mt-3 flex items-center gap-1 border-t border-gray-100 pt-2">
+              <div className="mt-3 flex items-center gap-1 border-t border-[var(--color-outline-variant)] pt-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs"
+                  className="h-8 text-xs"
                   onClick={() => onEdit(product)}
                 >
                   <Pencil className="mr-1 h-3.5 w-3.5" />
@@ -107,7 +107,7 @@ export default function ProductList({
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    'h-7 text-xs',
+                    'h-8 text-xs',
                     product.isActive ? 'text-gray-500' : 'text-green-600',
                   )}
                   onClick={() => onToggle(product.id, !product.isActive)}

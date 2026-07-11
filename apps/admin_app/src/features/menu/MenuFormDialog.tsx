@@ -32,11 +32,11 @@ export default function MenuFormDialog({ onSave, orgId, onClose }: MenuFormDialo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="m3-card w-full max-w-sm rounded-[1.75rem] p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Nuevo menú</h2>
-          <button onClick={onClose} className="rounded-md p-1 hover:bg-gray-100">
+          <h2 className="text-lg font-bold text-gray-900">Nuevo menú</h2>
+          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -50,8 +50,8 @@ export default function MenuFormDialog({ onSave, orgId, onClose }: MenuFormDialo
             {...register('name')}
           />
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" onClick={onClose}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>

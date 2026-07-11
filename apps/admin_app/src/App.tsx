@@ -11,11 +11,12 @@ export default function App() {
 
   if (auth.loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-600 border-t-transparent mx-auto" />
-          <p className="mt-3 text-sm text-gray-500">Cargando...</p>
+      <div className="flex h-screen flex-col items-center justify-center gap-5 bg-[var(--color-surface)]">
+        <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-orange-600 text-3xl text-[var(--color-on-primary)] shadow-[var(--shadow-e2)]">
+          🍽️
         </div>
+        <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-orange-600 border-t-transparent" />
+        <p className="text-sm text-gray-500">Cargando RestaurantOS…</p>
       </div>
     );
   }

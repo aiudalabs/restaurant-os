@@ -81,7 +81,7 @@ export default function ModifierGroupEditor({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-gray-700">
+        <h4 className="text-sm font-bold text-gray-900">
           Grupos de modificadores
         </h4>
         <Button variant="ghost" size="sm" onClick={addGroup} type="button">
@@ -99,7 +99,7 @@ export default function ModifierGroupEditor({
       {groups.map((group, gi) => (
         <div
           key={group.id}
-          className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-3"
+          className="rounded-2xl bg-[var(--color-surface-container-high)] p-4 space-y-3"
         >
           <div className="flex items-center gap-2">
             <GripVertical className="h-4 w-4 text-gray-300 shrink-0" />
@@ -107,12 +107,12 @@ export default function ModifierGroupEditor({
               value={group.name}
               onChange={(e) => updateGroup(gi, { name: e.target.value })}
               placeholder="Nombre del grupo (ej: Término)"
-              className="h-8 text-sm flex-1"
+              className="h-10 text-sm flex-1"
             />
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-red-500 hover:text-red-700"
+              className="text-red-500 hover:text-red-700"
               onClick={() => removeGroup(gi)}
               type="button"
             >
@@ -120,13 +120,13 @@ export default function ModifierGroupEditor({
             </Button>
           </div>
 
-          <div className="flex flex-wrap gap-4 text-sm">
+          <div className="flex flex-wrap gap-4 text-sm text-gray-700">
             <label className="flex items-center gap-1.5">
               <input
                 type="checkbox"
                 checked={group.required}
                 onChange={(e) => updateGroup(gi, { required: e.target.checked })}
-                className="rounded border-gray-300"
+                className="rounded accent-orange-600"
               />
               Obligatorio
             </label>
@@ -137,7 +137,7 @@ export default function ModifierGroupEditor({
                 onChange={(e) =>
                   updateGroup(gi, { multiSelect: e.target.checked })
                 }
-                className="rounded border-gray-300"
+                className="rounded accent-orange-600"
               />
               Multi-selección
             </label>
@@ -152,7 +152,7 @@ export default function ModifierGroupEditor({
                     onChange={(e) =>
                       updateGroup(gi, { minSelect: Number(e.target.value) })
                     }
-                    className="w-14 rounded border border-gray-300 px-2 py-0.5 text-sm"
+                    className="w-14 rounded-lg border border-transparent bg-[var(--color-surface-container)] px-2 py-1 text-sm text-gray-900 focus:outline-none focus:border-orange-600"
                   />
                 </label>
                 <label className="flex items-center gap-1.5">
@@ -164,7 +164,7 @@ export default function ModifierGroupEditor({
                     onChange={(e) =>
                       updateGroup(gi, { maxSelect: Number(e.target.value) })
                     }
-                    className="w-14 rounded border border-gray-300 px-2 py-0.5 text-sm"
+                    className="w-14 rounded-lg border border-transparent bg-[var(--color-surface-container)] px-2 py-1 text-sm text-gray-900 focus:outline-none focus:border-orange-600"
                   />
                 </label>
               </>
@@ -181,7 +181,7 @@ export default function ModifierGroupEditor({
                     updateOption(gi, oi, { name: e.target.value })
                   }
                   placeholder="Opción (ej: Término medio)"
-                  className="h-7 text-sm flex-1"
+                  className="h-10 text-sm flex-1"
                 />
                 <input
                   type="number"
@@ -194,7 +194,7 @@ export default function ModifierGroupEditor({
                     })
                   }
                   placeholder="$0.00"
-                  className="w-20 rounded border border-gray-300 px-2 py-1 text-sm"
+                  className="w-20 rounded-lg border border-transparent bg-[var(--color-surface-container)] px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-orange-600"
                 />
                 <label className="flex items-center gap-1 text-xs text-gray-500 whitespace-nowrap">
                   <input
@@ -203,14 +203,14 @@ export default function ModifierGroupEditor({
                     onChange={(e) =>
                       updateOption(gi, oi, { isDefault: e.target.checked })
                     }
-                    className="rounded border-gray-300"
+                    className="rounded accent-orange-600"
                   />
                   Default
                 </label>
                 <button
                   type="button"
                   onClick={() => removeOption(gi, oi)}
-                  className="p-0.5 text-red-400 hover:text-red-600"
+                  className="m3-state rounded-full p-1.5 text-red-400 hover:text-red-600"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -219,7 +219,7 @@ export default function ModifierGroupEditor({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 text-xs"
+              className="h-8 text-xs"
               onClick={() => addOption(gi)}
               type="button"
             >

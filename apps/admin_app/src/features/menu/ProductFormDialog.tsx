@@ -135,15 +135,15 @@ export default function ProductFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="m3-card w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[1.75rem]">
+        <div className="flex items-center justify-between border-b border-[var(--color-outline-variant)] px-6 py-4">
+          <h2 className="text-lg font-bold text-gray-900">
             {isEditing ? 'Editar producto' : 'Nuevo producto'}
           </h2>
           <button
             onClick={onClose}
-            className="rounded-md p-1 hover:bg-gray-100"
+            className="m3-state rounded-full p-2 text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>
@@ -159,14 +159,14 @@ export default function ProductFormDialog({
             {...register('name')}
           />
 
-          <div className="space-y-1">
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+          <div className="space-y-1.5">
+            <label htmlFor="description" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
               Descripción
             </label>
             <textarea
               id="description"
               rows={2}
-              className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="flex w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 py-2.5 text-[15px] text-[var(--color-on-surface)] placeholder:text-[var(--color-on-surface-variant)]/60 transition-colors focus:outline-none focus:border-orange-600 focus:bg-[var(--color-surface-container)]"
               placeholder="Descripción opcional del producto"
               {...register('description')}
             />
@@ -210,7 +210,7 @@ export default function ProductFormDialog({
             {...register('imageUrl')}
           />
 
-          <hr className="border-gray-200" />
+          <hr className="border-[var(--color-outline-variant)]" />
 
           <Controller
             name="modifierGroups"
@@ -224,13 +224,13 @@ export default function ProductFormDialog({
           />
 
           {submitError && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
               {submitError}
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <Button variant="secondary" type="button" onClick={onClose}>
+          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-outline-variant)]">
+            <Button variant="ghost" type="button" onClick={onClose}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>

@@ -84,16 +84,16 @@ function UserFormDialog({ orgId, branchIds, stations, onSave, onClose }: UserFor
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Nuevo usuario</h2>
-          <button onClick={onClose} className="rounded-md p-1 hover:bg-gray-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="m3-card p-6 rounded-[1.75rem] w-full max-w-md">
+        <div className="flex items-center justify-between pb-4">
+          <h2 className="text-lg font-bold text-gray-900">Nuevo usuario</h2>
+          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Input
             id="displayName"
             label="Nombre completo"
@@ -118,13 +118,13 @@ function UserFormDialog({ orgId, branchIds, stations, onSave, onClose }: UserFor
             {...register('password')}
           />
 
-          <div className="space-y-1">
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+          <div className="space-y-1.5">
+            <label htmlFor="role" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
               Rol
             </label>
             <select
               id="role"
-              className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="flex h-12 w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 text-[15px] text-[var(--color-on-surface)] focus:outline-none focus:border-orange-600 focus:bg-[var(--color-surface-container)]"
               {...register('role')}
             >
               <option value="operator">Operador</option>
@@ -133,13 +133,13 @@ function UserFormDialog({ orgId, branchIds, stations, onSave, onClose }: UserFor
             </select>
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="stationId" className="block text-sm font-medium text-gray-700">
+          <div className="space-y-1.5">
+            <label htmlFor="stationId" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
               Estacion (solo operadores)
             </label>
             <select
               id="stationId"
-              className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="flex h-12 w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 text-[15px] text-[var(--color-on-surface)] focus:outline-none focus:border-orange-600 focus:bg-[var(--color-surface-container)]"
               {...register('stationId')}
             >
               <option value="">Sin estacion asignada</option>
@@ -152,13 +152,13 @@ function UserFormDialog({ orgId, branchIds, stations, onSave, onClose }: UserFor
           </div>
 
           {serverError && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
               {serverError}
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <Button variant="secondary" type="button" onClick={onClose}>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="tonal" type="button" onClick={onClose}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
@@ -192,9 +192,8 @@ export default function UsersPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Usuarios</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-end">
         <Button onClick={() => setShowForm(true)}>
           <Plus className="mr-1.5 h-4 w-4" />
           Nuevo usuario
@@ -202,7 +201,7 @@ export default function UsersPage() {
       </div>
 
       {users.length === 0 ? (
-        <div className="rounded-lg border-2 border-dashed border-gray-200 py-12 text-center">
+        <div className="m3-card p-5 py-12 text-center">
           <p className="text-sm text-gray-500">No hay usuarios registrados.</p>
           <Button variant="ghost" size="sm" className="mt-2" onClick={() => setShowForm(true)}>
             <Plus className="mr-1 h-4 w-4" />
@@ -210,28 +209,28 @@ export default function UsersPage() {
           </Button>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="m3-card overflow-hidden">
+          <table className="min-w-full divide-y divide-[var(--color-outline-variant)]">
+            <thead className="bg-[var(--color-surface-container-high)]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                   Nombre
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                   Email
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                   Rol
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                   Estado
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-[var(--color-outline-variant)]">
               {users.map((user) => {
                 const roleConfig = ROLE_CONFIG[user.role];
                 const RoleIcon = roleConfig.icon;
@@ -244,7 +243,7 @@ export default function UsersPage() {
                     <td className="px-4 py-3">
                       <span
                         className={cn(
-                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                          'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
                           roleConfig.color,
                         )}
                       >
@@ -255,7 +254,7 @@ export default function UsersPage() {
                     <td className="px-4 py-3">
                       <span
                         className={cn(
-                          'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                          'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
                           user.isActive
                             ? 'bg-green-100 text-green-700'
                             : 'bg-gray-100 text-gray-500',

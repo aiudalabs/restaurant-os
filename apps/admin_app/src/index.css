@@ -1,1 +1,164 @@
 @import "tailwindcss";
+
+/* Dark mode driven by a .dark class on <html> (toggle in the top app bar). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Material Design 3 — warm expressive theme for RestaurantOS Admin.
+   The core trick: we remap Tailwind's white / gray / orange tokens to an M3
+   tonal palette. Existing pages (bg-white, text-gray-900, orange-600…) inherit
+   the M3 look automatically, and dark mode flips by overriding the same tokens.
+   ───────────────────────────────────────────────────────────────────────── */
+@theme {
+  --font-sans: "Roboto Flex", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, monospace;
+
+  /* Primary tonal ramp (warm terracotta-orange) mapped onto Tailwind `orange` */
+  --color-orange-50:  #fff3ea;
+  --color-orange-100: #ffdcc4;
+  --color-orange-200: #ffb783;
+  --color-orange-300: #ff9645;
+  --color-orange-400: #f97d1c;
+  --color-orange-500: #e56a08;
+  --color-orange-600: #c75300; /* primary */
+  --color-orange-700: #9c3f00;
+  --color-orange-800: #7a3100;
+  --color-orange-900: #522000;
+
+  /* Neutral ramp (warm) mapped onto Tailwind `gray` */
+  --color-gray-50:  #faf4ef;
+  --color-gray-100: #f3ebe3;
+  --color-gray-200: #e7dbd0;
+  --color-gray-300: #d6c6b8;
+  --color-gray-400: #a99787;
+  --color-gray-500: #7d6b5c;
+  --color-gray-600: #5e4e41;
+  --color-gray-700: #453a30;
+  --color-gray-800: #2d251e;
+  --color-gray-900: #211a13;
+
+  /* M3 semantic tokens for the hand-built components */
+  --color-primary: #c75300;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #ffdcc4;
+  --color-on-primary-container: #331100;
+  --color-secondary-container: #f6e0cf;
+  --color-on-secondary-container: #3b2c1c;
+  --color-surface: #fdf8f4;
+  --color-surface-container: #f6ece3;
+  --color-surface-container-high: #f1e6dc;
+  --color-on-surface: #211a13;
+  --color-on-surface-variant: #5e4e41;
+  --color-outline: #86766a;
+  --color-outline-variant: #e7dbd0;
+
+  /* Shape */
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 1.75rem;
+  --radius-3xl: 2rem;
+
+  /* M3 elevation (soft, tinted shadows) */
+  --shadow-e1: 0 1px 2px 0 rgb(80 40 0 / 0.10), 0 1px 3px 1px rgb(80 40 0 / 0.06);
+  --shadow-e2: 0 1px 2px 0 rgb(80 40 0 / 0.12), 0 2px 6px 2px rgb(80 40 0 / 0.08);
+  --shadow-e3: 0 4px 8px 3px rgb(80 40 0 / 0.10), 0 1px 3px 0 rgb(80 40 0 / 0.12);
+}
+
+/* Dark theme: override the SAME tokens so the whole app flips with no per-page work. */
+.dark {
+  --color-orange-50:  #3a1c00;
+  --color-orange-100: #5c2f00;
+  --color-orange-200: #7a3f00;
+  --color-orange-300: #a15100;
+  --color-orange-400: #d06c05;
+  --color-orange-500: #f97d1c;
+  --color-orange-600: #ffb27a; /* primary (dark) */
+  --color-orange-700: #ffc99e;
+  --color-orange-800: #ffdcc4;
+  --color-orange-900: #ffece0;
+
+  --color-gray-50:  #191510;   /* page surface */
+  --color-gray-100: #221c16;
+  --color-gray-200: #38302a;   /* borders/outline-variant */
+  --color-gray-300: #4b4038;
+  --color-gray-400: #a99787;
+  --color-gray-500: #cbb6a6;
+  --color-gray-600: #ddcabc;
+  --color-gray-700: #e9dccf;
+  --color-gray-800: #f2e8dd;
+  --color-gray-900: #f7ede3;   /* primary text */
+
+  --color-white: #211c17;      /* card surface in dark */
+  --color-black: #f7ede3;
+
+  --color-primary: #ffb27a;
+  --color-on-primary: #4a1f00;
+  --color-primary-container: #6e3600;
+  --color-on-primary-container: #ffdcc4;
+  --color-secondary-container: #52402f;
+  --color-on-secondary-container: #f6e0cf;
+  --color-surface: #191510;
+  --color-surface-container: #241d17;
+  --color-surface-container-high: #2f271f;
+  --color-on-surface: #f7ede3;
+  --color-on-surface-variant: #d6c3b4;
+  --color-outline: #a08d7e;
+  --color-outline-variant: #4b4038;
+
+  --shadow-e1: 0 1px 2px 0 rgb(0 0 0 / 0.35), 0 1px 3px 1px rgb(0 0 0 / 0.25);
+  --shadow-e2: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 2px 6px 2px rgb(0 0 0 / 0.28);
+  --shadow-e3: 0 4px 8px 3px rgb(0 0 0 / 0.36), 0 1px 3px 0 rgb(0 0 0 / 0.4);
+}
+
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+
+body {
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
+  font-variation-settings: "opsz" 24;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Reusable M3 building blocks for the hand-built shell/components. */
+@layer components {
+  /* State layer: subtle hover/press wash used by nav items, icon buttons… */
+  .m3-state { position: relative; isolation: isolate; }
+  .m3-state::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: -1;
+    pointer-events: none;
+  }
+  .m3-state:hover::after { opacity: 0.08; }
+  .m3-state:active::after { opacity: 0.12; }
+
+  /* Elevated card surface */
+  .m3-card {
+    background: var(--color-white);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-e1);
+  }
+}
+
+/* Focus ring uses the primary color everywhere. */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Nicer scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--color-outline-variant) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--color-outline-variant); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

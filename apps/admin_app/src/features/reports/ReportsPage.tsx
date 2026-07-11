@@ -52,10 +52,8 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
-
       {/* Date range selector */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <div className="m3-card p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
           <Input
             id="startDate"
@@ -88,13 +86,13 @@ export default function ReportsPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">
           {error}
         </div>
       )}
 
       {!report && !loading && !error && (
-        <div className="rounded-lg border-2 border-dashed border-gray-200 py-12 text-center">
+        <div className="m3-card p-5 py-12 text-center">
           <p className="text-sm text-gray-500">
             Selecciona un rango de fechas y genera el reporte.
           </p>
@@ -105,43 +103,60 @@ export default function ReportsPage() {
         <div className="space-y-6">
           {/* Summary Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <p className="text-sm text-gray-500">Total pedidos</p>
-              <p className="mt-1 text-2xl font-bold text-gray-900">{report.totalOrders}</p>
+            <div className="m3-card p-5">
+              <p className="text-3xl font-extrabold tracking-tight text-gray-900">{report.totalOrders}</p>
+              <p className="mt-1 text-sm text-gray-500">Total pedidos</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <p className="text-sm text-gray-500">Ingresos totales</p>
-              <p className="mt-1 text-2xl font-bold text-gray-900">
+            <div className="m3-card p-5">
+              <p className="text-3xl font-extrabold tracking-tight text-gray-900">
                 ${report.totalRevenue.toFixed(2)}
               </p>
+              <p className="mt-1 text-sm text-gray-500">Ingresos totales</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <p className="text-sm text-gray-500">Ticket promedio</p>
-              <p className="mt-1 text-2xl font-bold text-gray-900">
+            <div className="m3-card p-5">
+              <p className="text-3xl font-extrabold tracking-tight text-gray-900">
                 ${report.averageTicket.toFixed(2)}
               </p>
+              <p className="mt-1 text-sm text-gray-500">Ticket promedio</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <p className="text-sm text-gray-500">Pedidos cancelados</p>
-              <p className="mt-1 text-2xl font-bold text-red-600">{report.cancelledOrders}</p>
+            <div className="m3-card p-5">
+              <p className="text-3xl font-extrabold tracking-tight text-red-600">{report.cancelledOrders}</p>
+              <p className="mt-1 text-sm text-gray-500">Pedidos cancelados</p>
             </div>
           </div>
 
           {/* Daily Revenue Chart */}
           {report.dailyRevenue.length > 0 && (
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="m3-card p-5">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">
                 Ingresos por dia
               </h2>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={report.dailyRevenue}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <CartesianGrid strokeDasharray="4 4" stroke="var(--color-outline-variant)" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 12, fill: 'var(--color-on-surface-variant)' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12, fill: 'var(--color-on-surface-variant)' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <Tooltip
+                    cursor={{ fill: 'var(--color-primary)', opacity: 0.08 }}
+                    contentStyle={{
+                      borderRadius: 16,
+                      border: '1px solid var(--color-outline-variant)',
+                      background: 'var(--color-white)',
+                      color: 'var(--color-on-surface)',
+                      boxShadow: 'var(--shadow-e2)',
+                    }}
                     formatter={(value: number) => [`$${value.toFixed(2)}`, 'Ingresos']}
                   />
-                  <Bar dataKey="revenue" fill="#ea580c" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="revenue" fill="var(--color-primary)" radius={[8, 8, 0, 0]} maxBarSize={38} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -149,26 +164,26 @@ export default function ReportsPage() {
 
           {/* Top Products */}
           {report.topProducts.length > 0 && (
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="m3-card p-5">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">
                 Productos mas vendidos
               </h2>
-              <div className="overflow-hidden rounded-lg border border-gray-100">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+              <div className="overflow-hidden rounded-2xl">
+                <table className="min-w-full divide-y divide-[var(--color-outline-variant)]">
+                  <thead className="bg-[var(--color-surface-container-high)]">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
                         Producto
                       </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
                         Cantidad
                       </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
                         Ingresos
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-[var(--color-outline-variant)]">
                     {report.topProducts.map((product, i) => (
                       <tr key={i}>
                         <td className="px-4 py-2 text-sm font-medium text-gray-900">
@@ -190,15 +205,15 @@ export default function ReportsPage() {
 
           {/* Orders by Status */}
           {Object.keys(report.ordersByStatus).length > 0 && (
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="m3-card p-5">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">
                 Pedidos por estado
               </h2>
               <div className="flex flex-wrap gap-3">
                 {Object.entries(report.ordersByStatus).map(([status, count]) => (
                   <div
                     key={status}
-                    className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-2 text-center"
+                    className="rounded-2xl bg-[var(--color-surface-container-high)] px-4 py-2 text-center"
                   >
                     <p className="text-xs text-gray-500 capitalize">{status.replace('_', ' ')}</p>
                     <p className="text-lg font-bold text-gray-900">{count}</p>

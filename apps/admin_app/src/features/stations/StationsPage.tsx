@@ -95,18 +95,18 @@ function StationFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="m3-card p-6 rounded-[1.75rem] w-full max-w-md">
+        <div className="flex items-center justify-between pb-4">
+          <h2 className="text-lg font-bold text-gray-900">
             {isEditing ? 'Editar estacion' : 'Nueva estacion'}
           </h2>
-          <button onClick={onClose} className="rounded-md p-1 hover:bg-gray-100">
+          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Input
             id="name"
             label="Nombre"
@@ -115,15 +115,15 @@ function StationFormDialog({
             {...register('name')}
           />
 
-          <div className="space-y-1">
-            <label htmlFor="color" className="block text-sm font-medium text-gray-700">
+          <div className="space-y-1.5">
+            <label htmlFor="color" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
               Color
             </label>
             <div className="flex items-center gap-3">
               <input
                 id="color"
                 type="color"
-                className="h-10 w-14 cursor-pointer rounded border border-gray-300"
+                className="h-12 w-14 cursor-pointer rounded-xl border border-[var(--color-outline-variant)] bg-transparent"
                 {...register('color')}
               />
               <Input
@@ -138,7 +138,7 @@ function StationFormDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
               Categorias asignadas
             </label>
             {categories.length === 0 ? (
@@ -155,10 +155,10 @@ function StationFormDialog({
                       type="button"
                       onClick={() => toggleCategoryId(cat.id)}
                       className={cn(
-                        'rounded-full px-3 py-1 text-sm border transition-colors',
+                        'm3-state rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
                         isSelected
-                          ? 'border-orange-500 bg-orange-50 text-orange-700'
-                          : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50',
+                          ? 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)]'
+                          : 'bg-[var(--color-surface-container-high)] text-gray-600',
                       )}
                     >
                       {cat.name}
@@ -169,8 +169,8 @@ function StationFormDialog({
             )}
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <Button variant="secondary" type="button" onClick={onClose}>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="tonal" type="button" onClick={onClose}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
@@ -218,9 +218,8 @@ export default function StationsPage() {
 
   if (!branchId) {
     return (
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold text-gray-900">Estaciones</h1>
-        <p className="mt-2 text-gray-500">No hay sucursal asignada a tu usuario.</p>
+      <div className="m3-card p-5 text-center py-12">
+        <p className="text-gray-500">No hay sucursal asignada a tu usuario.</p>
       </div>
     );
   }
@@ -234,9 +233,8 @@ export default function StationsPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Estaciones</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-end">
         <Button onClick={handleAdd}>
           <Plus className="mr-1.5 h-4 w-4" />
           Nueva estacion
@@ -244,7 +242,7 @@ export default function StationsPage() {
       </div>
 
       {stations.length === 0 ? (
-        <div className="rounded-lg border-2 border-dashed border-gray-200 py-12 text-center">
+        <div className="m3-card p-5 py-12 text-center">
           <p className="text-sm text-gray-500">No hay estaciones creadas.</p>
           <Button variant="ghost" size="sm" className="mt-2" onClick={handleAdd}>
             <Plus className="mr-1 h-4 w-4" />
@@ -257,7 +255,7 @@ export default function StationsPage() {
             <div
               key={station.id}
               className={cn(
-                'rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm',
+                'm3-card p-5',
                 !station.isActive && 'opacity-50',
               )}
             >

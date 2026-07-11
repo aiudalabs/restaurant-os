@@ -2,21 +2,26 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
+  // Material 3 button variants. `secondary` kept as an alias for back-compat.
+  variant?: 'primary' | 'tonal' | 'secondary' | 'outlined' | 'ghost' | 'destructive';
   size?: 'sm' | 'md' | 'lg';
 }
 
+// M3 buttons are fully-rounded ("stadium") with a state layer on hover/press.
 const VARIANT_CLASSES: Record<string, string> = {
-  primary: 'bg-orange-600 text-white hover:bg-orange-700 focus-visible:ring-orange-500',
-  secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-400',
-  ghost: 'text-gray-700 hover:bg-gray-100 focus-visible:ring-gray-400',
-  destructive: 'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
+  primary:
+    'bg-orange-600 text-[var(--color-on-primary)] shadow-[var(--shadow-e1)] hover:shadow-[var(--shadow-e2)]',
+  tonal: 'bg-[var(--color-secondary-container)] text-[var(--color-on-secondary-container)]',
+  secondary: 'bg-[var(--color-secondary-container)] text-[var(--color-on-secondary-container)]',
+  outlined: 'border border-[var(--color-outline)] text-orange-600 bg-transparent',
+  ghost: 'text-orange-600 bg-transparent',
+  destructive: 'bg-red-600 text-white shadow-[var(--shadow-e1)]',
 };
 
 const SIZE_CLASSES: Record<string, string> = {
-  sm: 'h-8 px-3 text-sm',
-  md: 'h-10 px-4 text-sm',
-  lg: 'h-12 px-6 text-base',
+  sm: 'h-9 px-4 text-sm',
+  md: 'h-11 px-6 text-sm',
+  lg: 'h-12 px-8 text-base',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -25,9 +30,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center rounded-lg font-medium transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-          'disabled:pointer-events-none disabled:opacity-50',
+          'm3-state inline-flex items-center justify-center gap-2 rounded-full font-semibold',
+          'transition-shadow duration-150 select-none',
+          'disabled:pointer-events-none disabled:opacity-40',
           VARIANT_CLASSES[variant],
           SIZE_CLASSES[size],
           className,

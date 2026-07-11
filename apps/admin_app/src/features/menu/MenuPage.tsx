@@ -94,10 +94,10 @@ export default function MenuPage() {
 
   if (menus.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold text-gray-900">Menú</h1>
-        <p className="mt-2 text-gray-500">No hay menús creados.</p>
-        <Button className="mt-4" onClick={() => setShowMenuForm(true)}>
+      <div className="m3-card flex flex-col items-center gap-3 p-10 text-center">
+        <div className="text-4xl">🍽️</div>
+        <p className="text-gray-500">No hay menús creados.</p>
+        <Button onClick={() => setShowMenuForm(true)}>
           <Plus className="mr-1.5 h-4 w-4" />
           Crear menú
         </Button>
@@ -113,19 +113,17 @@ export default function MenuPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Menú</h1>
-
-        <div className="flex items-center gap-2">
-          {menus.length > 1 && (
+    <div className="space-y-6">
+      <div className="flex items-center justify-end gap-2">
+        {menus.length > 1 && (
+          <div className="relative">
             <select
               value={activeMenuId}
               onChange={(e) => {
                 setSelectedMenuId(e.target.value);
                 setSelectedCategoryId(null);
               }}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+              className="appearance-none rounded-full bg-[var(--color-surface-container-high)] py-2.5 pl-4 pr-9 text-sm font-medium text-gray-900"
             >
               {menus.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -133,20 +131,20 @@ export default function MenuPage() {
                 </option>
               ))}
             </select>
-          )}
-          <Button variant="outline" size="sm" onClick={() => setShowMenuForm(true)}>
-            <Plus className="mr-1 h-4 w-4" />
-            Nuevo menú
-          </Button>
-        </div>
+          </div>
+        )}
+        <Button variant="outlined" size="sm" onClick={() => setShowMenuForm(true)}>
+          <Plus className="mr-1 h-4 w-4" />
+          Nuevo menú
+        </Button>
       </div>
 
       {/* Link menu to branch banner */}
       {selectedBranch && !selectedBranch.menuId && (
-        <div className="mb-4 flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+        <div className="m3-card flex items-center gap-3 border border-amber-200 bg-amber-50 p-5">
           <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-amber-800">
+            <p className="text-sm font-semibold text-amber-800">
               La sucursal &quot;{selectedBranch.name}&quot; no tiene un menú asignado.
             </p>
             <p className="text-xs text-amber-600">
@@ -165,7 +163,7 @@ export default function MenuPage() {
 
       <div className="flex gap-6">
         {/* Left panel — Categories */}
-        <div className="w-64 shrink-0">
+        <div className="m3-card w-64 shrink-0 self-start p-4">
           <CategoryList
             categories={categories}
             selectedId={activeCategoryId}
@@ -190,7 +188,7 @@ export default function MenuPage() {
               onToggle={toggleProduct}
             />
           ) : (
-            <div className="flex items-center justify-center py-12 text-gray-400">
+            <div className="m3-card flex items-center justify-center p-10 text-gray-400">
               Selecciona una categoría para ver los productos.
             </div>
           )}

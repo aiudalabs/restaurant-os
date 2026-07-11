@@ -73,13 +73,13 @@ function QrPreviewDialog({ table, orgId, onClose }: QrPreviewDialogProps) {
   }, [table.number]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="m3-card rounded-[1.75rem] shadow-[var(--shadow-e3)] w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-bold text-gray-900">
             QR - Mesa {table.number}
           </h2>
-          <button onClick={onClose} className="rounded-md p-1 hover:bg-gray-100">
+          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -87,18 +87,18 @@ function QrPreviewDialog({ table, orgId, onClose }: QrPreviewDialogProps) {
         <div className="flex flex-col items-center gap-4">
           <div
             ref={qrRef}
-            className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-4"
+            className="flex items-center justify-center rounded-2xl bg-white p-4 shadow-[var(--shadow-e1)]"
           >
             <QRCodeSVG value={qrUrl} size={192} level="H" />
           </div>
           <p className="text-xs text-gray-500 text-center">
             Mesa {table.number} — escanea para abrir el menu
           </p>
-          <div className="w-full rounded-lg bg-gray-50 p-3 text-xs text-gray-700 break-all font-mono">
+          <div className="w-full rounded-xl bg-[var(--color-surface-container-high)] p-3 text-xs text-gray-700 break-all font-mono">
             {qrUrl}
           </div>
           <div className="w-full flex gap-2">
-            <Button size="sm" variant="secondary" onClick={handleCopy} className="flex-1">
+            <Button size="sm" variant="tonal" onClick={handleCopy} className="flex-1">
               {copied ? (
                 <>
                   <Check className="mr-1.5 h-4 w-4 text-green-600" />
@@ -185,13 +185,13 @@ function TableFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="m3-card rounded-[1.75rem] shadow-[var(--shadow-e3)] w-full max-w-md">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-bold text-gray-900">
             {isEditing ? 'Editar mesa' : 'Nueva mesa'}
           </h2>
-          <button onClick={onClose} className="rounded-md p-1 hover:bg-gray-100">
+          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -220,7 +220,7 @@ function TableFormDialog({
           />
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <Button variant="secondary" type="button" onClick={onClose}>
+            <Button variant="tonal" type="button" onClick={onClose}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
@@ -264,9 +264,8 @@ export default function TablesPage() {
 
   if (!branchId) {
     return (
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold text-gray-900">Mesas</h1>
-        <p className="mt-2 text-gray-500">No hay sucursal asignada a tu usuario.</p>
+      <div className="rounded-[1.75rem] border-2 border-dashed border-gray-200 py-12 text-center">
+        <p className="text-sm text-gray-500">No hay sucursal asignada a tu usuario.</p>
       </div>
     );
   }
@@ -280,9 +279,8 @@ export default function TablesPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Mesas</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-end">
         <Button onClick={handleAdd}>
           <Plus className="mr-1.5 h-4 w-4" />
           Nueva mesa
@@ -290,7 +288,7 @@ export default function TablesPage() {
       </div>
 
       {tables.length === 0 ? (
-        <div className="rounded-lg border-2 border-dashed border-gray-200 py-12 text-center">
+        <div className="rounded-[1.75rem] border-2 border-dashed border-gray-200 py-12 text-center">
           <p className="text-sm text-gray-500">No hay mesas creadas.</p>
           <Button variant="ghost" size="sm" className="mt-2" onClick={handleAdd}>
             <Plus className="mr-1 h-4 w-4" />
@@ -303,7 +301,7 @@ export default function TablesPage() {
             <div
               key={table.id}
               className={cn(
-                'rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm',
+                'm3-card p-5 transition-shadow hover:shadow-[var(--shadow-e2)]',
                 !table.isActive && 'opacity-50',
               )}
             >
@@ -311,7 +309,7 @@ export default function TablesPage() {
                 <span className="text-lg font-bold text-gray-900">#{table.number}</span>
                 <span
                   className={cn(
-                    'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
                     table.currentOrderId
                       ? 'bg-red-100 text-red-700'
                       : 'bg-green-100 text-green-700',
@@ -326,7 +324,7 @@ export default function TablesPage() {
               )}
               <p className="text-sm text-gray-500">Capacidad: {table.capacity}</p>
 
-              <div className="mt-3 flex items-center gap-1 border-t border-gray-100 pt-2">
+              <div className="mt-3 flex items-center gap-1 border-t border-gray-200 pt-2">
                 <Button
                   variant="ghost"
                   size="sm"
