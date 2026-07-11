@@ -1,0 +1,135 @@
+<title>Mesa · Haz tu pedido</title>
+<style>
+  :root {
+    --paper: #F5F2EC;
+    --card: #FFFFFF;
+    --ink: #211C1A;
+    --muted: #7C736C;
+    --line: #E7E1D8;
+    --brand: #E23744;
+    --brand-deep: #B31E2B;
+    --ok: #2E9E6B;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #17140F;
+      --card: #211D18;
+      --ink: #F3EDE4;
+      --muted: #A79C90;
+      --line: #332C24;
+      --brand: #F0555F;
+      --brand-deep: #E23744;
+      --ok: #4FBE88;
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #F5F2EC; --card: #FFFFFF; --ink: #211C1A; --muted: #7C736C;
+    --line: #E7E1D8; --brand: #E23744; --brand-deep: #B31E2B; --ok: #2E9E6B;
+  }
+  :root[data-theme="dark"] {
+    --paper: #17140F; --card: #211D18; --ink: #F3EDE4; --muted: #A79C90;
+    --line: #332C24; --brand: #F0555F; --brand-deep: #E23744; --ok: #4FBE88;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    display: flex; align-items: center; justify-content: center; padding: 32px 20px;
+    line-height: 1.5;
+  }
+  .tent {
+    width: 100%; max-width: 420px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 26px; overflow: hidden;
+    box-shadow: 0 30px 60px -30px rgba(0,0,0,.35);
+  }
+  .top {
+    background: linear-gradient(160deg, var(--brand), var(--brand-deep));
+    color: #fff; padding: 30px 30px 26px; text-align: center;
+  }
+  .eyebrow {
+    text-transform: uppercase; letter-spacing: .22em; font-size: 11px;
+    font-weight: 700; opacity: .85; margin: 0;
+  }
+  .headline {
+    font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    font-weight: 600; font-size: 34px; line-height: 1.05; margin: 8px 0 0;
+    text-wrap: balance;
+  }
+  .sub { margin: 10px 0 0; font-size: 14px; opacity: .9; }
+
+  .body { padding: 26px 30px 30px; }
+  .qrwrap {
+    background: #fff; border: 1px solid var(--line); border-radius: 20px;
+    padding: 16px; width: 232px; margin: -66px auto 0; position: relative;
+    box-shadow: 0 12px 26px -12px rgba(0,0,0,.3);
+  }
+  .qrwrap img { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .scan {
+    text-align: center; margin: 16px 0 24px; font-size: 13px; font-weight: 600;
+    color: var(--muted); letter-spacing: .02em;
+  }
+
+  ol { list-style: none; counter-reset: s; margin: 0; padding: 0;
+       display: flex; flex-direction: column; gap: 14px; }
+  li { counter-increment: s; display: flex; gap: 14px; align-items: flex-start; }
+  li::before {
+    content: counter(s); flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--brand); color: #fff; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  li b { font-weight: 700; }
+  li span { font-size: 15px; }
+  li .note { display: block; color: var(--muted); font-size: 13px; margin-top: 1px; }
+
+  .ticket {
+    margin-top: 24px; border: 1.5px dashed var(--brand); border-radius: 16px;
+    padding: 16px 18px; display: flex; align-items: center; gap: 16px;
+    background: color-mix(in srgb, var(--brand) 7%, transparent);
+  }
+  .ticket .num {
+    font-family: Georgia, serif; font-weight: 700; font-size: 30px;
+    color: var(--brand); letter-spacing: .04em; line-height: 1;
+  }
+  .ticket .txt { font-size: 13px; color: var(--ink); }
+  .ticket .txt b { color: var(--brand); }
+
+  .foot {
+    margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line);
+    text-align: center; font-size: 12px; color: var(--muted);
+  }
+  .foot code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px;
+    color: var(--ink); word-break: break-all;
+  }
+</style>
+
+<div class="tent">
+  <div class="top">
+    <p class="eyebrow">Mesa &middot; Boda Lucas</p>
+    <h1 class="headline">Haz tu pedido<br>desde tu celular</h1>
+    <p class="sub">Sin filas. Sin descargar nada.</p>
+  </div>
+  <div class="body">
+    <div class="qrwrap">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZoAAAGaCAIAAAC5ZBI0AAAI9UlEQVR4nO3d0Y0bORZAUffCaQibf1gLBaLJoGYxNOeRV+f8q7sslS7YxmPx5/P5/AK433+mLwDgz5AzIELOgAg5AyLkDIiQMyBCzoAIOQMi5AyIkDMgQs6ACDkDIuQMiJAzIELOgAg5AyLkDIiQMyBCzoCI3ysvfr3++6vl/f7fge/G81Wt/N6Vn7zyXq1Yuapv+xfdaOVTsDoDIuQMiJAzIELOgAg5AyLkDIiQMyBCzoAIOQMilnYFPJuasb5xdn/fezV1VVOT7r25/xXvL/sOWp0BEXIGRMgZECFnQIScARFyBkTIGRAhZ0CEnAERG3cFnDmdf+Nst50Mf+pTmDpX4dm33Vf7WJ0BEXIGRMgZECFnQIScARFyBkTIGRAhZ0CEnAERY7sCevbNWD/b90T/ldeeec7Aymt7M/Q9VmdAhJwBEXIGRMgZECFnQIScARFyBkTIGRAhZ0CEXQEXzHbvm4Of8m2nHzw786puZHUGRMgZECFnQIScARFyBkTIGRAhZ0CEnAERcgZEjO0KMOv8zXPh+57Z//yT972TK/scpj7fd+6+sjoDIuQMiJAzIELOgAg5AyLkDIiQMyBCzoAIOQMift/4PPgbrcyyf9trn7nm/9/ry76DVmdAhJwBEXIGRMgZECFnQIScARFyBkTIGRAhZ0DE0q6A3rPGz7Rvhn7FvonzM/cb7HPjNZ/J6gyIkDMgQs6ACDkDIuQMiJAzIELOgAg5AyLkDIhY2hWw71nyU56veWp6e98c/IrePPq+e3LfJ3jj92gfqzMgQs6ACDkDIuQMiJAzIELOgAg5AyLkDIiQMyDi5/P5jEwkT+0ZuHECu/deTZ0GcONVPetd8wqrMyBCzoAIOQMi5AyIkDMgQs6ACDkDIuQMiJAzIGLprICp2d/ec/f3WZka703n79tfMbU348x9Ds/2/V6rMyBCzoAIOQMi5AyIkDMgQs6ACDkDIuQMiJAzIGLsrIBvewL61DkD33auwoqpOfhnUztVXkfuCXlmdQZEyBkQIWdAhJwBEXIGRMgZECFnQIScARFyBkSMnRWwb2p8aq/CvteeuVfhzPf5xn/RyokNU15HXpXVGRAhZ0CEnAERcgZEyBkQIWdAhJwBEXIGRMgZEPH7xrn/M5+ePnX6wcpM+dRVTT1L/sbTHs58Kv+ZrM6ACDkDIuQMiJAzIELOgAg5AyLkDIiQMyBCzoCIpV0B+2aOz/zJN06Nn/kc+ql59DP3ZqyYOhvhve27sHJvWJ0BEXIGRMgZECFnQIScARFyBkTIGRAhZ0CEnAERh54VsG96u/d89BvPc9h3b/h8T5jOn2J1BkTIGRAhZ0CEnAERcgZEyBkQIWdAhJwBEXIGRGw8K+DMp7avXNWN9p26sPJ7p37yvlMm9jnzif6vI79lVmdAhJwBEXIGRMgZECFnQIScARFyBkTIGRAhZ0DEz+fzic2j7zM1F36jqf0G+3ab3Oi17d9rVwDARv7YBCLkDIiQMyBCzoAIOQMi5AyIkDMgQs6AiKVdAb2ntu+7qt75BlMT52fO7p/5RP/30B6JqfvZ6gyIkDMgQs6ACDkDIuQMiJAzIELOgAg5AyLkDIgY2xXwbdP5Nz7h/szp/Bt3I0zdk896n6DVGRAhZ0CEnAERcgZEyBkQIWdAhJwBEXIGRMgZEBE8K6A3979yVSt68+grznyy/rP3l+03sDoDIuQMiJAzIELOgAg5AyLkDIiQMyBCzoAIOQMifv/6MvvmlacmsPdNq595+sGNpy7sc+bnO8XqDIiQMyBCzoAIOQMi5AyIkDMgQs6ACDkDIuQMiNi4K+DMueF90/lnvhtT/94z343euQpnfr6vobMvrM6ACDkDIuQMiJAzIELOgAg5AyLkDIiQMyBCzoCIn8/n849f7Knt/46pp7afuYNiauL82b6rOvNTeGZXAMASf2wCEXIGRMgZECFnQIScARFyBkTIGRAhZ0DE0lkB+6aZ9+036LlxanyfqXvjzHvyPfQNnWJ1BkTIGRAhZ0CEnAERcgZEyBkQIWdAhJwBEXIGRCztCrjxrICpp8XfOK0+9cz+G69q30++8bvwHtoxYnUGRMgZECFnQIScARFyBkTIGRAhZ0CEnAERcgZELO0KmJobnjqFYJ+pvQr7XnvjHPyZ+zqeTe0nmbpznlmdARFyBkTIGRAhZ0CEnAERcgZEyBkQIWdAhJwBEWO7As48hWDftPqZV/Vsao/Emc/7X9G7c95DewaeWZ0BEXIGRMgZECFnQIScARFyBkTIGRAhZ0CEnAERP5/P5x+/+MZnq+/Tew693Rff7D10TzorAMAfm0CF/zsDIuQMiJAzIELOgAg5AyLkDIiQMyBiaVfAt5l6Zv+Nv3dqavzGHRQrP3nF68irWmF1BkTIGRAhZ0CEnAERcgZEyBkQIWdAhJwBEXIGRPxeefG3Pe9/ZRL6zPdqar/BmTsKbtxBse8TfF/4GVmdARFyBkTIGRAhZ0CEnAERcgZEyBkQIWdAhJwBEUu7Am58mvi+CewVN06Nn/np3/jM/t4+h6nvkdUZECFnQIScARFyBkTIGRAhZ0CEnAERcgZEyBkQsXFXwLMznzX+bXsVpia/p2bKp37vmXtRzjwrYIXVGRAhZ0CEnAERcgZEyBkQIWdAhJwBEXIGRMgZEDG2K6Cn99T2qfn7lXn0fa8985r3XdXryH0dz6zOgAg5AyLkDIiQMyBCzoAIOQMi5AyIkDMgQs6ACLsC/pgbJ87PnO2emvs/89SFZ1P31ctZAQD7+GMTiJAzIELOgAg5AyLkDIiQMyBCzoAIOQMixnYF7JuT3mdqprx3RkHvfb5xhv419Pk6KwDgb/hjE4iQMyBCzoAIOQMi5AyIkDMgQs6ACDkDIjbuCjhzEnrF1LPkz3wnb9wzMHU2wo17YF5H3nXPrM6ACDkDIuQMiJAzIELOgAg5AyLkDIiQMyBCzoCIn8/nM30NAH+A1RkQIWdAhJwBEXIGRMgZECFnQIScARFyBkTIGRAhZ0CEnAERcgZEyBkQIWdAhJwBEXIGRMgZECFnQIScAb8a/gLVKMxNSuW0bQAAAABJRU5ErkJggg==" alt="Codigo QR para pedir" />
+    </div>
+    <p class="scan">Apunta la camara al codigo &uarr;</p>
+
+    <ol>
+      <li><span><b>Escanea</b> el codigo y abre el menu<span class="note">Se abre en tu navegador, al instante.</span></span></li>
+      <li><span><b>Escribe tu nombre</b> (opcional) y elige tus platos</span></li>
+      <li><span><b>Guarda tu numero</b> de pedido<span class="note">Con el retiras tu orden en el mostrador.</span></span></li>
+    </ol>
+
+    <div class="ticket">
+      <div class="num">P-K7QX</div>
+      <div class="txt">Asi se vera tu numero. <b>Guardalo</b> &mdash; lo recuperas aunque cierres el navegador.</div>
+    </div>
+
+    <div class="foot">
+      Tambien puedes entrar en<br>
+      <code>restaurant-os-pedir.web.app</code>
+    </div>
+  </div>
+</div>
