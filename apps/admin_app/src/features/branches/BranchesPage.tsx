@@ -1,13 +1,21 @@
 import { useMemo, useState } from 'react';
-import { Plus, Pencil, Store, X, UtensilsCrossed, MapPin, QrCode } from 'lucide-react';
+import { httpsCallable } from 'firebase/functions';
+import { Plus, Pencil, Store, X, UtensilsCrossed, MapPin, QrCode, KeyRound, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useMenus } from '@/hooks/use-menu';
+import { functions } from '@/lib/firebase';
 import { CUSTOMER_APP_URL } from '@/lib/config';
 import type { Branch } from '@/types/branch';
 import type { Menu } from '@/types/menu';
+
+interface ProvisionedOperator {
+  station: string;
+  email: string;
+  password: string;
+}
 
 interface BranchFormState {
   name: string;
@@ -27,18 +35,35 @@ const EMPTY: BranchFormState = {
   isActive: true,
 };
 
+function CredRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="mt-2 flex items-center justify-between gap-2">
+      <span className="text-xs text-gray-500">{label}</span>
+      <span className="flex items-center gap-2">
+        <code className="font-mono text-sm text-gray-900">{value}</code>
+        <button
+          onClick={() => navigator.clipboard?.writeText(value)}
+          className="m3-state rounded-full p-1.5 text-gray-500"
+          title="Copiar"
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </button>
+      </span>
+    </div>
+  );
+}
+
 function BranchDialog({
-  orgId,
   branch,
   menus,
   onClose,
 }: {
-  orgId: string;
   branch: Branch | null;
   menus: Menu[];
   onClose: () => void;
 }) {
-  const { createBranch, updateBranch } = useBranchContext();
+  const { updateBranch } = useBranchContext();
+  const [created, setCreated] = useState<ProvisionedOperator[] | null>(null);
   const [form, setForm] = useState<BranchFormState>(
     branch
       ? {
@@ -75,15 +100,64 @@ function BranchDialog({
     try {
       if (branch) {
         await updateBranch(branch.id, payload);
+        onClose();
       } else {
-        await createBranch({ orgId, tipOptions: [], businessHours: {}, ...payload });
+        // Server-side: creates the branch + its stations (Cocina/Bar) + one
+        // operator per station, and returns the generated credentials.
+        const provision = httpsCallable<
+          typeof payload,
+          { operators: ProvisionedOperator[] }
+        >(functions, 'provisionBranch');
+        const res = await provision(payload);
+        setCreated(res.data.operators ?? []);
+        setSaving(false);
       }
-      onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar la sucursal.');
       setSaving(false);
     }
   };
+
+  if (created) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="m3-card w-full max-w-lg rounded-[1.75rem] p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900">¡Sucursal lista! 🎉</h2>
+            <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-500" aria-label="Cerrar">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <p className="mb-4 text-sm text-gray-600">
+            Se crearon sus <b>estaciones</b> (Cocina y Bar) y un <b>operador por estación</b> para
+            el KDS. Guarda estas credenciales:
+          </p>
+          <div className="space-y-3">
+            {created.length === 0 && (
+              <p className="text-sm text-gray-500">
+                Las estaciones se crearon; crea los operadores desde «Usuarios».
+              </p>
+            )}
+            {created.map((op) => (
+              <div key={op.email} className="rounded-2xl bg-[var(--color-surface-container-high)] p-4">
+                <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                  <KeyRound className="h-4 w-4 text-orange-600" /> {op.station}
+                </div>
+                <CredRow label="Email" value={op.email} />
+                <CredRow label="Contraseña" value={op.password} />
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-xs text-gray-500">
+            Guárdalas ahora — la contraseña no se vuelve a mostrar. Puedes cambiarlas en «Usuarios».
+          </p>
+          <div className="mt-5 flex justify-end">
+            <Button onClick={onClose}>Listo</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -272,7 +346,6 @@ export default function BranchesPage() {
 
       {dialog && (
         <BranchDialog
-          orgId={orgId}
           branch={dialog.branch}
           menus={menus}
           onClose={() => setDialog(null)}
