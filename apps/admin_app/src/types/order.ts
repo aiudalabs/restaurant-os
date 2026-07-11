@@ -1,6 +1,9 @@
 import type { Timestamp } from 'firebase/firestore';
 
 export type OrderStatus =
+  | 'pending_payment'
+  | 'payment_failed'
+  | 'paid'
   | 'pending'
   | 'confirmed'
   | 'in_preparation'

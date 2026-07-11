@@ -101,7 +101,7 @@ def handle_callback(form: dict) -> str | None:
         logger.warning("PagueloFácil callback for unknown order %s", order_id)
         return order_id
     current = snap.to_dict() or {}
-    if current.get("status") == "paid":
+    if (current.get("payment") or {}).get("status") == "approved":
         logger.info("Order %s already paid — ignoring duplicate callback", order_id)
         return order_id
 
@@ -127,8 +127,11 @@ def handle_callback(form: dict) -> str | None:
         "updatedAt": now,
     }
     if approved:
+        # Payment state lives in payment.*; order.status is the KITCHEN lifecycle.
+        # An approved prepaid order becomes a normal 'confirmed' order that the
+        # admin, KDS and tracking all understand (paid info stays in payment.*).
         update["payment.paidAt"] = now
-        update["status"] = "paid"
+        update["status"] = "confirmed"
     else:
         update["status"] = "payment_failed"
 

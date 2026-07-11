@@ -10,6 +10,9 @@ import type { Order, OrderStatus } from '@/types/order';
 import type { OrderItem } from '@/types/order-item';
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
+  pending_payment: 'Esperando pago',
+  payment_failed: 'Pago rechazado',
+  paid: 'Pagado',
   pending: 'Pendiente',
   confirmed: 'Confirmado',
   in_preparation: 'En preparacion',
@@ -20,6 +23,9 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 };
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
+  pending_payment: 'bg-amber-100 text-amber-700',
+  payment_failed: 'bg-red-100 text-red-700',
+  paid: 'bg-blue-100 text-blue-700',
   pending: 'bg-yellow-100 text-yellow-700',
   confirmed: 'bg-blue-100 text-blue-700',
   in_preparation: 'bg-orange-100 text-orange-700',
@@ -28,6 +34,11 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   cancelled: 'bg-red-100 text-red-700',
   closed: 'bg-gray-100 text-gray-500',
 };
+
+// Never render a blank badge if an unknown status ever appears.
+const statusLabel = (s: OrderStatus): string => STATUS_LABELS[s] ?? s;
+const statusColor = (s: OrderStatus): string =>
+  STATUS_COLORS[s] ?? 'bg-gray-100 text-gray-500';
 
 const ALL_STATUSES: OrderStatus[] = [
   'pending',
@@ -71,10 +82,10 @@ function OrderDetailDialog({ order, items, itemsLoading, onClose, onUpdateStatus
                 <span
                   className={cn(
                     'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-                    STATUS_COLORS[order.status],
+                    statusColor(order.status),
                   )}
                 >
-                  {STATUS_LABELS[order.status]}
+                  {statusLabel(order.status)}
                 </span>
               </p>
             </div>
@@ -325,10 +336,10 @@ export default function OrdersPage() {
                     <span
                       className={cn(
                         'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-                        STATUS_COLORS[order.status],
+                        statusColor(order.status),
                       )}
                     >
-                      {STATUS_LABELS[order.status]}
+                      {statusLabel(order.status)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500">{order.itemCount}</td>
