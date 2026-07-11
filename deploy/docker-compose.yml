@@ -1,0 +1,86 @@
+# All-in-one RestaurantOS box: Postgres + Odoo 17 + FastAPI BFF + Caddy (TLS).
+# Everything lives in one GCP VM so Odoo, the BFF and their DB are co-located and
+# the whole ERP side is "one place" alongside Firebase (which stays Google-managed).
+#
+# Data lives in named volumes (pgdata, odoo-filestore) that the backup job ships
+# to an immutable GCS bucket nightly. See backup.sh.
+services:
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Not exposed to the host/network — only reachable by odoo on the compose net.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  odoo:
+    image: odoo:${ODOO_VERSION}
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      HOST: db
+      USER: ${POSTGRES_USER}
+      PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - odoo-filestore:/var/lib/odoo
+      - ./odoo.conf:/etc/odoo/odoo.conf:ro
+    # Exposed only to Caddy via the compose network (no host port publish).
+
+  bff:
+    build:
+      context: ../apps/fastapi_bff
+    restart: always
+    depends_on:
+      - odoo
+    environment:
+      ODOO_URL: ${ODOO_URL}
+      ODOO_DB: ${ODOO_DB}
+      ODOO_USER: ${ODOO_USER}
+      ODOO_PASSWORD: ${ODOO_PASSWORD}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_RTDB_URL: ${FIREBASE_RTDB_URL}
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/serviceAccountKey.json
+      FIREBASE_SERVICE_ACCOUNT: /secrets/serviceAccountKey.json
+      CUSTOMER_APP_URL: ${CUSTOMER_APP_URL}
+      BFF_BASE_URL: https://${BFF_DOMAIN}
+      PAGUELOFACIL_ENV: ${PAGUELOFACIL_ENV}
+      PAGUELOFACIL_CCLW: ${PAGUELOFACIL_CCLW}
+      PAGUELOFACIL_ACCESS_TOKEN: ${PAGUELOFACIL_ACCESS_TOKEN}
+      PAGUELOFACIL_VERIFY_URL: ${PAGUELOFACIL_VERIFY_URL}
+      SECRET_KEY: ${SECRET_KEY}
+    volumes:
+      - ${FIREBASE_SA_KEY_PATH}:/secrets/serviceAccountKey.json:ro
+
+  caddy:
+    image: caddy:2
+    restart: always
+    depends_on:
+      - odoo
+      - bff
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ODOO_DOMAIN: ${ODOO_DOMAIN}
+      BFF_DOMAIN: ${BFF_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  pgdata:
+  odoo-filestore:
+  caddy-data:
+  caddy-config:

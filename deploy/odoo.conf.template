@@ -1,0 +1,18 @@
+[options]
+; Odoo runs behind Caddy (TLS terminator) — proxy_mode makes Odoo trust the
+; X-Forwarded-* headers so it builds correct https:// URLs.
+proxy_mode = True
+
+; DB manager password (create/drop/backup databases). Set via install.sh from
+; ODOO_MASTER_PASSWORD; never leave it as the default 'admin'.
+admin_passwd = __ODOO_MASTER_PASSWORD__
+
+db_host = db
+db_port = 5432
+db_user = __POSTGRES_USER__
+db_password = __POSTGRES_PASSWORD__
+
+; Workers for a small-to-mid restaurant. Tune to the VM size.
+workers = 2
+limit_time_cpu = 120
+limit_time_real = 240

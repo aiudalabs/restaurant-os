@@ -1,0 +1,20 @@
+# Caddy auto-provisions Let's Encrypt TLS for both hosts. Odoo and the BFF are
+# only reachable through here (HTTPS); nothing else is published to the internet.
+{
+	email {$ACME_EMAIL}
+}
+
+# Odoo ERP + web UI
+{$ODOO_DOMAIN} {
+	reverse_proxy odoo:8069
+	# Odoo longpolling / websockets (chat, live updates)
+	@longpoll path /longpolling/* /websocket
+	reverse_proxy @longpoll odoo:8072
+	encode gzip
+}
+
+# FastAPI BFF (auth + payments callback)
+{$BFF_DOMAIN} {
+	reverse_proxy bff:8000
+	encode gzip
+}

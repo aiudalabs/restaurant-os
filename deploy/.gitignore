@@ -1,0 +1,5 @@
+# Never commit filled-in config or generated/rendered files or secrets.
+.env
+odoo.conf
+*.key
+*serviceAccount*.json
