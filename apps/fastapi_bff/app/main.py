@@ -1,8 +1,10 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth.router import router as auth_router
 from app.catalog.router import router as catalog_router
 from app.payments.router import router as payments_router
+from app.config import settings
 from app.core.firebase import firebase_ping
 from app.core.odoo import odoo_client
 
@@ -10,6 +12,20 @@ app = FastAPI(
     title="RestaurantOS BFF",
     version="2.0.0",
     description="Backend-for-Frontend: Odoo ↔ Firebase bridge",
+)
+
+# The customer web app calls /payments/init from the browser (cross-origin).
+# No cookies are used, so we don't need credentialed CORS.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        settings.customer_app_url,
+        "http://localhost:5175",
+        "http://localhost:4173",
+    ],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(auth_router)
