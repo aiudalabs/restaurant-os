@@ -6,7 +6,8 @@
     "restaurant-os-68c79": {
       "hosting": {
         "admin": ["restaurant-os-68c79"],
-        "customer": ["restaurant-os-pedir"]
+        "customer": ["restaurant-os-pedir"],
+        "kds": ["restaurant-os-cocina"]
       }
     }
   }
