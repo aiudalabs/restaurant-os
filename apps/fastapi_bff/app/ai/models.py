@@ -30,10 +30,17 @@ class BuildPlan(BaseModel):
     products: list[ProductRow] = Field(default_factory=list)
 
 
+class ChatTurn(BaseModel):
+    role: str  # "user" | "assistant"
+    text: str
+
+
 class PlanRequest(BaseModel):
     message: str
     branch_id: str | None = None
     csv_rows: list[ProductRow] = Field(default_factory=list)
+    # Recent conversation so the model can resolve follow-ups ("ahora agrégale…").
+    history: list[ChatTurn] = Field(default_factory=list)
 
 
 class PlanResponse(BaseModel):

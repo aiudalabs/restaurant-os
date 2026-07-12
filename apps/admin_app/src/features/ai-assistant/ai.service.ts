@@ -53,11 +53,22 @@ async function authedPost<T>(path: string, body: unknown): Promise<T> {
   return res.json();
 }
 
-export function requestPlan(message: string, branchId: string, csvRows: ProductRow[]): Promise<PlanResponse> {
+export interface ChatTurn {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
+export function requestPlan(
+  message: string,
+  branchId: string,
+  csvRows: ProductRow[],
+  history: ChatTurn[],
+): Promise<PlanResponse> {
   return authedPost<PlanResponse>('/ai/plan', {
     message,
     branch_id: branchId || null,
     csv_rows: csvRows,
+    history,
   });
 }
 

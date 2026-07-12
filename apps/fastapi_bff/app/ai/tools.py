@@ -7,7 +7,7 @@ from google import genai
 from google.genai import types
 
 from app.config import settings
-from app.ai.models import BuildPlan
+from app.ai.models import BuildPlan, ChatTurn
 
 _client: genai.Client | None = None
 
@@ -43,11 +43,22 @@ Reglas:
 - `summary`: una frase corta en español que resuma lo que vas a crear, para que
   el dueño confirme (ej. "Crear 2 estaciones, el menú 'Menú de la casa' con
   Pizzas y Bebidas, y 24 productos del CSV").
-- Usa el contexto de sucursales y menús existentes para no duplicar.
+- Usa el contexto de sucursales y menús existentes para no duplicar. Si el
+  usuario quiere agregar algo a un menú que YA existe (aparece en el contexto),
+  pon en `menu.name` EXACTAMENTE ese nombre existente: el sistema añadirá las
+  categorías/productos a ese menú en vez de crear uno nuevo.
+- Recuerdas la conversación anterior: si el usuario dice "ahora agrégale…",
+  "y también…" o "a ese menú…", refiérete a lo que se habló/creó antes.
 """
 
 
-def generate_plan(message: str, context: str, has_csv: bool, csv_count: int) -> BuildPlan:
+def generate_plan(
+    message: str,
+    context: str,
+    has_csv: bool,
+    csv_count: int,
+    history: list[ChatTurn] | None = None,
+) -> BuildPlan:
     """Ask Gemini for a structured BuildPlan. Raises on model/transport error."""
     csv_note = (
         f"\n\nEl usuario adjuntó un CSV con {csv_count} productos; NO los generes tú, "
@@ -57,9 +68,17 @@ def generate_plan(message: str, context: str, has_csv: bool, csv_count: int) -> 
     )
     prompt = f"Contexto actual del restaurante:\n{context}\n\nInstrucción del dueño:\n{message}{csv_note}"
 
+    # Prior turns give the model conversational memory for follow-ups. Assistant
+    # turns are the plan summaries we showed the user.
+    contents: list[types.Content] = []
+    for turn in history or []:
+        role = "user" if turn.role == "user" else "model"
+        contents.append(types.Content(role=role, parts=[types.Part(text=turn.text)]))
+    contents.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
+
     resp = _get_client().models.generate_content(
         model=settings.gemini_model,
-        contents=prompt,
+        contents=contents,
         config=types.GenerateContentConfig(
             system_instruction=SYSTEM_INSTRUCTION,
             temperature=0.1,

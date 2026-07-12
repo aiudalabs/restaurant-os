@@ -43,13 +43,30 @@ def _org_branches(org_id: str) -> list[dict]:
     return [d.to_dict() | {"id": d.id} for d in docs]
 
 
-def _context_string(org_id: str) -> str:
+def _context_string(org_id: str, branch: dict | None = None) -> str:
     branches = _org_branches(org_id)
     menus = [d.to_dict() | {"id": d.id} for d in
              db().collection(MENUS).where("orgId", "==", org_id).stream()]
     b = ", ".join(x.get("name", "?") for x in branches) or "(ninguna)"
     m = ", ".join(x.get("name", "?") for x in menus) or "(ninguno)"
-    return f"Sucursales: {b}\nMenús existentes: {m}"
+    lines = [f"Sucursales: {b}", f"Menús existentes: {m}"]
+    # Categories of the current branch's menu — so the model reuses names.
+    menu_id = (branch or {}).get("menuId")
+    if menu_id:
+        menu_name = next((x.get("name", "?") for x in menus if x["id"] == menu_id), "?")
+        cats = [(d.to_dict() or {}).get("name", "") for d in
+                db().collection(CATEGORIES).where("menuId", "==", menu_id).stream()]
+        lines.append(f"Menú de la sucursal actual: '{menu_name}' "
+                     f"(categorías: {', '.join(c for c in cats if c) or 'ninguna'})")
+    return "\n".join(lines)
+
+
+def _find_menu_by_name(org_id: str, name: str) -> str | None:
+    key = name.strip().lower()
+    for d in db().collection(MENUS).where("orgId", "==", org_id).stream():
+        if (d.to_dict() or {}).get("name", "").strip().lower() == key:
+            return d.id
+    return None
 
 
 def _resolve_branch(org_id: str, branch_ids: list[str], branch_id: str | None) -> dict:
@@ -97,9 +114,10 @@ def make_plan(uid: str, req: PlanRequest) -> PlanResponse:
     try:
         plan = tools.generate_plan(
             message=req.message,
-            context=_context_string(ctx["orgId"]),
+            context=_context_string(ctx["orgId"], branch),
             has_csv=bool(csv_rows),
             csv_count=len(csv_rows),
+            history=req.history,
         )
     except Exception as exc:  # model/transport failure — surface, don't half-build
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"El asistente no respondió: {exc}")
@@ -147,19 +165,28 @@ def apply_plan(uid: str, req: ApplyRequest) -> ApplyResponse:
             results.append(ActionResult(kind="station", label=f"Estación: {name}",
                                         status="error", detail=str(exc)))
 
-    # 2) Resolve target menu — create it if the plan asks, else use the branch's.
+    # 2) Resolve target menu. If the plan names a menu that already exists, reuse
+    #    it (so follow-ups add to it); otherwise create it. No name → branch menu.
     target_menu_id: str | None = None
     if plan.menu and plan.menu.name.strip():
-        try:
-            mref = client.collection(MENUS).document()
-            mref.set({"id": mref.id, "orgId": org_id, "name": plan.menu.name.strip(),
-                      "isActive": True, "createdAt": now})
-            client.collection(BRANCHES).document(branch_id).update({"menuId": mref.id})
-            target_menu_id = created_menu_id = mref.id
-            results.append(ActionResult(kind="menu", label=f"Menú: {plan.menu.name.strip()}", status="ok"))
-        except Exception as exc:
-            results.append(ActionResult(kind="menu", label=f"Menú: {plan.menu.name}",
-                                        status="error", detail=str(exc)))
+        wanted = plan.menu.name.strip()
+        existing_id = _find_menu_by_name(org_id, wanted)
+        if existing_id:
+            target_menu_id = existing_id
+            if branch.get("menuId") != existing_id:
+                client.collection(BRANCHES).document(branch_id).update({"menuId": existing_id})
+            results.append(ActionResult(kind="menu", label=f"Menú: {wanted} (existente)", status="ok"))
+        else:
+            try:
+                mref = client.collection(MENUS).document()
+                mref.set({"id": mref.id, "orgId": org_id, "name": wanted,
+                          "isActive": True, "createdAt": now})
+                client.collection(BRANCHES).document(branch_id).update({"menuId": mref.id})
+                target_menu_id = created_menu_id = mref.id
+                results.append(ActionResult(kind="menu", label=f"Menú: {wanted}", status="ok"))
+            except Exception as exc:
+                results.append(ActionResult(kind="menu", label=f"Menú: {wanted}",
+                                            status="error", detail=str(exc)))
     else:
         target_menu_id = branch.get("menuId")
 

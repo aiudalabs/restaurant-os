@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import {
   requestPlan, applyPlan, parseCsv,
-  type BuildPlan, type ProductRow, type ActionResult,
+  type BuildPlan, type ProductRow, type ActionResult, type ChatTurn,
 } from './ai.service';
 
 interface Msg {
@@ -30,6 +30,22 @@ const SUGGESTIONS = [
 let _id = 1;
 const nextId = () => _id++;
 
+// Condense the visible conversation into turns the model can reason over.
+function buildHistory(msgs: Msg[]): ChatTurn[] {
+  const turns: ChatTurn[] = [];
+  for (const m of msgs) {
+    if (m.role === 'user' && m.text) {
+      turns.push({ role: 'user', text: m.text });
+    } else if (m.type === 'plan' && m.plan) {
+      turns.push({ role: 'assistant', text: m.plan.summary || 'Propuse un plan.' });
+    } else if (m.type === 'results' && m.results) {
+      const created = m.results.filter((r) => r.status === 'ok').map((r) => r.label);
+      if (created.length) turns.push({ role: 'assistant', text: `Ya creé: ${created.join('; ')}.` });
+    }
+  }
+  return turns.slice(-12); // keep the prompt small
+}
+
 export default function AiAssistantPage() {
   const { selectedBranch } = useBranchContext();
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -52,12 +68,13 @@ export default function AiAssistantPage() {
     const branchId = selectedBranch?.id ?? '';
     const attachedCsv = csv;
     const userText = attachedCsv ? `${text}\n\n📎 ${attachedCsv.name} (${attachedCsv.rows.length} productos)` : text;
+    const history = buildHistory(messages);
     push({ role: 'user', type: 'text', text: userText });
     setInput('');
     setCsv(null);
     setSending(true);
     try {
-      const res = await requestPlan(text, branchId, attachedCsv?.rows ?? []);
+      const res = await requestPlan(text, branchId, attachedCsv?.rows ?? [], history);
       push({
         role: 'assistant', type: 'plan', plan: res.plan,
         branchId: res.target_branch_id ?? branchId, warnings: res.warnings,
