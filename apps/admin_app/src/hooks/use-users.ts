@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { httpsCallable } from 'firebase/functions';
 import type { AppUser } from '@/types/user';
+import { functions } from '@/lib/firebase';
 import {
   watchUsers,
   updateUser as updateUserService,
@@ -54,5 +56,10 @@ export function useUsers(orgId: string) {
     [],
   );
 
-  return { users, loading, updateUser, toggleUser, createOperatorUser };
+  const deleteUser = useCallback(async (userId: string) => {
+    const call = httpsCallable(functions, 'deleteUser');
+    await call({ userId });
+  }, []);
+
+  return { users, loading, updateUser, toggleUser, createOperatorUser, deleteUser };
 }

@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Plus, UtensilsCrossed, Store } from 'lucide-react';
+import { Plus, UtensilsCrossed, Store, Pencil, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useMenus, useCategories, useProducts } from '@/hooks/use-menu';
@@ -15,11 +17,15 @@ export default function MenuPage() {
   const orgId = appUser?.orgId ?? '';
   const { selectedBranch, updateBranch, loading: branchLoading } = useBranchContext();
 
-  const { menus, loading: menusLoading, createMenu } = useMenus(orgId);
+  const { menus, loading: menusLoading, createMenu, updateMenu, deleteMenu } = useMenus(orgId);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showMenuForm, setShowMenuForm] = useState(false);
+  const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
+  const [confirmMenu, setConfirmMenu] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
 
   // The menu is determined by the SELECTED BRANCH — never the whole org.
   const activeMenuId = selectedBranch?.menuId ?? '';
@@ -42,6 +48,7 @@ export default function MenuPage() {
     createProduct,
     updateProduct,
     toggleProduct,
+    deleteProduct,
   } = useProducts(activeMenuId, activeCategoryId);
 
   // Create a brand-new menu AND assign it to the current branch in one step, so a
@@ -124,6 +131,27 @@ export default function MenuPage() {
           <UtensilsCrossed className="h-4 w-4 text-orange-600" />
           {branchMenu?.name ?? 'Menú'}
         </span>
+        {branchMenu && (
+          <>
+            <button
+              onClick={() => {
+                setRenameValue(branchMenu.name);
+                setRenameOpen(true);
+              }}
+              className="m3-state rounded-full p-2 text-gray-500"
+              title="Renombrar menú"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setConfirmMenu(true)}
+              className="m3-state rounded-full p-2 text-red-600"
+              title="Eliminar menú"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </>
+        )}
       </div>
 
       <div className="flex gap-6">
@@ -151,6 +179,7 @@ export default function MenuPage() {
               onAdd={handleAddProduct}
               onEdit={handleEditProduct}
               onToggle={toggleProduct}
+              onDelete={setConfirmProduct}
             />
           ) : (
             <div className="m3-card flex items-center justify-center p-10 text-gray-400">
@@ -170,6 +199,61 @@ export default function MenuPage() {
           onUpdate={updateProduct}
           onClose={() => setShowProductForm(false)}
         />
+      )}
+
+      {confirmProduct && (
+        <ConfirmDialog
+          title="Eliminar producto"
+          message={`¿Eliminar "${confirmProduct.name}"? Esta acción no se puede deshacer.`}
+          onConfirm={() => deleteProduct(confirmProduct.id)}
+          onClose={() => setConfirmProduct(null)}
+        />
+      )}
+
+      {confirmMenu && (
+        <ConfirmDialog
+          title="Eliminar menú"
+          message={`¿Eliminar el menú "${branchMenu?.name}" con sus categorías y productos? La sucursal quedará sin menú.`}
+          onConfirm={async () => {
+            if (activeMenuId) await deleteMenu(activeMenuId);
+            if (selectedBranch) await updateBranch(selectedBranch.id, { menuId: '' });
+          }}
+          onClose={() => setConfirmMenu(false)}
+        />
+      )}
+
+      {renameOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="m3-card w-full max-w-sm rounded-[1.75rem] p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">Renombrar menú</h2>
+              <button onClick={() => setRenameOpen(false)} className="m3-state rounded-full p-2 text-gray-500">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <Input
+              id="menu-rename"
+              label="Nombre del menú"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+            />
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setRenameOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (activeMenuId && renameValue.trim()) {
+                    await updateMenu(activeMenuId, { name: renameValue.trim() });
+                  }
+                  setRenameOpen(false);
+                }}
+              >
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

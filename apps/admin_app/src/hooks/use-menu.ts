@@ -5,6 +5,7 @@ import {
   watchMenus,
   createMenu as createMenuService,
   updateMenu as updateMenuService,
+  deleteMenu as deleteMenuService,
   watchCategories,
   createCategory as createCategoryService,
   updateCategory as updateCategoryService,
@@ -50,7 +51,11 @@ export function useMenus(orgId: string) {
     [],
   );
 
-  return { menus, loading, createMenu, updateMenu };
+  const deleteMenu = useCallback(async (id: string) => {
+    return deleteMenuService(id);
+  }, []);
+
+  return { menus, loading, createMenu, updateMenu, deleteMenu };
 }
 
 // ─── Categories ───

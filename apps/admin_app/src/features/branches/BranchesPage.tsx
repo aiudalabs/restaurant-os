@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { httpsCallable } from 'firebase/functions';
-import { Plus, Pencil, Store, X, UtensilsCrossed, MapPin, QrCode, KeyRound, Copy } from 'lucide-react';
+import { Plus, Pencil, Trash2, Store, X, UtensilsCrossed, MapPin, QrCode, KeyRound, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useMenus } from '@/hooks/use-menu';
@@ -255,9 +256,10 @@ function BranchDialog({
 export default function BranchesPage() {
   const { appUser } = useAuth();
   const orgId = appUser?.orgId ?? '';
-  const { branches, loading } = useBranchContext();
+  const { branches, loading, deleteBranch } = useBranchContext();
   const { menus } = useMenus(orgId);
   const [dialog, setDialog] = useState<{ branch: Branch | null } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Branch | null>(null);
 
   const menuName = useMemo(() => {
     const map = new Map(menus.map((m) => [m.id, m.name]));
@@ -312,6 +314,13 @@ export default function BranchesPage() {
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
+                    <button
+                      onClick={() => setConfirmDelete(b)}
+                      className="m3-state rounded-full p-2 text-red-600"
+                      aria-label="Eliminar"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
 
@@ -349,6 +358,16 @@ export default function BranchesPage() {
           branch={dialog.branch}
           menus={menus}
           onClose={() => setDialog(null)}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Eliminar sucursal"
+          message={`¿Eliminar "${confirmDelete.name}"? Se eliminarán también sus estaciones, mesas y los operadores dedicados a esta sucursal. Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar sucursal"
+          onConfirm={() => deleteBranch(confirmDelete.id)}
+          onClose={() => setConfirmDelete(null)}
         />
       )}
     </div>

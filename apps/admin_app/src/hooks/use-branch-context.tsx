@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { httpsCallable } from 'firebase/functions';
 import type { Branch } from '@/types/branch';
 import type { NewBranch } from '@/services/branch.service';
+import { functions } from '@/lib/firebase';
 import { useAuth } from './use-auth';
 import { useBranches } from './use-branches';
 
@@ -13,6 +15,7 @@ interface BranchContextValue {
   setSelectedBranchId: (id: string) => void;
   createBranch: (data: NewBranch) => Promise<string>;
   updateBranch: (id: string, data: Partial<Branch>) => Promise<void>;
+  deleteBranch: (id: string) => Promise<void>;
   loading: boolean;
 }
 
@@ -52,6 +55,11 @@ export function BranchProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, id);
   }, []);
 
+  const deleteBranch = useCallback(async (id: string) => {
+    const call = httpsCallable(functions, 'deleteBranch');
+    await call({ branchId: id });
+  }, []);
+
   const selectedBranch = branches.find((b) => b.id === selectedBranchId) ?? branches[0] ?? null;
 
   return (
@@ -63,6 +71,7 @@ export function BranchProvider({ children }: { children: ReactNode }) {
         setSelectedBranchId,
         createBranch,
         updateBranch,
+        deleteBranch,
         loading,
       }}
     >

@@ -1,15 +1,105 @@
 import { useState } from 'react';
-import { Plus, Power, X, Shield, User, Wrench } from 'lucide-react';
-import { useForm, useWatch } from 'react-hook-form';
+import { Plus, Power, X, Shield, User, Wrench, Pencil, Trash2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useUsers } from '@/hooks/use-users';
 import { useStations } from '@/hooks/use-stations';
 import type { AppUser, UserRole } from '@/types/user';
+
+// ─── Edit User Dialog (doc fields only: name / role / station) ───
+
+function EditUserDialog({
+  user,
+  stations,
+  onSave,
+  onClose,
+}: {
+  user: AppUser;
+  stations: { id: string; name: string }[];
+  onSave: (id: string, data: Partial<AppUser>) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [displayName, setDisplayName] = useState(user.displayName ?? '');
+  const [role, setRole] = useState<UserRole>(user.role);
+  const [stationId, setStationId] = useState(user.stationId ?? '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const save = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await onSave(user.id, { displayName: displayName.trim(), role, stationId });
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar.');
+      setBusy(false);
+    }
+  };
+
+  const selectCls =
+    'flex h-12 w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 text-[15px] text-[var(--color-on-surface)] focus:outline-none focus:border-orange-600';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="m3-card w-full max-w-md rounded-[1.75rem] p-6">
+        <div className="flex items-center justify-between pb-4">
+          <h2 className="text-lg font-bold text-gray-900">Editar usuario</h2>
+          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="space-y-4">
+          <Input
+            id="edit-name"
+            label="Nombre completo"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
+          <p className="text-xs text-gray-500">
+            Email: <span className="font-mono">{user.email}</span> (no editable)
+          </p>
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-[var(--color-on-surface-variant)]">Rol</label>
+            <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} className={selectCls}>
+              <option value="operator">Operador</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
+              Estación (solo operadores)
+            </label>
+            <select value={stationId} onChange={(e) => setStationId(e.target.value)} className={selectCls}>
+              <option value="">Sin estación asignada</option>
+              {stations.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        </div>
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Cancelar
+          </Button>
+          <Button onClick={save} disabled={busy}>
+            {busy ? 'Guardando…' : 'Guardar'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const USER_FORM_SCHEMA = z.object({
   email: z.string().email('Email invalido'),
@@ -179,9 +269,12 @@ export default function UsersPage() {
   const branchIds = appUser?.branchIds ?? [];
   const branchId = branchIds[0] ?? '';
 
-  const { users, loading, toggleUser, createOperatorUser } = useUsers(orgId);
+  const { users, loading, toggleUser, createOperatorUser, updateUser, deleteUser } = useUsers(orgId);
   const { stations } = useStations(orgId, branchId);
   const [showForm, setShowForm] = useState(false);
+  const [editUser, setEditUser] = useState<AppUser | null>(null);
+  const [confirmUser, setConfirmUser] = useState<AppUser | null>(null);
+  const stationOptions = stations.map((s) => ({ id: s.id, name: s.name }));
 
   if (loading) {
     return (
@@ -263,19 +356,41 @@ export default function UsersPage() {
                         {user.isActive ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={cn(
-                          'h-7 text-xs',
-                          user.isActive ? 'text-gray-500' : 'text-green-600',
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => setEditUser(user)}
+                        >
+                          <Pencil className="mr-1 h-3.5 w-3.5" />
+                          Editar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={cn(
+                            'h-7 text-xs',
+                            user.isActive ? 'text-gray-500' : 'text-green-600',
+                          )}
+                          onClick={() => toggleUser(user.id, !user.isActive)}
+                        >
+                          <Power className="mr-1 h-3.5 w-3.5" />
+                          {user.isActive ? 'Desactivar' : 'Activar'}
+                        </Button>
+                        {user.id !== appUser?.id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-red-600"
+                            onClick={() => setConfirmUser(user)}
+                          >
+                            <Trash2 className="mr-1 h-3.5 w-3.5" />
+                            Eliminar
+                          </Button>
                         )}
-                        onClick={() => toggleUser(user.id, !user.isActive)}
-                      >
-                        <Power className="mr-1 h-3.5 w-3.5" />
-                        {user.isActive ? 'Desactivar' : 'Activar'}
-                      </Button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -289,9 +404,27 @@ export default function UsersPage() {
         <UserFormDialog
           orgId={orgId}
           branchIds={branchIds}
-          stations={stations.map((s) => ({ id: s.id, name: s.name }))}
+          stations={stationOptions}
           onSave={createOperatorUser}
           onClose={() => setShowForm(false)}
+        />
+      )}
+
+      {editUser && (
+        <EditUserDialog
+          user={editUser}
+          stations={stationOptions}
+          onSave={updateUser}
+          onClose={() => setEditUser(null)}
+        />
+      )}
+
+      {confirmUser && (
+        <ConfirmDialog
+          title="Eliminar usuario"
+          message={`¿Eliminar a "${confirmUser.displayName}" (${confirmUser.email})? Se borrará su acceso. Esta acción no se puede deshacer.`}
+          onConfirm={() => deleteUser(confirmUser.id)}
+          onClose={() => setConfirmUser(null)}
         />
       )}
     </div>

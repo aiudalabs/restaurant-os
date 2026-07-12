@@ -1,4 +1,4 @@
-import { Plus, Pencil, Power } from 'lucide-react';
+import { Plus, Pencil, Power, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types/product';
@@ -10,6 +10,7 @@ interface ProductListProps {
   onAdd: () => void;
   onEdit: (product: Product) => void;
   onToggle: (id: string, isActive: boolean) => void;
+  onDelete: (product: Product) => void;
 }
 
 export default function ProductList({
@@ -19,6 +20,7 @@ export default function ProductList({
   onAdd,
   onEdit,
   onToggle,
+  onDelete,
 }: ProductListProps) {
   if (loading) {
     return (
@@ -114,6 +116,15 @@ export default function ProductList({
                 >
                   <Power className="mr-1 h-3.5 w-3.5" />
                   {product.isActive ? 'Desactivar' : 'Activar'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto h-8 text-xs text-red-600"
+                  onClick={() => onDelete(product)}
+                >
+                  <Trash2 className="mr-1 h-3.5 w-3.5" />
+                  Eliminar
                 </Button>
               </div>
             </div>

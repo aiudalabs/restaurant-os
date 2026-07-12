@@ -48,6 +48,10 @@ export async function updateMenu(id: string, data: Partial<Menu>) {
   await updateDoc(doc(db, paths.menus, id), data);
 }
 
+export async function deleteMenu(id: string) {
+  await deleteDoc(doc(db, paths.menus, id));
+}
+
 // ─── Categories ───
 
 export function watchCategories(
