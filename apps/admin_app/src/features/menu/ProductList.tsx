@@ -56,10 +56,23 @@ export default function ProductList({
             <div
               key={product.id}
               className={cn(
-                'm3-card p-5',
+                'm3-card flex flex-col overflow-hidden',
                 !product.isActive && 'opacity-50',
               )}
             >
+              {product.imageUrl ? (
+                <img
+                  src={product.imageUrl}
+                  alt={product.name}
+                  loading="lazy"
+                  className="h-36 w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-36 w-full items-center justify-center bg-[var(--color-surface-container-high)] text-4xl">
+                  🍽️
+                </div>
+              )}
+              <div className="flex flex-1 flex-col p-5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <h4 className="font-semibold text-gray-900 truncate">
@@ -126,6 +139,7 @@ export default function ProductList({
                   <Trash2 className="mr-1 h-3.5 w-3.5" />
                   Eliminar
                 </Button>
+              </div>
               </div>
             </div>
           ))}

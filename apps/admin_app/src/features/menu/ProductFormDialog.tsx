@@ -69,6 +69,7 @@ export default function ProductFormDialog({
     handleSubmit,
     control,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -201,14 +202,33 @@ export default function ProductFormDialog({
             {...register('tags')}
           />
 
-          <Input
-            id="imageUrl"
-            label="URL de imagen"
-            type="url"
-            placeholder="https://..."
-            error={errors.imageUrl?.message}
-            {...register('imageUrl')}
-          />
+          <div className="space-y-2">
+            <Input
+              id="imageUrl"
+              label="URL de imagen"
+              type="url"
+              placeholder="https://..."
+              error={errors.imageUrl?.message}
+              {...register('imageUrl')}
+            />
+            {watch('imageUrl') ? (
+              <img
+                src={watch('imageUrl')}
+                alt="Vista previa"
+                className="h-32 w-full rounded-xl border border-[var(--color-outline-variant)] object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
+                onLoad={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'block';
+                }}
+              />
+            ) : (
+              <div className="flex h-32 w-full items-center justify-center rounded-xl bg-[var(--color-surface-container-high)] text-3xl text-gray-400">
+                🍽️
+              </div>
+            )}
+          </div>
 
           <hr className="border-[var(--color-outline-variant)]" />
 
