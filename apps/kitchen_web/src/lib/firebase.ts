@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getDatabase } from 'firebase/database';
+import { getFunctions } from 'firebase/functions';
 import { getAuth } from 'firebase/auth';
 
 // Public Firebase web config for restaurant-os-68c79 (governed by security rules).
@@ -17,4 +18,5 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const rtdb = getDatabase(app);
+export const functions = getFunctions(app, 'us-central1');
 export const auth = getAuth(app);

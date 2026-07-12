@@ -1,16 +1,106 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Power, X } from 'lucide-react';
+import { httpsCallable } from 'firebase/functions';
+import { Plus, Pencil, Trash2, Power, X, KeyRound, Copy } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { functions } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useStations } from '@/hooks/use-stations';
 import { useCategories } from '@/hooks/use-menu';
 import type { Station } from '@/types/station';
+
+const KDS_URL = 'https://restaurant-os-cocina.web.app';
+
+// ─── Station PIN / KDS link dialog ───
+
+function StationPinDialog({ station, onClose }: { station: Station; onClose: () => void }) {
+  const [pin, setPin] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+  const kdsLink = `${KDS_URL}/?station=${station.id}`;
+
+  const save = async () => {
+    if (!/^\d{4,6}$/.test(pin)) {
+      setError('El PIN debe ser de 4 a 6 dígitos.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await httpsCallable(functions, 'setStationPin')({ stationId: station.id, pin });
+      setSaved(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar el PIN.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="m3-card w-full max-w-md rounded-[1.75rem] p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900">PIN de «{station.name}»</h2>
+          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-500">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <p className="mb-4 text-sm text-gray-500">
+          El KDS de esta estación entra con este PIN (4-6 dígitos). Se guarda cifrado y validado
+          en el servidor.
+        </p>
+
+        <Input
+          id="station-pin"
+          label="PIN"
+          type="text"
+          inputMode="numeric"
+          value={pin}
+          onChange={(e) => {
+            setPin(e.target.value.replace(/\D/g, '').slice(0, 6));
+            setSaved(false);
+          }}
+          placeholder="Ej: 4821"
+        />
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {saved && <p className="mt-2 text-sm font-semibold text-green-600">✓ PIN guardado.</p>}
+
+        <div className="mt-5 rounded-2xl bg-[var(--color-surface-container-high)] p-4">
+          <p className="text-xs font-medium text-gray-500">Link del KDS para este dispositivo</p>
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <code className="truncate font-mono text-xs text-gray-900">{kdsLink}</code>
+            <button
+              onClick={() => navigator.clipboard?.writeText(kdsLink)}
+              className="m3-state shrink-0 rounded-full p-2 text-gray-500"
+              title="Copiar"
+            >
+              <Copy className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-gray-500">
+            Ábrelo una vez en el tablet; luego solo pide el PIN.
+          </p>
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            Cerrar
+          </Button>
+          <Button onClick={save} disabled={saving}>
+            {saving ? 'Guardando…' : 'Guardar PIN'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const STATION_FORM_SCHEMA = z.object({
   name: z.string().min(1, 'Nombre requerido'),
@@ -201,6 +291,7 @@ export default function StationsPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingStation, setEditingStation] = useState<Station | null>(null);
+  const [pinStation, setPinStation] = useState<Station | null>(null);
 
   const handleAdd = () => {
     setEditingStation(null);
@@ -288,6 +379,15 @@ export default function StationsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="h-7 text-xs text-orange-600"
+                    onClick={() => setPinStation(station)}
+                  >
+                    <KeyRound className="mr-1 h-3.5 w-3.5" />
+                    PIN / KDS
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className={cn(
                       'h-7 text-xs',
                       station.isActive ? 'text-gray-500' : 'text-green-600',
@@ -323,6 +423,8 @@ export default function StationsPage() {
           onClose={() => setShowForm(false)}
         />
       )}
+
+      {pinStation && <StationPinDialog station={pinStation} onClose={() => setPinStation(null)} />}
     </div>
   );
 }

@@ -120,6 +120,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ─── KDS PINs ───────────────────────────────────────────────────
+    // Hashed station PINs — server-only (set via setStationPin, verified via
+    // kdsLogin). No client can read the hash or write a PIN.
+
+    match /kds_pins/{stationId} {
+      allow read, write: if false;
+    }
+
     // ─── Audit Log ──────────────────────────────────────────────────
     // Read-only for managers. Writes only from Cloud Functions.
 
