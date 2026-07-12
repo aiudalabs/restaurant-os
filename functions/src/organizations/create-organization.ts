@@ -1,11 +1,15 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
+type Plan = "starter" | "growth" | "chain";
+const VALID_PLANS: Plan[] = ["starter", "growth", "chain"];
+
 interface CreateOrgRequest {
   orgName: string;
   ownerName: string;
   branchName?: string;
   timezone?: string;
+  plan?: string;
 }
 
 function slugify(s: string): string {
@@ -42,6 +46,12 @@ export const createOrganization = functions.https.onCall(
       );
     }
 
+    // The plan comes from the landing checkout; fall back to starter if absent
+    // or unrecognized so onboarding never breaks on a bad value.
+    const plan: Plan = VALID_PLANS.includes(data.plan as Plan)
+      ? (data.plan as Plan)
+      : "starter";
+
     const db = admin.firestore();
 
     const existing = await db.collection("users").doc(uid).get();
@@ -63,7 +73,7 @@ export const createOrganization = functions.https.onCall(
       id: orgRef.id,
       name: data.orgName.trim(),
       slug: slugify(data.orgName),
-      plan: "starter",
+      plan,
       defaultCurrency: "USD",
       defaultTaxPercent: 0.07,
       defaultTipOptions: [0.1, 0.15, 0.2],

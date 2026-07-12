@@ -18,6 +18,7 @@ interface RegisterInput {
   ownerName: string;
   email: string;
   password: string;
+  plan?: string;
 }
 
 interface AuthContextValue extends AuthState {
@@ -79,13 +80,13 @@ export function useAuthProvider(): AuthContextValue {
     }
   }, []);
 
-  const register = useCallback(async ({ orgName, ownerName, email, password }: RegisterInput) => {
+  const register = useCallback(async ({ orgName, ownerName, email, password, plan }: RegisterInput) => {
     setState((s) => ({ ...s, loading: true, error: null }));
     registering.current = true;
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       const call = httpsCallable(functions, 'createOrganization');
-      await call({ orgName, ownerName });
+      await call({ orgName, ownerName, plan });
       // Reload so auth picks up the newly-created owner doc → dashboard.
       window.location.reload();
     } catch (err) {

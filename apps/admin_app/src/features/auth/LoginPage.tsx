@@ -7,6 +7,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AuthLayout from '@/layouts/auth-layout';
 
+const PLAN_LABELS: Record<string, string> = {
+  starter: 'Starter',
+  growth: 'Growth',
+  chain: 'Chain',
+};
+
+// The landing checkout hands off here with ?register=1&plan=growth&email=…
+function readSignupParams() {
+  const p = new URLSearchParams(window.location.search);
+  const plan = p.get('plan') ?? '';
+  return {
+    register: p.get('register') === '1',
+    plan: PLAN_LABELS[plan] ? plan : '',
+    email: p.get('email') ?? '',
+  };
+}
+
 const loginSchema = z.object({
   email: z.string().email('Ingresa un email válido'),
   password: z.string().min(6, 'Mínimo 6 caracteres'),
@@ -23,10 +40,14 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function LoginPage() {
   const { login, register: registerOrg, loading, error } = useAuth();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [signup] = useState(readSignupParams);
+  const [mode, setMode] = useState<'login' | 'register'>(signup.register ? 'register' : 'login');
 
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
-  const regForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
+  const regForm = useForm<RegisterForm>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { email: signup.email },
+  });
 
   return (
     <AuthLayout>
@@ -62,7 +83,13 @@ export default function LoginPage() {
           </p>
         </form>
       ) : (
-        <form onSubmit={regForm.handleSubmit((d) => registerOrg(d))} className="space-y-4">
+        <form onSubmit={regForm.handleSubmit((d) => registerOrg({ ...d, plan: signup.plan }))} className="space-y-4">
+          {signup.plan && (
+            <div className="flex items-center justify-between rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm">
+              <span className="text-gray-600">Plan seleccionado</span>
+              <span className="font-bold text-orange-700">{PLAN_LABELS[signup.plan]}</span>
+            </div>
+          )}
           <Input
             id="orgName"
             label="Nombre del negocio"
