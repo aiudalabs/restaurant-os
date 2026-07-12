@@ -102,6 +102,9 @@ export function useAuthProvider(): AuthContextValue {
 
   const logout = useCallback(async () => {
     await signOut();
+    // Router beforeLoad only re-runs on navigation, so force a redirect to the
+    // login screen (a full load also clears any in-memory state).
+    window.location.href = '/login';
   }, []);
 
   return { ...state, login, register, logout };
