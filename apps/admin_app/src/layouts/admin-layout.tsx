@@ -9,6 +9,7 @@ import {
   Users,
   ClipboardList,
   BarChart3,
+  Sparkles,
   LogOut,
   Menu,
   X,
@@ -23,6 +24,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/assistant', label: 'Asistente IA', icon: Sparkles },
   { to: '/branches', label: 'Sucursales', icon: Store },
   { to: '/menu', label: 'Menú', icon: UtensilsCrossed },
   { to: '/tables', label: 'Mesas', icon: Grid3X3 },

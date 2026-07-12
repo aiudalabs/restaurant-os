@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     bff_base_url: str = "http://10.0.2.2:8000"
     # Where to send the customer's browser back to after paying (the web app).
     customer_app_url: str = "https://restaurant-os-pedir.web.app"
+    # Admin dashboard origin — calls the AI assistant endpoints cross-origin.
+    admin_app_url: str = "https://restaurant-os-68c79.web.app"
     # Server-to-server verification (go-live hardening). The PagueloFácil callback
     # is NOT signed, so before releasing an order to the kitchen we should re-check
     # the transaction against PagueloFácil's REST API. Provide the access token +
@@ -39,6 +41,13 @@ class Settings(BaseSettings):
     # TODO(go-live): confirm the exact REST status URL in PagueloFácil's docs.
     paguelofacil_access_token: str = ""
     paguelofacil_verify_url: str = ""  # e.g. https://secure.paguelofacil.com/rest/...
+
+    # AI assistant (Vertex AI via ADC — no API key). Uses the Cloud Run service
+    # account; the project must have aiplatform.googleapis.com enabled and the SA
+    # needs roles/aiplatform.user. See docs/AI_ASSISTANT.md.
+    vertex_location: str = "us-central1"
+    gemini_model: str = "gemini-2.5-flash"
+    ai_max_csv_rows: int = 500
 
     # Server
     host: str = "0.0.0.0"
