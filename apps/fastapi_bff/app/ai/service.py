@@ -9,7 +9,7 @@ from firebase_admin import firestore as fb_firestore
 
 from app.config import settings
 from app.core.firestore import (
-    db, BRANCHES, MENUS, CATEGORIES, PRODUCTS, STATIONS, USERS,
+    db, BRANCHES, MENUS, CATEGORIES, PRODUCTS, STATIONS, TABLES, USERS,
 )
 from app.ai import tools
 from app.ai.models import (
@@ -234,6 +234,7 @@ def apply_plan(uid: str, req: ApplyRequest) -> ApplyResponse:
                 "id": pref.id, "orgId": org_id, "menuId": target_menu_id,
                 "categoryId": cat_id, "name": p.name.strip(),
                 "description": (p.description or "").strip(),
+                "imageUrl": (p.image_url or "").strip(),
                 "price": float(p.price), "isActive": True, "sortOrder": sort,
                 "tags": [], "modifierGroups": [],
             })
@@ -242,6 +243,27 @@ def apply_plan(uid: str, req: ApplyRequest) -> ApplyResponse:
         except Exception as exc:
             results.append(ActionResult(kind="product", label=f"Producto: {p.name.strip()}",
                                         status="error", detail=str(exc)))
+
+    # 5) Tables — numbered continuing after any that already exist in the branch.
+    if plan.tables and plan.tables.count > 0:
+        n = min(plan.tables.count, 200)
+        existing = sum(1 for _ in client.collection(TABLES).where("branchId", "==", branch_id).stream())
+        cap = max(1, plan.tables.capacity)
+        zone = (plan.tables.zone or "").strip()
+        for i in range(n):
+            num = str(existing + 1 + i)
+            try:
+                tref = client.collection(TABLES).document()
+                qr = f"{settings.customer_app_url}/?org={org_id}&branch={branch_id}&table={tref.id}"
+                data = {"id": tref.id, "orgId": org_id, "branchId": branch_id,
+                        "number": num, "capacity": cap, "qrData": qr, "isActive": True}
+                if zone:
+                    data["zone"] = zone
+                tref.set(data)
+                results.append(ActionResult(kind="table", label=f"Mesa {num}", status="ok"))
+            except Exception as exc:
+                results.append(ActionResult(kind="table", label=f"Mesa {num}",
+                                            status="error", detail=str(exc)))
 
     return _finish(results, created_menu_id)
 

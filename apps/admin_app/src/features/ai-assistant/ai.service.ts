@@ -7,16 +7,23 @@ export interface ProductRow {
   price: number;
   category: string;
   description?: string | null;
+  image_url?: string | null;
 }
 export interface MenuSpec {
   name: string;
   categories: string[];
+}
+export interface TableSpec {
+  count: number;
+  capacity: number;
+  zone?: string | null;
 }
 export interface BuildPlan {
   summary: string;
   stations: string[];
   menu: MenuSpec | null;
   products: ProductRow[];
+  tables: TableSpec | null;
 }
 export interface PlanResponse {
   plan: BuildPlan;
@@ -84,6 +91,7 @@ const HEADER_ALIASES: Record<keyof ProductRow, string[]> = {
   price: ['price', 'precio', 'costo'],
   category: ['category', 'categoria', 'categoría', 'grupo'],
   description: ['description', 'descripcion', 'descripción', 'detalle'],
+  image_url: ['image_url', 'imageurl', 'image', 'imagen', 'foto', 'url_imagen', 'img', 'url'],
 };
 
 function splitCsvLine(line: string): string[] {
@@ -114,6 +122,7 @@ export function parseCsv(text: string): { rows: ProductRow[]; error?: string } {
   const iPrice = colIndex('price');
   const iCat = colIndex('category');
   const iDesc = colIndex('description');
+  const iImg = colIndex('image_url');
   if (iName < 0) return { rows: [], error: 'No se encontró una columna de nombre (name/nombre).' };
 
   const rows: ProductRow[] = [];
@@ -128,6 +137,7 @@ export function parseCsv(text: string): { rows: ProductRow[]; error?: string } {
       price: Number.isFinite(price) ? price : 0,
       category: iCat >= 0 ? (cells[iCat] ?? '').trim() : '',
       description: iDesc >= 0 ? (cells[iDesc] ?? '').trim() : '',
+      image_url: iImg >= 0 ? (cells[iImg] ?? '').trim() : '',
     });
   }
   return { rows };

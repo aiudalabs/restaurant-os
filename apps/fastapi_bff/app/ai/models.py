@@ -12,6 +12,7 @@ class ProductRow(BaseModel):
     price: float = 0.0
     category: str = ""
     description: str | None = None
+    image_url: str | None = None
 
 
 class MenuSpec(BaseModel):
@@ -19,15 +20,22 @@ class MenuSpec(BaseModel):
     categories: list[str] = Field(default_factory=list)
 
 
+class TableSpec(BaseModel):
+    count: int = 0            # how many tables to create
+    capacity: int = 4         # seats per table
+    zone: str | None = None   # e.g. "Terraza"
+
+
 class BuildPlan(BaseModel):
-    """What the model proposes to build. Products dictated in free text land in
-    `products`; bulk products from an uploaded CSV are merged in server-side and
-    are NOT produced by the model (avoids hallucinated prices)."""
+    """What the model proposes to build. Products from an uploaded CSV are merged
+    in server-side (deterministic); products the model itself lists come from the
+    owner asking to generate a menu with prices."""
 
     summary: str = ""
     stations: list[str] = Field(default_factory=list)
     menu: MenuSpec | None = None
     products: list[ProductRow] = Field(default_factory=list)
+    tables: TableSpec | None = None
 
 
 class ChatTurn(BaseModel):

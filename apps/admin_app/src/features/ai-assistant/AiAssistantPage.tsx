@@ -264,6 +264,15 @@ function MessageBubble({
               </div>
             </div>
           )}
+          {p.tables && p.tables.count > 0 && (
+            <PlanRow
+              label="Mesas"
+              items={[
+                `${p.tables.count} mesa(s) · ${p.tables.capacity} personas` +
+                  (p.tables.zone ? ` · ${p.tables.zone}` : ''),
+              ]}
+            />
+          )}
         </div>
 
         {msg.warnings && msg.warnings.length > 0 && (

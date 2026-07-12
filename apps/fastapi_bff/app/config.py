@@ -45,8 +45,11 @@ class Settings(BaseSettings):
     # AI assistant (Vertex AI via ADC — no API key). Uses the Cloud Run service
     # account; the project must have aiplatform.googleapis.com enabled and the SA
     # needs roles/aiplatform.user. See docs/AI_ASSISTANT.md.
-    vertex_location: str = "us-central1"
-    gemini_model: str = "gemini-2.5-flash"
+    # "global" endpoint serves the newest models; "gemini-flash-latest" always
+    # resolves to the latest Flash (Gemini 3.x today). Pin to gemini-3.5-flash if
+    # you need version stability.
+    vertex_location: str = "global"
+    gemini_model: str = "gemini-flash-latest"
     ai_max_csv_rows: int = 500
 
     # Server
