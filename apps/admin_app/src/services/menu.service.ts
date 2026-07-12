@@ -10,11 +10,30 @@ import {
   doc,
   serverTimestamp,
   getDocs,
+  writeBatch,
+  type DocumentReference,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { paths } from '@/lib/firestore-paths';
 import type { Menu, Category } from '@/types/menu';
 import type { Product } from '@/types/product';
+
+// Delete many docs atomically, chunked under Firestore's 500-op batch limit.
+async function cascadeDelete(refs: DocumentReference[]) {
+  for (let i = 0; i < refs.length; i += 450) {
+    const batch = writeBatch(db);
+    refs.slice(i, i + 450).forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
+}
+
+/** How many products a category holds — for a confirmation prompt. */
+export async function countProductsInCategory(categoryId: string): Promise<number> {
+  const snap = await getDocs(
+    query(collection(db, paths.products), where('categoryId', '==', categoryId)),
+  );
+  return snap.size;
+}
 
 // ─── Menus ───
 
@@ -49,7 +68,16 @@ export async function updateMenu(id: string, data: Partial<Menu>) {
 }
 
 export async function deleteMenu(id: string) {
-  await deleteDoc(doc(db, paths.menus, id));
+  // Cascade: remove every product and category under the menu, then the menu.
+  const [cats, prods] = await Promise.all([
+    getDocs(query(collection(db, paths.categories), where('menuId', '==', id))),
+    getDocs(query(collection(db, paths.products), where('menuId', '==', id))),
+  ]);
+  await cascadeDelete([
+    ...prods.docs.map((d) => d.ref),
+    ...cats.docs.map((d) => d.ref),
+    doc(db, paths.menus, id),
+  ]);
 }
 
 // ─── Categories ───
@@ -87,7 +115,11 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(id: string) {
-  await deleteDoc(doc(db, paths.categories, id));
+  // Cascade: remove the category's products too, so none are left orphaned.
+  const prods = await getDocs(
+    query(collection(db, paths.products), where('categoryId', '==', id)),
+  );
+  await cascadeDelete([...prods.docs.map((d) => d.ref), doc(db, paths.categories, id)]);
 }
 
 // ─── Products ───

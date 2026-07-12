@@ -10,7 +10,9 @@ import CategoryList from './CategoryList';
 import ProductList from './ProductList';
 import ProductFormDialog from './ProductFormDialog';
 import MenuFormDialog from './MenuFormDialog';
+import { countProductsInCategory } from '@/services/menu.service';
 import type { Product } from '@/types/product';
+import type { Category } from '@/types/menu';
 
 export default function MenuPage() {
   const { appUser } = useAuth();
@@ -23,6 +25,8 @@ export default function MenuPage() {
   const [showProductForm, setShowProductForm] = useState(false);
   const [showMenuForm, setShowMenuForm] = useState(false);
   const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
+  const [confirmCategory, setConfirmCategory] = useState<Category | null>(null);
+  const [confirmCatCount, setConfirmCatCount] = useState<number | null>(null);
   const [confirmMenu, setConfirmMenu] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState('');
@@ -163,7 +167,12 @@ export default function MenuPage() {
             onSelect={(id) => setSelectedCategoryId(id)}
             onCreate={handleCreateCategory}
             onUpdate={(id, name) => updateCategory(id, { name })}
-            onDelete={deleteCategory}
+            onDelete={(id) => {
+              const cat = categories.find((c) => c.id === id) ?? null;
+              setConfirmCategory(cat);
+              setConfirmCatCount(null);
+              if (cat) countProductsInCategory(id).then(setConfirmCatCount).catch(() => setConfirmCatCount(0));
+            }}
             onToggle={(id, isActive) => updateCategory(id, { isActive })}
             loading={categoriesLoading}
           />
@@ -207,6 +216,21 @@ export default function MenuPage() {
           message={`¿Eliminar "${confirmProduct.name}"? Esta acción no se puede deshacer.`}
           onConfirm={() => deleteProduct(confirmProduct.id)}
           onClose={() => setConfirmProduct(null)}
+        />
+      )}
+
+      {confirmCategory && (
+        <ConfirmDialog
+          title="Eliminar categoría"
+          message={
+            confirmCatCount === null
+              ? `Calculando cuántos productos hay en "${confirmCategory.name}"…`
+              : confirmCatCount > 0
+                ? `¿Eliminar "${confirmCategory.name}"? Se borrarán también sus ${confirmCatCount} producto(s). Esta acción no se puede deshacer.`
+                : `¿Eliminar "${confirmCategory.name}"? No tiene productos. Esta acción no se puede deshacer.`
+          }
+          onConfirm={() => deleteCategory(confirmCategory.id)}
+          onClose={() => { setConfirmCategory(null); setConfirmCatCount(null); }}
         />
       )}
 
