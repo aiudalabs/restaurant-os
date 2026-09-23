@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
+import { setStaffClaims } from "../users/staff-claims";
 
 interface SetPinRequest {
   stationId: string;
@@ -23,8 +24,9 @@ function hashPin(pin: string, salt: string): string {
 export const setStationPin = functions.https.onCall(async (data: SetPinRequest, context) => {
   const uid = context.auth?.uid;
   if (!uid) throw new functions.https.HttpsError("unauthenticated", "Auth required.");
-  if (!/^\d{4,6}$/.test(data.pin || "")) {
-    throw new functions.https.HttpsError("invalid-argument", "El PIN debe ser de 4 a 6 dígitos.");
+  // 6 digits: with the escalating lockout in kdsLogin, guessing takes years, not days.
+  if (!/^\d{6}$/.test(data.pin || "")) {
+    throw new functions.https.HttpsError("invalid-argument", "El PIN debe ser de 6 dígitos.");
   }
 
   const db = admin.firestore();
@@ -84,6 +86,8 @@ export const setStationPin = functions.https.onCall(async (data: SetPinRequest, 
     );
   }
 
+  await setStaffClaims(operatorUid, { orgId, role: "operator", stationId: data.stationId });
+
   const salt = crypto.randomBytes(16).toString("hex");
   await db.collection("kds_pins").doc(data.stationId).set({
     orgId,
@@ -94,6 +98,7 @@ export const setStationPin = functions.https.onCall(async (data: SetPinRequest, 
     pinHash: hashPin(data.pin, salt),
     failedAttempts: 0,
     lockedUntil: 0,
+    lockLevel: 0,
     updatedAt: admin.firestore.Timestamp.now(),
   });
 

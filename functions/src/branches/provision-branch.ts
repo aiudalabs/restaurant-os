@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
+import { setStaffClaims } from "../users/staff-claims";
 
 interface ProvisionBranchRequest {
   name: string;
@@ -22,7 +23,7 @@ const STATION_DEFS = [
  * Bar) and one operator user per station (Firebase Auth user + users doc). This
  * closes the gap where a new branch had no stations/operators, so its orders
  * never reached a KDS. Returns the generated operator credentials so the owner
- * can hand them out (they can be renamed/reset later in the Users page).
+ * can hand them out. Day-to-day the KDS signs in with the station PIN instead.
  *
  * Only an org admin can call it; the new branch is added to the caller's
  * branchIds so it appears in their switcher immediately.
@@ -117,6 +118,7 @@ export const provisionBranch = functions.https.onCall(
         isActive: true,
         createdAt: now,
       });
+      await setStaffClaims(userRecord.uid, { orgId, role: "operator", stationId: st.id });
       operators.push({ station: st.name, email, password });
     }
 

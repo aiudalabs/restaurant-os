@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
+import { setStaffClaims } from "./staff-claims";
 
 interface CreateOperatorRequest {
   email: string;
@@ -90,6 +91,7 @@ export const createOperatorUser = functions.https.onCall(
       };
 
       await firestore.collection("users").doc(userRecord.uid).set(userData);
+      await setStaffClaims(userRecord.uid, { orgId: data.orgId, role: data.role, stationId: data.stationId });
 
       // 7. Write audit log
       await firestore.collection("audit_log").add({
