@@ -1,6 +1,6 @@
 import { onValue, ref, update, serverTimestamp as rtdbServerTimestamp } from 'firebase/database';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { rtdb, db } from './firebase';
+import { rtdb, db, auth } from './firebase';
 import type { ItemStatus, KdsTicket } from '../types';
 
 interface RawItem {
@@ -21,7 +21,26 @@ interface RawItem {
  */
 export function watchTickets(stationId: string, cb: (tickets: KdsTicket[]) => void): () => void {
   const node = ref(rtdb, `order_items/${stationId}`);
-  return onValue(
+  let unsubscribe = () => {};
+  let refreshed = false;
+  const subscribe = () => {
+    unsubscribe = listen();
+  };
+  // A denied read usually means the token predates the stationId claim: force a
+  // refresh once and listen again instead of showing an empty board forever.
+  const onDenied = async (err: Error) => {
+    console.error('[kds] tickets listener failed', err);
+    cb([]);
+    if (refreshed) return;
+    refreshed = true;
+    try {
+      await auth.currentUser?.getIdToken(true);
+      subscribe();
+    } catch (e) {
+      console.error('[kds] token refresh failed', e);
+    }
+  };
+  const listen = () => onValue(
     node,
     (snap) => {
       const val = (snap.val() ?? {}) as Record<string, RawItem>;
@@ -57,8 +76,10 @@ export function watchTickets(stationId: string, cb: (tickets: KdsTicket[]) => vo
       tickets.sort((a, b) => a.receivedAt - b.receivedAt);
       cb(tickets);
     },
-    () => cb([]),
+    onDenied,
   );
+  subscribe();
+  return () => unsubscribe();
 }
 
 /**
