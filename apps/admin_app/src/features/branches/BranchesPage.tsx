@@ -77,7 +77,8 @@ function BranchDialog({
           taxPercent: branch.taxPercent != null ? String(Math.round(branch.taxPercent * 100)) : '7',
           isActive: branch.isActive ?? true,
         }
-      : EMPTY,
+      : // A new branch with no menu can't take orders: preselect it when the org has only one.
+        { ...EMPTY, menuId: menus.length === 1 ? menus[0].id : '' },
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -217,9 +218,15 @@ function BranchDialog({
               </option>
             ))}
           </select>
-          <p className="text-xs text-gray-500">
-            Es el menú que verá el cliente al escanear el QR de esta sucursal.
-          </p>
+          {form.menuId ? (
+            <p className="text-xs text-gray-500">
+              Es el menú que verán los meseros y el cliente al escanear el QR de esta sucursal.
+            </p>
+          ) : (
+            <p className="text-xs font-medium text-amber-700">
+              Sin menú, esta sucursal no puede recibir pedidos (ni del mesero ni por QR).
+            </p>
+          )}
         </div>
 
         <label className="flex items-center gap-3 pt-1 text-sm font-medium text-gray-700">

@@ -27,8 +27,8 @@ function StationPinDialog({ station, onClose }: { station: Station; onClose: () 
   const kdsLink = `${KDS_URL}/?station=${station.id}`;
 
   const save = async () => {
-    if (!/^\d{4,6}$/.test(pin)) {
-      setError('El PIN debe ser de 4 a 6 dígitos.');
+    if (!/^\d{6}$/.test(pin)) {
+      setError('El PIN debe ser de 6 dígitos.');
       return;
     }
     setSaving(true);
@@ -59,8 +59,8 @@ function StationPinDialog({ station, onClose }: { station: Station; onClose: () 
       }
     >
       <p className="mb-4 text-sm text-gray-500">
-        El KDS de esta estación entra con este PIN (4-6 dígitos). Se guarda cifrado y validado
-        en el servidor.
+        El KDS de esta estación entra con este PIN (6 dígitos). Se guarda cifrado y validado
+        en el servidor; tras 5 intentos fallidos la estación se bloquea (5 min, luego 30 min, luego 24 h).
       </p>
 
       <Input
@@ -73,7 +73,7 @@ function StationPinDialog({ station, onClose }: { station: Station; onClose: () 
           setPin(e.target.value.replace(/\D/g, '').slice(0, 6));
           setSaved(false);
         }}
-        placeholder="Ej: 4821"
+        placeholder="Ej: 482913"
       />
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       {saved && <p className="mt-2 text-sm font-semibold text-green-600">✓ PIN guardado.</p>}
