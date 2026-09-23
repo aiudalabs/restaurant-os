@@ -118,6 +118,15 @@ Deploy = acción visible para clientes reales. **Confirma con el usuario antes d
   el BFF confirma el pago.
 - Crear usuarios de staff **solo** vía callables (`createOperatorUser`, `provisionBranch`,
   `createOrganization`) — nunca crear usuarios de Auth desde el cliente.
+- **Custom claims** `{orgId, role, stationId}` en cada cuenta de staff: los pone `setStaffClaims`
+  al crear la cuenta y el trigger `syncStaffClaims` los re-emite si cambia el doc `users/{uid}`.
+  **RTDB depende de ellos**: `order_items/$stationId` solo para `auth.token.stationId === $stationId`.
+  Si creas staff por otra vía, llama a `setStaffClaims` o su KDS verá el tablero vacío.
+- **Pedidos:** solo admin/manager/waiter los actualizan; las cuentas de cocina (operator) no.
+  El avance de estado lo hacen las Functions (Admin SDK). `orgId` de un pedido es inmutable.
+- **PIN del KDS:** 6 dígitos (los de 4 ya configurados siguen entrando), bloqueo creciente
+  5 min → 30 min → 24 h. En Functions con transacciones: **no lances errores dentro de
+  `runTransaction` si quieres persistir escrituras** — se revierten (así se perdía el bloqueo).
 
 ---
 
