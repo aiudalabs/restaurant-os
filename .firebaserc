@@ -8,7 +8,8 @@
         "admin": ["restaurant-os-68c79"],
         "customer": ["restaurant-os-pedir"],
         "kds": ["restaurant-os-cocina"],
-        "landing": ["restaurant-os-inicio"]
+        "landing": ["restaurant-os-inicio"],
+        "waiter": ["restaurant-os-mesero"]
       }
     }
   }

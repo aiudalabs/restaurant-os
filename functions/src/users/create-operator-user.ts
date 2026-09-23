@@ -8,14 +8,14 @@ interface CreateOperatorRequest {
   displayName: string;
   orgId: string;
   branchIds: string[];
-  role: "manager" | "operator";
+  role: "manager" | "operator" | "waiter";
   stationId?: string;
 }
 
 /**
  * createOperatorUser — Callable function
  *
- * Allows org admins to create operator/manager users.
+ * Allows org admins to create manager/operator/waiter users.
  * Creates the user in Firebase Auth + Firestore users collection.
  */
 export const createOperatorUser = functions.https.onCall(
@@ -56,10 +56,10 @@ export const createOperatorUser = functions.https.onCall(
       );
     }
 
-    if (!["manager", "operator"].includes(data.role)) {
+    if (!["manager", "operator", "waiter"].includes(data.role)) {
       throw new functions.https.HttpsError(
         "invalid-argument",
-        "Role must be 'manager' or 'operator'."
+        "Role must be 'manager', 'operator' or 'waiter'."
       );
     }
 

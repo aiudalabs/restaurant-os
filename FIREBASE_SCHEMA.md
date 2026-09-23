@@ -257,7 +257,7 @@ ModifierOption {
   branchIds: string[]           // sucursales con acceso
   email: string
   displayName: string
-  role: "admin" | "manager" | "operator"
+  role: "admin" | "manager" | "operator" | "waiter"   // waiter: solo waiter_web (toma pedidos y cobra)
   stationId?: string            // solo para operadores de cocina/bar
   isActive: boolean
   createdAt: Timestamp
