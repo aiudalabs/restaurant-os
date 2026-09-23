@@ -48,13 +48,17 @@ export default function MenuFormDialog({ onSave, orgId, onClose }: MenuFormDialo
         </>
       }
     >
-      <Input
-        id="menu-name"
-        label="Nombre del menú"
-        placeholder="Menú principal"
-        error={errors.name?.message}
-        {...register('name')}
-      />
+      <div className="pt-2 text-left">
+        <Input
+          id="menu-name"
+          label="Nombre del menú"
+          isRequired
+          placeholder="Menú principal"
+          autoFocus
+          error={errors.name?.message}
+          {...register('name')}
+        />
+      </div>
     </Dialog>
   );
 }

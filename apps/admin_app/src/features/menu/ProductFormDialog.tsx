@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Icon } from '@/components/ui/icon';
+import { Input, Textarea } from '@/components/ui/input';
 import { Dialog } from '@/components/ui/dialog';
 import ModifierGroupEditor from './ModifierGroupEditor';
 import type { Product, ModifierGroup } from '@/types/product';
@@ -30,7 +31,13 @@ const productSchema = z.object({
   description: z.string().optional(),
   price: z.preprocess(
     (val) => (val === '' || val === undefined ? undefined : Number(val)),
-    z.number({ required_error: 'Precio requerido', invalid_type_error: 'Precio debe ser un número' }).min(0, 'Precio debe ser >= 0'),
+    // Empty number inputs arrive as NaN (valueAsNumber) → treat like a missing price.
+    z
+      .number({
+        error: (iss) =>
+          iss.input === undefined || Number.isNaN(iss.input) ? 'Precio requerido' : 'Precio debe ser un número',
+      })
+      .min(0, 'Precio debe ser >= 0'),
   ),
   tags: z.string().optional(),
   preparationMinutes: z.preprocess(
@@ -41,14 +48,15 @@ const productSchema = z.object({
   modifierGroups: z.array(modifierGroupSchema),
 });
 
-type ProductFormValues = z.infer<typeof productSchema>;
+type ProductFormInput = z.input<typeof productSchema>;
+type ProductFormValues = z.output<typeof productSchema>;
 
 interface ProductFormDialogProps {
   product: Product | null;
   orgId: string;
   menuId: string;
   categoryId: string;
-  onSave: (data: Omit<Product, 'id'>) => Promise<void>;
+  onSave: (data: Omit<Product, 'id'>) => Promise<unknown>;
   onUpdate: (id: string, data: Partial<Product>) => Promise<void>;
   onClose: () => void;
 }
@@ -69,20 +77,20 @@ export default function ProductFormDialog({
     handleSubmit,
     control,
     reset,
-    watch,
     formState: { errors, isSubmitting },
-  } = useForm<ProductFormValues>({
+  } = useForm<ProductFormInput, unknown, ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
       description: '',
-      price: undefined as unknown as number,
+      price: undefined,
       tags: '',
       preparationMinutes: undefined,
       imageUrl: '',
       modifierGroups: [],
     },
   });
+  const imageUrl = useWatch({ control, name: 'imageUrl' });
 
   useEffect(() => {
     if (product) {
@@ -106,10 +114,8 @@ export default function ProductFormDialog({
       ? values.tags.split(',').map((t) => t.trim()).filter(Boolean)
       : [];
 
-    const productData: Omit<Product, 'id'> = {
-      orgId,
-      menuId,
-      categoryId,
+    // Editable fields only; orgId/menuId/categoryId are set on create and never updated.
+    const fields: Omit<Product, 'id' | 'orgId' | 'menuId' | 'categoryId'> = {
       name: values.name,
       price: values.price,
       isActive: product?.isActive ?? true,
@@ -117,16 +123,15 @@ export default function ProductFormDialog({
       tags,
       modifierGroups: values.modifierGroups as ModifierGroup[],
     };
-    if (values.description) productData.description = values.description;
-    if (values.preparationMinutes != null) productData.preparationMinutes = values.preparationMinutes;
-    if (values.imageUrl) productData.imageUrl = values.imageUrl;
+    if (values.description) fields.description = values.description;
+    if (values.preparationMinutes != null) fields.preparationMinutes = values.preparationMinutes;
+    if (values.imageUrl) fields.imageUrl = values.imageUrl;
 
     try {
       if (isEditing) {
-        const { orgId: _o, menuId: _m, categoryId: _c, ...updateData } = productData;
-        await onUpdate(product.id, updateData);
+        await onUpdate(product.id, fields);
       } else {
-        await onSave(productData);
+        await onSave({ orgId, menuId, categoryId, ...fields });
       }
       onClose();
     } catch (err) {
@@ -156,7 +161,7 @@ export default function ProductFormDialog({
         </>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-5 pt-2">
         <Input
           id="name"
           label="Nombre"
@@ -166,20 +171,15 @@ export default function ProductFormDialog({
           {...register('name')}
         />
 
-        <div className="space-y-1.5">
-          <label htmlFor="description" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-            Descripción
-          </label>
-          <textarea
-            id="description"
-            rows={2}
-            className="flex w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 py-2.5 text-[15px] text-[var(--color-on-surface)] placeholder:text-[var(--color-on-surface-variant)]/60 transition-colors focus:outline-none focus:border-orange-600 focus:bg-[var(--color-surface-container)]"
-            placeholder="Descripción opcional del producto"
-            {...register('description')}
-          />
-        </div>
+        <Textarea
+          id="description"
+          label="Descripción"
+          rows={2}
+          placeholder="Descripción opcional del producto"
+          {...register('description')}
+        />
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
           <Input
             id="price"
             label="Precio"
@@ -203,12 +203,13 @@ export default function ProductFormDialog({
 
         <Input
           id="tags"
-          label="Tags (separados por coma)"
+          label="Tags"
           placeholder="vegetariano, sin_gluten, picante"
+          supporting="Separados por coma"
           {...register('tags')}
         />
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Input
             id="imageUrl"
             label="URL de imagen"
@@ -217,11 +218,11 @@ export default function ProductFormDialog({
             error={errors.imageUrl?.message}
             {...register('imageUrl')}
           />
-          {watch('imageUrl') ? (
+          {imageUrl ? (
             <img
-              src={watch('imageUrl')}
+              src={imageUrl}
               alt="Vista previa"
-              className="h-32 w-full rounded-xl border border-[var(--color-outline-variant)] object-cover"
+              className="h-32 w-full rounded-xl border border-[var(--md-sys-color-outline-variant)] object-cover"
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = 'none';
               }}
@@ -230,13 +231,14 @@ export default function ProductFormDialog({
               }}
             />
           ) : (
-            <div className="flex h-32 w-full items-center justify-center rounded-xl bg-[var(--color-surface-container-high)] text-3xl text-gray-400">
-              🍽️
+            <div className="flex h-32 w-full flex-col items-center justify-center gap-1 rounded-xl bg-[var(--md-sys-color-surface-container-highest)] text-[var(--md-sys-color-on-surface-variant)]">
+              <Icon name="image" size={32} />
+              <span className="t-body-small">Sin imagen</span>
             </div>
           )}
         </div>
 
-        <hr className="border-[var(--color-outline-variant)]" />
+        <hr className="border-[var(--md-sys-color-outline-variant)]" />
 
         <Controller
           name="modifierGroups"
@@ -249,10 +251,16 @@ export default function ProductFormDialog({
           )}
         />
 
+        {errors.modifierGroups && (
+          <p className="t-body-medium rounded-xl bg-[var(--md-sys-color-error-container)] p-3 text-[var(--md-sys-color-on-error-container)]">
+            Revisa los modificadores: cada grupo necesita nombre y al menos una opción con nombre.
+          </p>
+        )}
+
         {submitError && (
-          <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+          <p className="t-body-medium rounded-xl bg-[var(--md-sys-color-error-container)] p-3 text-[var(--md-sys-color-on-error-container)]">
             {submitError}
-          </div>
+          </p>
         )}
       </div>
     </Dialog>
