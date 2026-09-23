@@ -15,6 +15,7 @@ import { Card, EmptyState, FilterChip } from '@/components/ui/m3';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { getOrderReports, type OrderReportData } from '@/services/report.service';
+import { downloadCsv, ordersCsv, summaryCsv } from './report-csv';
 
 const STATUS_LABELS: Record<string, string> = {
   pending_payment: 'Esperando pago',
@@ -90,6 +91,8 @@ export default function ReportsPage() {
   const [startDate, setStartDate] = useState(() => toDateInput(daysAgo(7)));
   const [endDate, setEndDate] = useState(() => toDateInput(new Date()));
   const [report, setReport] = useState<OrderReportData | null>(null);
+  // Range the current report was generated for (the date fields may change afterwards).
+  const [reportRange, setReportRange] = useState<{ start: string; end: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -111,6 +114,7 @@ export default function ReportsPage() {
         endDate: new Date(endDate + 'T23:59:59').toISOString(),
       });
       setReport(data);
+      setReportRange({ start: startDate, end: endDate });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al generar reporte';
       setError(message);
@@ -160,7 +164,7 @@ export default function ReportsPage() {
               </>
             ) : (
               <>
-                <Icon name="download" size={18} />
+                <Icon name="query_stats" size={18} />
                 Generar reporte
               </>
             )}
@@ -190,10 +194,41 @@ export default function ReportsPage() {
 
       {report && (
         <div className="space-y-4">
+          {reportRange && (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="t-body-medium text-[var(--md-sys-color-on-surface-variant)]">
+                {reportRange.start} a {reportRange.end} · {report.orders.length} pedidos
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outlined"
+                  icon="download"
+                  disabled={report.orders.length === 0}
+                  onClick={() =>
+                    downloadCsv(`pedidos_${reportRange.start}_a_${reportRange.end}.csv`, ordersCsv(report, STATUS_LABELS))
+                  }
+                >
+                  Exportar pedidos
+                </Button>
+                <Button
+                  variant="tonal"
+                  icon="download"
+                  onClick={() =>
+                    downloadCsv(
+                      `resumen_${reportRange.start}_a_${reportRange.end}.csv`,
+                      summaryCsv(report, reportRange, STATUS_LABELS),
+                    )
+                  }
+                >
+                  Exportar resumen
+                </Button>
+              </div>
+            </div>
+          )}
           {/* Summary cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 min-[1200px]:grid-cols-4">
             <SummaryCard label="Total pedidos" value={report.totalOrders.toString()} />
-            <SummaryCard label="Ingresos totales" value={`$${report.totalRevenue.toFixed(2)}`} />
+            <SummaryCard label="Ingresos cobrados" value={`$${report.totalRevenue.toFixed(2)}`} />
             <SummaryCard label="Ticket promedio" value={`$${report.averageTicket.toFixed(2)}`} />
             <SummaryCard label="Pedidos cancelados" value={report.cancelledOrders.toString()} tone="error" />
           </div>
