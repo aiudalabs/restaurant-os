@@ -3,6 +3,7 @@ import { RouterProvider } from '@tanstack/react-router';
 import { AuthContext, useAuthProvider } from '@/hooks/use-auth';
 import { BranchProvider } from '@/hooks/use-branch-context';
 import { router } from '@/router';
+import { Icon } from '@/components/ui/icon';
 
 const queryClient = new QueryClient();
 
@@ -11,12 +12,12 @@ export default function App() {
 
   if (auth.loading) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-5 bg-[var(--color-surface)]">
-        <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-orange-600 text-3xl text-[var(--color-on-primary)] shadow-[var(--shadow-e2)]">
-          🍽️
-        </div>
-        <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-orange-600 border-t-transparent" />
-        <p className="text-sm text-gray-500">Cargando RestaurantOS…</p>
+      <div role="status" className="flex h-dvh flex-col items-center justify-center gap-5 bg-[var(--md-sys-color-surface)]">
+        <span className="grid h-16 w-16 place-items-center rounded-2xl bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)]">
+          <Icon name="restaurant" filled size={32} />
+        </span>
+        <span className="h-7 w-7 animate-spin rounded-full border-[3px] border-[var(--md-sys-color-primary)] border-t-transparent" />
+        <p className="t-body-medium text-[var(--md-sys-color-on-surface-variant)]">Cargando RestaurantOS…</p>
       </div>
     );
   }

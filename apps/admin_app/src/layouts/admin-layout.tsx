@@ -34,19 +34,22 @@ function isActive(pathname: string, to: string) {
 }
 
 export default function AdminLayout() {
-  const [modalOpen, setModalOpen] = useState(false);
+  // The modal drawer remembers the path it was opened on: navigating closes it
+  // (derived state — no effect needed).
+  const [modalOpenedAt, setModalOpenedAt] = useState<string | null>(null);
   const { appUser, logout } = useAuth();
   const { branches, selectedBranchId, setSelectedBranchId, selectedBranch } = useBranchContext();
   const { theme, toggle } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const current = NAV_ITEMS.find((i) => isActive(pathname, i.to)) ?? NAV_ITEMS[0];
+  const modalOpen = modalOpenedAt === pathname;
+  const setModalOpen = (open: boolean) => setModalOpenedAt(open ? pathname : null);
 
-  // Close the modal drawer on navigation and on Escape.
-  useEffect(() => setModalOpen(false), [pathname]);
+  // Close the modal drawer on Escape.
   useEffect(() => {
     if (!modalOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setModalOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setModalOpenedAt(null);
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [modalOpen]);
