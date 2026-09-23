@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { useBranchContext } from '@/hooks/use-branch-context';
 import { useUsers } from '@/hooks/use-users';
 import { useStations } from '@/hooks/use-stations';
 import type { AppUser, UserRole } from '@/types/user';
@@ -339,8 +340,11 @@ function UserActions({
 export default function UsersPage() {
   const { appUser } = useAuth();
   const orgId = appUser?.orgId ?? '';
-  const branchIds = appUser?.branchIds ?? [];
-  const branchId = branchIds[0] ?? '';
+  // Use the branch selected in the panel, not appUser.branchIds: appUser is read once
+  // at login and goes stale when branches are created/deleted mid-session, which
+  // assigned new staff to a deleted branch.
+  const { selectedBranchId: branchId } = useBranchContext();
+  const branchIds = branchId ? [branchId] : [];
 
   const { users, loading, toggleUser, createOperatorUser, updateUser, deleteUser } = useUsers(orgId);
   const { stations } = useStations(orgId, branchId);
@@ -360,7 +364,7 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end">
-        <Button onClick={() => setShowForm(true)} className="max-sm:w-full">
+        <Button onClick={() => setShowForm(true)} disabled={!branchId} className="max-sm:w-full">
           <Plus className="mr-1.5 h-4 w-4" />
           Nuevo usuario
         </Button>
