@@ -122,6 +122,9 @@ Deploy = acción visible para clientes reales. **Confirma con el usuario antes d
   al crear la cuenta y el trigger `syncStaffClaims` los re-emite si cambia el doc `users/{uid}`.
   **RTDB depende de ellos**: `order_items/$stationId` solo para `auth.token.stationId === $stationId`.
   Si creas staff por otra vía, llama a `setStaffClaims` o su KDS verá el tablero vacío.
+- **Storage** (`storage.rules`): fotos de productos en `orgs/{orgId}/products/`, lectura pública (el menú
+  del cliente las muestra) y escritura solo para admin/manager de esa org (claims), imágenes < 5 MB.
+  El admin las reduce a ~1200 px JPEG en el navegador antes de subir (`services/storage.service.ts`).
 - **Pedidos:** solo admin/manager/waiter los actualizan; las cuentas de cocina (operator) no.
   El avance de estado lo hacen las Functions (Admin SDK). `orgId` de un pedido es inmutable.
 - **PIN del KDS:** 6 dígitos (los de 4 ya configurados siguen entrando), bloqueo creciente

@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// Firebase Storage — product photos uploaded from the admin.
+// Staff identity comes from the custom claims set by setStaffClaims /
+// syncStaffClaims (functions/src/users/staff-claims.ts): { orgId, role }.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isOrgManager(orgId) {
+      return request.auth != null
+        && request.auth.token.orgId == orgId
+        && request.auth.token.role in ['admin', 'manager'];
+    }
+
+    // orgs/{orgId}/products/{fileName}: public read (the customer menu shows
+    // them to anonymous visitors); only that org's admins/managers write.
+    match /orgs/{orgId}/products/{fileName} {
+      allow read: if true;
+      allow create, update: if isOrgManager(orgId)
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isOrgManager(orgId);
+    }
+
+    // Everything else is closed.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/icon';
 import { Input, Textarea } from '@/components/ui/input';
 import { Dialog } from '@/components/ui/dialog';
 import ModifierGroupEditor from './ModifierGroupEditor';
+import { uploadProductImage } from '@/services/storage.service';
 import type { Product, ModifierGroup } from '@/types/product';
 
 const modifierOptionSchema = z.object({
@@ -77,6 +78,7 @@ export default function ProductFormDialog({
     handleSubmit,
     control,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ProductFormInput, unknown, ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -91,6 +93,25 @@ export default function ProductFormDialog({
     },
   });
   const imageUrl = useWatch({ control, name: 'imageUrl' });
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const onPhotoPicked = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow picking the same file again
+    if (!file) return;
+    setUploading(true);
+    setUploadError('');
+    try {
+      const url = await uploadProductImage(orgId, file);
+      setValue('imageUrl', url, { shouldValidate: true, shouldDirty: true });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'No se pudo subir la foto.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     if (product) {
@@ -151,7 +172,7 @@ export default function ProductFormDialog({
           <Button variant="ghost" type="button" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting || uploading}>
             {isSubmitting
               ? 'Guardando...'
               : isEditing
@@ -210,9 +231,33 @@ export default function ProductFormDialog({
         />
 
         <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* accept image/* lets phones offer the camera or the gallery */}
+            <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={onPhotoPicked} />
+            <Button
+              type="button"
+              variant="tonal"
+              icon={uploading ? undefined : 'add_a_photo'}
+              disabled={uploading || isSubmitting}
+              onClick={() => fileInput.current?.click()}
+            >
+              {uploading && <Icon name="progress_activity" size={18} className="animate-spin" />}
+              {uploading ? 'Subiendo foto…' : imageUrl ? 'Cambiar foto' : 'Subir foto'}
+            </Button>
+            {imageUrl && !uploading && (
+              <Button type="button" variant="ghost" onClick={() => setValue('imageUrl', '', { shouldDirty: true })}>
+                Quitar
+              </Button>
+            )}
+          </div>
+          {uploadError && (
+            <p role="alert" className="t-body-small text-[var(--md-sys-color-error)]">
+              {uploadError}
+            </p>
+          )}
           <Input
             id="imageUrl"
-            label="URL de imagen"
+            label="O pega la URL de una imagen"
             type="url"
             placeholder="https://..."
             error={errors.imageUrl?.message}
