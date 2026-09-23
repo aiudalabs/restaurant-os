@@ -69,7 +69,7 @@ export default function ReportsPage() {
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
-          <Button onClick={handleGenerateReport} disabled={loading}>
+          <Button onClick={handleGenerateReport} disabled={loading} className="max-sm:w-full">
             {loading ? (
               <>
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -132,7 +132,7 @@ export default function ReportsPage() {
                 Ingresos por dia
               </h2>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={report.dailyRevenue}>
+                <BarChart data={report.dailyRevenue} margin={{ left: -18, right: 8, top: 8 }}>
                   <CartesianGrid strokeDasharray="4 4" stroke="var(--color-outline-variant)" vertical={false} />
                   <XAxis
                     dataKey="date"
@@ -168,7 +168,7 @@ export default function ReportsPage() {
               <h2 className="text-lg font-bold text-gray-900 mb-4">
                 Productos mas vendidos
               </h2>
-              <div className="overflow-hidden rounded-2xl">
+              <div className="overflow-x-auto rounded-2xl">
                 <table className="min-w-full divide-y divide-[var(--color-outline-variant)]">
                   <thead className="bg-[var(--color-surface-container-high)]">
                     <tr>

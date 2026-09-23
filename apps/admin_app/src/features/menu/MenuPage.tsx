@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, UtensilsCrossed, Store, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, UtensilsCrossed, Store, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useMenus, useCategories, useProducts } from '@/hooks/use-menu';
@@ -94,7 +95,7 @@ export default function MenuPage() {
   // No branch selected/created yet → can't have a menu.
   if (!selectedBranch) {
     return (
-      <div className="m3-card flex flex-col items-center gap-3 p-12 text-center">
+      <div className="m3-card flex flex-col items-center gap-3 p-6 text-center sm:p-12">
         <Store className="h-10 w-10 text-gray-400" />
         <p className="text-gray-500">Primero crea una sucursal en la sección «Sucursales».</p>
       </div>
@@ -104,7 +105,7 @@ export default function MenuPage() {
   // Branch has no menu yet → create one FOR THIS BRANCH (never show another branch's menu).
   if (!activeMenuId) {
     return (
-      <div className="m3-card flex flex-col items-center gap-3 p-12 text-center">
+      <div className="m3-card flex flex-col items-center gap-3 p-6 text-center sm:p-12">
         <UtensilsCrossed className="h-10 w-10 text-gray-400" />
         <p className="font-semibold text-gray-900">
           «{selectedBranch.name}» todavía no tiene menú
@@ -113,8 +114,8 @@ export default function MenuPage() {
           Crea el menú de esta sucursal. Será el que vean sus clientes al escanear el QR.
           Para reutilizar el menú de otra sucursal, asígnalo desde «Sucursales».
         </p>
-        <Button onClick={() => setShowMenuForm(true)}>
-          <Plus className="h-5 w-5" /> Crear menú para esta sucursal
+        <Button onClick={() => setShowMenuForm(true)} className="h-auto min-h-11 py-2">
+          <Plus className="h-5 w-5 shrink-0" /> Crear menú para esta sucursal
         </Button>
         {showMenuForm && (
           <MenuFormDialog orgId={orgId} onSave={createMenuForBranch} onClose={() => setShowMenuForm(false)} />
@@ -142,15 +143,17 @@ export default function MenuPage() {
                 setRenameValue(branchMenu.name);
                 setRenameOpen(true);
               }}
-              className="m3-state rounded-full p-2 text-gray-500"
+              className="m3-state rounded-full p-3 text-gray-500 sm:p-2"
               title="Renombrar menú"
+              aria-label="Renombrar menú"
             >
               <Pencil className="h-4 w-4" />
             </button>
             <button
               onClick={() => setConfirmMenu(true)}
-              className="m3-state rounded-full p-2 text-red-600"
+              className="m3-state rounded-full p-3 text-red-600 sm:p-2"
               title="Eliminar menú"
+              aria-label="Eliminar menú"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -158,9 +161,10 @@ export default function MenuPage() {
         )}
       </div>
 
-      <div className="flex gap-6">
+      {/* Stacked on phones; categories become a sidebar from `md` up. */}
+      <div className="flex flex-col gap-6 md:flex-row">
         {/* Categories */}
-        <div className="m3-card w-64 shrink-0 self-start p-4">
+        <div className="m3-card w-full shrink-0 self-start p-4 md:w-64">
           <CategoryList
             categories={categories}
             selectedId={activeCategoryId}
@@ -247,21 +251,12 @@ export default function MenuPage() {
       )}
 
       {renameOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="m3-card w-full max-w-sm rounded-[1.75rem] p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Renombrar menú</h2>
-              <button onClick={() => setRenameOpen(false)} className="m3-state rounded-full p-2 text-gray-500">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <Input
-              id="menu-rename"
-              label="Nombre del menú"
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-            />
-            <div className="mt-5 flex justify-end gap-2">
+        <Dialog
+          title="Renombrar menú"
+          onClose={() => setRenameOpen(false)}
+          className="sm:max-w-sm"
+          footer={
+            <>
               <Button variant="ghost" onClick={() => setRenameOpen(false)}>
                 Cancelar
               </Button>
@@ -275,9 +270,16 @@ export default function MenuPage() {
               >
                 Guardar
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        >
+          <Input
+            id="menu-rename"
+            label="Nombre del menú"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+          />
+        </Dialog>
       )}
     </div>
   );

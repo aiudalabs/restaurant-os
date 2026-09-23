@@ -89,21 +89,21 @@ function ActiveOrdersList({ orders, loading }: { orders: Order[]; loading: boole
       {orders.map((order) => (
         <div
           key={order.id}
-          className="flex items-center justify-between rounded-2xl bg-[var(--color-surface-container-high)] px-4 py-3"
+          className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--color-surface-container-high)] px-4 py-3"
         >
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-gray-900">{order.tableNumber}</span>
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="truncate text-sm font-bold text-gray-900">{order.tableNumber}</span>
             <span
               className={cn(
-                'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                'inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold',
                 STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-600',
               )}
             >
               {STATUS_LABELS[order.status] ?? order.status}
             </span>
           </div>
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-gray-500">{order.itemCount} ítems</span>
+          <div className="flex shrink-0 items-center gap-3 text-sm sm:gap-4">
+            <span className="hidden text-gray-500 sm:inline">{order.itemCount} ítems</span>
             <span className="font-bold text-gray-900">${order.total.toFixed(2)}</span>
           </div>
         </div>

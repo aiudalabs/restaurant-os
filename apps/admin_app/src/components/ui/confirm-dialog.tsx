@@ -53,7 +53,7 @@ export function ConfirmDialog({
         </div>
         <p className="text-sm text-gray-600">{message}</p>
         {error && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="mt-6 flex flex-wrap justify-end gap-2">
           <Button variant="ghost" onClick={onClose} disabled={busy}>
             Cancelar
           </Button>

@@ -32,9 +32,9 @@ export default function ProductList({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-gray-900">{categoryName}</h3>
-        <Button size="sm" onClick={onAdd}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="min-w-0 truncate text-lg font-bold text-gray-900">{categoryName}</h3>
+        <Button size="sm" className="max-sm:h-10" onClick={onAdd}>
           <Plus className="mr-1.5 h-4 w-4" />
           Agregar producto
         </Button>
@@ -108,11 +108,11 @@ export default function ProductList({
                 </p>
               )}
 
-              <div className="mt-3 flex items-center gap-1 border-t border-[var(--color-outline-variant)] pt-2">
+              <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-[var(--color-outline-variant)] pt-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 text-xs"
+                  className="h-10 text-xs sm:h-8"
                   onClick={() => onEdit(product)}
                 >
                   <Pencil className="mr-1 h-3.5 w-3.5" />
@@ -122,7 +122,7 @@ export default function ProductList({
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    'h-8 text-xs',
+                    'h-10 text-xs sm:h-8',
                     product.isActive ? 'text-gray-500' : 'text-green-600',
                   )}
                   onClick={() => onToggle(product.id, !product.isActive)}
@@ -133,7 +133,7 @@ export default function ProductList({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="ml-auto h-8 text-xs text-red-600"
+                  className="ml-auto h-10 text-xs text-red-600 sm:h-8"
                   onClick={() => onDelete(product)}
                 >
                   <Trash2 className="mr-1 h-3.5 w-3.5" />

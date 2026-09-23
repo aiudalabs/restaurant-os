@@ -114,14 +114,14 @@ export default function AiAssistantPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col">
+    <div className="flex h-[calc(100dvh-6rem)] flex-col sm:h-[calc(100dvh-8rem)]">
       {/* Header */}
       <div className="flex items-center gap-3 pb-4">
-        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-orange-600 text-white">
+        <div className="hidden h-11 w-11 shrink-0 place-items-center rounded-2xl bg-orange-600 text-white sm:grid">
           <Sparkles size={22} />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-[var(--color-on-surface)]">Asistente IA</h1>
+          <h1 className="hidden text-xl font-bold text-[var(--color-on-surface)] sm:block">Asistente IA</h1>
           <p className="text-sm text-[var(--color-on-surface-variant)]">
             Describe lo que quieres y lo armo en{' '}
             <span className="font-semibold">{selectedBranch?.name ?? 'tu sucursal'}</span>. Confirmas antes de crear.
@@ -176,7 +176,7 @@ export default function AiAssistantPage() {
           <div className="mb-2 flex items-center gap-2 text-sm">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-primary-container)] px-3 py-1 text-orange-800">
               <Paperclip size={14} /> {csv.name} · {csv.rows.length} productos
-              <button onClick={() => setCsv(null)} className="ml-1"><X size={14} /></button>
+              <button onClick={() => setCsv(null)} className="-my-1 ml-1 p-1" aria-label="Quitar CSV"><X size={14} /></button>
             </span>
           </div>
         )}
@@ -198,7 +198,7 @@ export default function AiAssistantPage() {
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             rows={1}
             placeholder="Ej: crea Cocina y Bar, y un menú Carta con Pizzas y Bebidas…"
-            className="max-h-32 flex-1 resize-none bg-transparent px-2 py-2.5 text-[var(--color-on-surface)] outline-none placeholder:text-[var(--color-on-surface-variant)]"
+            className="max-h-32 min-w-0 flex-1 resize-none bg-transparent px-2 py-2.5 text-[var(--color-on-surface)] outline-none placeholder:text-[var(--color-on-surface-variant)]"
           />
           <Button onClick={send} disabled={!input.trim() || sending} size="md" className="!h-11 !w-11 !px-0">
             <Send size={18} />
@@ -215,7 +215,7 @@ function MessageBubble({
   if (msg.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[80%] whitespace-pre-wrap rounded-3xl rounded-br-lg bg-orange-600 px-4 py-2.5 text-sm text-white">
+        <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-3xl rounded-br-lg bg-orange-600 px-4 py-2.5 text-sm text-white">
           {msg.text}
         </div>
       </div>
@@ -282,7 +282,7 @@ function MessageBubble({
         )}
 
         {!msg.done ? (
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <Button onClick={onConfirm} disabled={applying} size="sm">
               {applying ? <><Loader2 size={15} className="animate-spin" /> Creando…</> : <><Check size={15} /> Confirmar y crear</>}
             </Button>

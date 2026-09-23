@@ -6,7 +6,7 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--color-surface)] px-4">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[var(--color-surface)] px-4 py-8">
       {/* Ambient brand glow */}
       <div className="pointer-events-none absolute -top-32 -right-24 h-96 w-96 rounded-full bg-orange-600/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-orange-400/10 blur-3xl" />
@@ -20,7 +20,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           <p className="mt-1 text-sm text-gray-500">Panel de administración</p>
         </div>
 
-        <div className="m3-card p-8">{children}</div>
+        <div className="m3-card p-6 sm:p-8">{children}</div>
       </div>
     </div>
   );

@@ -80,7 +80,7 @@ export default function ModifierGroupEditor({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h4 className="text-sm font-bold text-gray-900">
           Grupos de modificadores
         </h4>
@@ -103,16 +103,19 @@ export default function ModifierGroupEditor({
         >
           <div className="flex items-center gap-2">
             <GripVertical className="h-4 w-4 text-gray-300 shrink-0" />
-            <Input
-              value={group.name}
-              onChange={(e) => updateGroup(gi, { name: e.target.value })}
-              placeholder="Nombre del grupo (ej: Término)"
-              className="h-10 text-sm flex-1"
-            />
+            <div className="min-w-0 flex-1">
+              <Input
+                value={group.name}
+                onChange={(e) => updateGroup(gi, { name: e.target.value })}
+                placeholder="Nombre del grupo (ej: Término)"
+                className="h-10 text-sm"
+              />
+            </div>
             <Button
               variant="ghost"
               size="sm"
-              className="text-red-500 hover:text-red-700"
+              className="h-10 shrink-0 px-3 text-red-500 hover:text-red-700"
+              aria-label="Eliminar grupo"
               onClick={() => removeGroup(gi)}
               type="button"
             >
@@ -172,17 +175,20 @@ export default function ModifierGroupEditor({
           </div>
 
           {/* Options */}
-          <div className="space-y-1.5 pl-6">
+          {/* Phones: option name on its own row, price/default/delete below. */}
+          <div className="space-y-3 sm:space-y-1.5 sm:pl-6">
             {(group.options ?? []).map((opt, oi) => (
-              <div key={opt.id} className="flex items-center gap-2">
-                <Input
-                  value={opt.name}
-                  onChange={(e) =>
-                    updateOption(gi, oi, { name: e.target.value })
-                  }
-                  placeholder="Opción (ej: Término medio)"
-                  className="h-10 text-sm flex-1"
-                />
+              <div key={opt.id} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                <div className="min-w-0 basis-full sm:flex-1 sm:basis-auto">
+                  <Input
+                    value={opt.name}
+                    onChange={(e) =>
+                      updateOption(gi, oi, { name: e.target.value })
+                    }
+                    placeholder="Opción (ej: Término medio)"
+                    className="h-10 text-sm"
+                  />
+                </div>
                 <input
                   type="number"
                   min={0}
@@ -194,7 +200,7 @@ export default function ModifierGroupEditor({
                     })
                   }
                   placeholder="$0.00"
-                  className="w-20 rounded-lg border border-transparent bg-[var(--color-surface-container)] px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-orange-600"
+                  className="h-10 w-24 rounded-lg border border-transparent bg-[var(--color-surface-container)] px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-orange-600 sm:h-auto sm:w-20"
                 />
                 <label className="flex items-center gap-1 text-xs text-gray-500 whitespace-nowrap">
                   <input
@@ -210,7 +216,8 @@ export default function ModifierGroupEditor({
                 <button
                   type="button"
                   onClick={() => removeOption(gi, oi)}
-                  className="m3-state rounded-full p-1.5 text-red-400 hover:text-red-600"
+                  className="m3-state ml-auto rounded-full p-3 text-red-400 hover:text-red-600 sm:ml-0 sm:p-1.5"
+                  aria-label="Eliminar opción"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -219,7 +226,7 @@ export default function ModifierGroupEditor({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-xs"
+              className="h-10 text-xs sm:h-8"
               onClick={() => addOption(gi)}
               type="button"
             >

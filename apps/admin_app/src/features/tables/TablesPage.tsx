@@ -5,7 +5,6 @@ import {
   Pencil,
   Trash2,
   Power,
-  X,
   Copy,
   Check,
   Download,
@@ -16,6 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
@@ -74,52 +74,46 @@ function QrPreviewDialog({ table, orgId, onClose }: QrPreviewDialogProps) {
   }, [table.number]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card rounded-[1.75rem] shadow-[var(--shadow-e3)] w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">
-            QR - Mesa {table.number}
-          </h2>
-          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
-            <X className="h-5 w-5" />
-          </button>
+    <Dialog
+      title={`QR - Mesa ${table.number}`}
+      onClose={onClose}
+      footer={
+        <>
+          <Button size="sm" variant="tonal" onClick={handleCopy} className="flex-1 max-sm:h-11">
+            {copied ? (
+              <>
+                <Check className="mr-1.5 h-4 w-4 text-green-600" />
+                Copiado
+              </>
+            ) : (
+              <>
+                <Copy className="mr-1.5 h-4 w-4" />
+                Copiar URL
+              </>
+            )}
+          </Button>
+          <Button size="sm" onClick={handleDownload} className="flex-1 max-sm:h-11">
+            <Download className="mr-1.5 h-4 w-4" />
+            Descargar PNG
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col items-center gap-4">
+        <div
+          ref={qrRef}
+          className="flex items-center justify-center rounded-2xl bg-white p-4 shadow-[var(--shadow-e1)]"
+        >
+          <QRCodeSVG value={qrUrl} size={192} level="H" />
         </div>
-
-        <div className="flex flex-col items-center gap-4">
-          <div
-            ref={qrRef}
-            className="flex items-center justify-center rounded-2xl bg-white p-4 shadow-[var(--shadow-e1)]"
-          >
-            <QRCodeSVG value={qrUrl} size={192} level="H" />
-          </div>
-          <p className="text-xs text-gray-500 text-center">
-            Mesa {table.number} — escanea para abrir el menu
-          </p>
-          <div className="w-full rounded-xl bg-[var(--color-surface-container-high)] p-3 text-xs text-gray-700 break-all font-mono">
-            {qrUrl}
-          </div>
-          <div className="w-full flex gap-2">
-            <Button size="sm" variant="tonal" onClick={handleCopy} className="flex-1">
-              {copied ? (
-                <>
-                  <Check className="mr-1.5 h-4 w-4 text-green-600" />
-                  Copiado
-                </>
-              ) : (
-                <>
-                  <Copy className="mr-1.5 h-4 w-4" />
-                  Copiar URL
-                </>
-              )}
-            </Button>
-            <Button size="sm" onClick={handleDownload} className="flex-1">
-              <Download className="mr-1.5 h-4 w-4" />
-              Descargar PNG
-            </Button>
-          </div>
+        <p className="text-xs text-gray-500 text-center">
+          Mesa {table.number} — escanea para abrir el menu
+        </p>
+        <div className="w-full rounded-xl bg-[var(--color-surface-container-high)] p-3 text-xs text-gray-700 break-all font-mono">
+          {qrUrl}
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -186,51 +180,45 @@ function TableFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card rounded-[1.75rem] shadow-[var(--shadow-e3)] w-full max-w-md">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-bold text-gray-900">
-            {isEditing ? 'Editar mesa' : 'Nueva mesa'}
-          </h2>
-          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          <Input
-            id="number"
-            label="Numero de mesa"
-            placeholder="Ej: 7, T-3, VIP-1"
-            error={errors.number?.message}
-            {...register('number')}
-          />
-          <Input
-            id="zone"
-            label="Zona (opcional)"
-            placeholder="Ej: Terraza, Salon principal"
-            {...register('zone')}
-          />
-          <Input
-            id="capacity"
-            label="Capacidad"
-            type="number"
-            min={1}
-            error={errors.capacity?.message}
-            {...register('capacity', { valueAsNumber: true })}
-          />
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <Button variant="tonal" type="button" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear mesa'}
-            </Button>
-          </div>
-        </form>
+    <Dialog
+      title={isEditing ? 'Editar mesa' : 'Nueva mesa'}
+      onClose={onClose}
+      onSubmit={handleSubmit(onSubmit)}
+      footer={
+        <>
+          <Button variant="tonal" type="button" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear mesa'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Input
+          id="number"
+          label="Numero de mesa"
+          placeholder="Ej: 7, T-3, VIP-1"
+          error={errors.number?.message}
+          {...register('number')}
+        />
+        <Input
+          id="zone"
+          label="Zona (opcional)"
+          placeholder="Ej: Terraza, Salon principal"
+          {...register('zone')}
+        />
+        <Input
+          id="capacity"
+          label="Capacidad"
+          type="number"
+          min={1}
+          error={errors.capacity?.message}
+          {...register('capacity', { valueAsNumber: true })}
+        />
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -282,7 +270,7 @@ export default function TablesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end">
-        <Button onClick={handleAdd}>
+        <Button onClick={handleAdd} className="max-sm:w-full">
           <Plus className="mr-1.5 h-4 w-4" />
           Nueva mesa
         </Button>
@@ -325,11 +313,11 @@ export default function TablesPage() {
               )}
               <p className="text-sm text-gray-500">Capacidad: {table.capacity}</p>
 
-              <div className="mt-3 flex items-center gap-1 border-t border-gray-200 pt-2">
+              <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-gray-200 pt-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs"
+                  className="h-10 text-xs sm:h-7"
                   onClick={() => setQrTable(table)}
                 >
                   <QrCode className="mr-1 h-3.5 w-3.5" />
@@ -338,7 +326,7 @@ export default function TablesPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs"
+                  className="h-10 text-xs sm:h-7"
                   onClick={() => handleEdit(table)}
                 >
                   <Pencil className="mr-1 h-3.5 w-3.5" />
@@ -348,7 +336,7 @@ export default function TablesPage() {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    'h-7 text-xs',
+                    'h-10 text-xs sm:h-7',
                     table.isActive ? 'text-gray-500' : 'text-green-600',
                   )}
                   onClick={() => toggleTable(table.id, !table.isActive)}
@@ -360,8 +348,9 @@ export default function TablesPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-xs text-red-500 hover:text-red-700"
+                    className="h-10 text-xs text-red-500 hover:text-red-700 sm:h-7"
                     onClick={() => handleDelete(table)}
+                    aria-label="Eliminar mesa"
                   >
                     <Trash2 className="mr-1 h-3.5 w-3.5" />
                   </Button>

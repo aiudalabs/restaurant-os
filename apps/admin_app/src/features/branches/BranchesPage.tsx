@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { httpsCallable } from 'firebase/functions';
-import { Plus, Pencil, Trash2, Store, X, UtensilsCrossed, MapPin, QrCode, KeyRound, Copy } from 'lucide-react';
+import { Plus, Pencil, Trash2, Store, UtensilsCrossed, MapPin, QrCode, KeyRound, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useMenus } from '@/hooks/use-menu';
@@ -39,13 +40,14 @@ const EMPTY: BranchFormState = {
 function CredRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="mt-2 flex items-center justify-between gap-2">
-      <span className="text-xs text-gray-500">{label}</span>
-      <span className="flex items-center gap-2">
-        <code className="font-mono text-sm text-gray-900">{value}</code>
+      <span className="shrink-0 text-xs text-gray-500">{label}</span>
+      <span className="flex min-w-0 items-center gap-2">
+        <code className="min-w-0 break-all font-mono text-sm text-gray-900">{value}</code>
         <button
           onClick={() => navigator.clipboard?.writeText(value)}
-          className="m3-state rounded-full p-1.5 text-gray-500"
+          className="m3-state shrink-0 rounded-full p-3 text-gray-500 sm:p-1.5"
           title="Copiar"
+          aria-label={`Copiar ${label}`}
         >
           <Copy className="h-3.5 w-3.5" />
         </button>
@@ -121,135 +123,118 @@ function BranchDialog({
 
   if (created) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-        <div className="m3-card w-full max-w-lg rounded-[1.75rem] p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">¡Sucursal lista! 🎉</h2>
-            <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-500" aria-label="Cerrar">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <p className="mb-4 text-sm text-gray-600">
-            Se crearon sus <b>estaciones</b> (Cocina y Bar) y un <b>operador por estación</b> para
-            el KDS. Guarda estas credenciales:
-          </p>
-          <div className="space-y-3">
-            {created.length === 0 && (
-              <p className="text-sm text-gray-500">
-                Las estaciones se crearon; crea los operadores desde «Usuarios».
-              </p>
-            )}
-            {created.map((op) => (
-              <div key={op.email} className="rounded-2xl bg-[var(--color-surface-container-high)] p-4">
-                <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-                  <KeyRound className="h-4 w-4 text-orange-600" /> {op.station}
-                </div>
-                <CredRow label="Email" value={op.email} />
-                <CredRow label="Contraseña" value={op.password} />
+      <Dialog title="¡Sucursal lista! 🎉" onClose={onClose} className="sm:max-w-lg" footer={<Button onClick={onClose}>Listo</Button>}>
+        <p className="mb-4 text-sm text-gray-600">
+          Se crearon sus <b>estaciones</b> (Cocina y Bar) y un <b>operador por estación</b> para
+          el KDS. Guarda estas credenciales:
+        </p>
+        <div className="space-y-3">
+          {created.length === 0 && (
+            <p className="text-sm text-gray-500">
+              Las estaciones se crearon; crea los operadores desde «Usuarios».
+            </p>
+          )}
+          {created.map((op) => (
+            <div key={op.email} className="rounded-2xl bg-[var(--color-surface-container-high)] p-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                <KeyRound className="h-4 w-4 text-orange-600" /> {op.station}
               </div>
-            ))}
-          </div>
-          <p className="mt-4 text-xs text-gray-500">
-            Guárdalas ahora — la contraseña no se vuelve a mostrar. Puedes cambiarlas en «Usuarios».
-          </p>
-          <div className="mt-5 flex justify-end">
-            <Button onClick={onClose}>Listo</Button>
-          </div>
+              <CredRow label="Email" value={op.email} />
+              <CredRow label="Contraseña" value={op.password} />
+            </div>
+          ))}
         </div>
-      </div>
+        <p className="mt-4 text-xs text-gray-500">
+          Guárdalas ahora — la contraseña no se vuelve a mostrar. Puedes cambiarlas en «Usuarios».
+        </p>
+      </Dialog>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card w-full max-w-lg rounded-[1.75rem] p-6">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">
-            {branch ? 'Editar sucursal' : 'Nueva sucursal'}
-          </h2>
-          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-500" aria-label="Cerrar">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <Input
-            id="branch-name"
-            label="Nombre"
-            placeholder="Sucursal Marbella"
-            value={form.name}
-            onChange={(e) => set('name', e.target.value)}
-            isRequired
-          />
-          <Input
-            id="branch-address"
-            label="Dirección"
-            placeholder="Calle 50, Ciudad de Panamá"
-            value={form.address}
-            onChange={(e) => set('address', e.target.value)}
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              id="branch-phone"
-              label="Teléfono"
-              placeholder="+507 …"
-              value={form.phone}
-              onChange={(e) => set('phone', e.target.value)}
-            />
-            <Input
-              id="branch-tax"
-              label="Impuesto (%)"
-              type="number"
-              value={form.taxPercent}
-              onChange={(e) => set('taxPercent', e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="branch-menu" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-              Menú de esta sucursal
-            </label>
-            <select
-              id="branch-menu"
-              value={form.menuId}
-              onChange={(e) => set('menuId', e.target.value)}
-              className="h-12 w-full rounded-xl bg-[var(--color-surface-container-high)] px-4 text-[15px] text-gray-900"
-            >
-              <option value="">— Sin menú asignado —</option>
-              {menus.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500">
-              Es el menú que verá el cliente al escanear el QR de esta sucursal.
-            </p>
-          </div>
-
-          <label className="flex items-center gap-3 pt-1 text-sm font-medium text-gray-700">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={(e) => set('isActive', e.target.checked)}
-              className="h-5 w-5 accent-orange-600"
-            />
-            Sucursal activa
-          </label>
-
-          {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-        </div>
-
-        <div className="mt-6 flex justify-end gap-2">
+    <Dialog
+      title={branch ? 'Editar sucursal' : 'Nueva sucursal'}
+      onClose={onClose}
+      className="sm:max-w-lg"
+      footer={
+        <>
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
           <Button onClick={save} disabled={saving}>
             {saving ? 'Guardando…' : branch ? 'Guardar' : 'Crear sucursal'}
           </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Input
+          id="branch-name"
+          label="Nombre"
+          placeholder="Sucursal Marbella"
+          value={form.name}
+          onChange={(e) => set('name', e.target.value)}
+          isRequired
+        />
+        <Input
+          id="branch-address"
+          label="Dirección"
+          placeholder="Calle 50, Ciudad de Panamá"
+          value={form.address}
+          onChange={(e) => set('address', e.target.value)}
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            id="branch-phone"
+            label="Teléfono"
+            placeholder="+507 …"
+            value={form.phone}
+            onChange={(e) => set('phone', e.target.value)}
+          />
+          <Input
+            id="branch-tax"
+            label="Impuesto (%)"
+            type="number"
+            value={form.taxPercent}
+            onChange={(e) => set('taxPercent', e.target.value)}
+          />
         </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="branch-menu" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
+            Menú de esta sucursal
+          </label>
+          <select
+            id="branch-menu"
+            value={form.menuId}
+            onChange={(e) => set('menuId', e.target.value)}
+            className="h-12 w-full rounded-xl bg-[var(--color-surface-container-high)] px-4 text-[15px] text-gray-900"
+          >
+            <option value="">— Sin menú asignado —</option>
+            {menus.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500">
+            Es el menú que verá el cliente al escanear el QR de esta sucursal.
+          </p>
+        </div>
+
+        <label className="flex items-center gap-3 pt-1 text-sm font-medium text-gray-700">
+          <input
+            type="checkbox"
+            checked={form.isActive}
+            onChange={(e) => set('isActive', e.target.checked)}
+            className="h-5 w-5 accent-orange-600"
+          />
+          Sucursal activa
+        </label>
+
+        {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -268,11 +253,11 @@ export default function BranchesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-[15px] text-gray-500">
           Tus locales. Cada uno tiene su propio menú y sus QR.
         </p>
-        <Button onClick={() => setDialog({ branch: null })}>
+        <Button onClick={() => setDialog({ branch: null })} className="max-sm:w-full">
           <Plus className="h-5 w-5" /> Nueva sucursal
         </Button>
       </div>
@@ -282,7 +267,7 @@ export default function BranchesPage() {
           <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-orange-600 border-t-transparent" />
         </div>
       ) : branches.length === 0 ? (
-        <div className="m3-card flex flex-col items-center gap-3 p-12 text-center">
+        <div className="m3-card flex flex-col items-center gap-3 p-6 text-center sm:p-12">
           <Store className="h-10 w-10 text-gray-400" />
           <p className="text-sm text-gray-500">Aún no tienes sucursales. Crea la primera.</p>
           <Button onClick={() => setDialog({ branch: null })}>
@@ -309,14 +294,14 @@ export default function BranchesPage() {
                     </span>
                     <button
                       onClick={() => setDialog({ branch: b })}
-                      className="m3-state rounded-full p-2 text-gray-500"
+                      className="m3-state rounded-full p-3 text-gray-500 sm:p-2"
                       aria-label="Editar"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => setConfirmDelete(b)}
-                      className="m3-state rounded-full p-2 text-red-600"
+                      className="m3-state rounded-full p-3 text-red-600 sm:p-2"
                       aria-label="Eliminar"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -327,7 +312,7 @@ export default function BranchesPage() {
                 <h3 className="mt-3 text-lg font-bold text-gray-900">{b.name}</h3>
                 {b.address && (
                   <p className="mt-0.5 flex items-center gap-1.5 text-sm text-gray-500">
-                    <MapPin className="h-3.5 w-3.5" /> {b.address}
+                    <MapPin className="h-3.5 w-3.5 shrink-0" /> {b.address}
                   </p>
                 )}
 
@@ -341,8 +326,8 @@ export default function BranchesPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-gray-500">
-                    <QrCode className="h-4 w-4" />
-                    <span className="truncate font-mono text-xs">
+                    <QrCode className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 truncate font-mono text-xs">
                       {CUSTOMER_APP_URL.replace(/^https?:\/\//, '')}/?branch={b.id.slice(0, 6)}…
                     </span>
                   </div>

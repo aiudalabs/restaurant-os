@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog } from '@/components/ui/dialog';
 import ModifierGroupEditor from './ModifierGroupEditor';
 import type { Product, ModifierGroup } from '@/types/product';
 
@@ -136,133 +136,125 @@ export default function ProductFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[1.75rem]">
-        <div className="flex items-center justify-between border-b border-[var(--color-outline-variant)] px-6 py-4">
-          <h2 className="text-lg font-bold text-gray-900">
-            {isEditing ? 'Editar producto' : 'Nuevo producto'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="m3-state rounded-full p-2 text-gray-600"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <Dialog
+      title={isEditing ? 'Editar producto' : 'Nuevo producto'}
+      onClose={onClose}
+      onSubmit={handleSubmit(onSubmit)}
+      className="sm:max-w-2xl"
+      footer={
+        <>
+          <Button variant="ghost" type="button" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting
+              ? 'Guardando...'
+              : isEditing
+                ? 'Guardar cambios'
+                : 'Crear producto'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Input
+          id="name"
+          label="Nombre"
+          isRequired
+          placeholder="Ej: Hamburguesa clásica"
+          error={errors.name?.message}
+          {...register('name')}
+        />
+
+        <div className="space-y-1.5">
+          <label htmlFor="description" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
+            Descripción
+          </label>
+          <textarea
+            id="description"
+            rows={2}
+            className="flex w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 py-2.5 text-[15px] text-[var(--color-on-surface)] placeholder:text-[var(--color-on-surface-variant)]/60 transition-colors focus:outline-none focus:border-orange-600 focus:bg-[var(--color-surface-container)]"
+            placeholder="Descripción opcional del producto"
+            {...register('description')}
+          />
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <Input
-            id="name"
-            label="Nombre"
+            id="price"
+            label="Precio"
             isRequired
-            placeholder="Ej: Hamburguesa clásica"
-            error={errors.name?.message}
-            {...register('name')}
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            error={errors.price?.message}
+            {...register('price', { valueAsNumber: true })}
           />
-
-          <div className="space-y-1.5">
-            <label htmlFor="description" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-              Descripción
-            </label>
-            <textarea
-              id="description"
-              rows={2}
-              className="flex w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 py-2.5 text-[15px] text-[var(--color-on-surface)] placeholder:text-[var(--color-on-surface-variant)]/60 transition-colors focus:outline-none focus:border-orange-600 focus:bg-[var(--color-surface-container)]"
-              placeholder="Descripción opcional del producto"
-              {...register('description')}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              id="price"
-              label="Precio"
-              isRequired
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              error={errors.price?.message}
-              {...register('price', { valueAsNumber: true })}
-            />
-            <Input
-              id="preparationMinutes"
-              label="Tiempo de preparación (min)"
-              type="number"
-              min="0"
-              placeholder="15"
-              {...register('preparationMinutes', { valueAsNumber: true })}
-            />
-          </div>
-
           <Input
-            id="tags"
-            label="Tags (separados por coma)"
-            placeholder="vegetariano, sin_gluten, picante"
-            {...register('tags')}
+            id="preparationMinutes"
+            label="Tiempo de preparación (min)"
+            type="number"
+            min="0"
+            placeholder="15"
+            {...register('preparationMinutes', { valueAsNumber: true })}
           />
+        </div>
 
-          <div className="space-y-2">
-            <Input
-              id="imageUrl"
-              label="URL de imagen"
-              type="url"
-              placeholder="https://..."
-              error={errors.imageUrl?.message}
-              {...register('imageUrl')}
+        <Input
+          id="tags"
+          label="Tags (separados por coma)"
+          placeholder="vegetariano, sin_gluten, picante"
+          {...register('tags')}
+        />
+
+        <div className="space-y-2">
+          <Input
+            id="imageUrl"
+            label="URL de imagen"
+            type="url"
+            placeholder="https://..."
+            error={errors.imageUrl?.message}
+            {...register('imageUrl')}
+          />
+          {watch('imageUrl') ? (
+            <img
+              src={watch('imageUrl')}
+              alt="Vista previa"
+              className="h-32 w-full rounded-xl border border-[var(--color-outline-variant)] object-cover"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
+              onLoad={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'block';
+              }}
             />
-            {watch('imageUrl') ? (
-              <img
-                src={watch('imageUrl')}
-                alt="Vista previa"
-                className="h-32 w-full rounded-xl border border-[var(--color-outline-variant)] object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                }}
-                onLoad={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = 'block';
-                }}
-              />
-            ) : (
-              <div className="flex h-32 w-full items-center justify-center rounded-xl bg-[var(--color-surface-container-high)] text-3xl text-gray-400">
-                🍽️
-              </div>
-            )}
-          </div>
-
-          <hr className="border-[var(--color-outline-variant)]" />
-
-          <Controller
-            name="modifierGroups"
-            control={control}
-            render={({ field }) => (
-              <ModifierGroupEditor
-                groups={field.value}
-                onChange={field.onChange}
-              />
-            )}
-          />
-
-          {submitError && (
-            <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
-              {submitError}
+          ) : (
+            <div className="flex h-32 w-full items-center justify-center rounded-xl bg-[var(--color-surface-container-high)] text-3xl text-gray-400">
+              🍽️
             </div>
           )}
+        </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-outline-variant)]">
-            <Button variant="ghost" type="button" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? 'Guardando...'
-                : isEditing
-                  ? 'Guardar cambios'
-                  : 'Crear producto'}
-            </Button>
+        <hr className="border-[var(--color-outline-variant)]" />
+
+        <Controller
+          name="modifierGroups"
+          control={control}
+          render={({ field }) => (
+            <ModifierGroupEditor
+              groups={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        />
+
+        {submitError && (
+          <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+            {submitError}
           </div>
-        </form>
+        )}
       </div>
-    </div>
+    </Dialog>
   );
 }

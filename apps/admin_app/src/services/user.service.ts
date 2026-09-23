@@ -10,7 +10,7 @@ import {
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '@/lib/firebase';
 import { paths } from '@/lib/firestore-paths';
-import type { AppUser } from '@/types/user';
+import type { AppUser, UserRole } from '@/types/user';
 
 export function watchUsers(
   orgId: string,
@@ -43,7 +43,7 @@ interface CreateOperatorPayload {
   displayName: string;
   orgId: string;
   branchIds: string[];
-  role: 'admin' | 'manager' | 'operator';
+  role: UserRole;
   stationId?: string;
 }
 

@@ -1,9 +1,9 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog } from '@/components/ui/dialog';
 
 const menuSchema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
@@ -32,34 +32,29 @@ export default function MenuFormDialog({ onSave, orgId, onClose }: MenuFormDialo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card w-full max-w-sm rounded-[1.75rem] p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Nuevo menú</h2>
-          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input
-            id="menu-name"
-            label="Nombre del menú"
-            placeholder="Menú principal"
-            error={errors.name?.message}
-            {...register('name')}
-          />
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creando...' : 'Crear menú'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Dialog
+      title="Nuevo menú"
+      onClose={onClose}
+      onSubmit={handleSubmit(onSubmit)}
+      className="sm:max-w-sm"
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Creando...' : 'Crear menú'}
+          </Button>
+        </>
+      }
+    >
+      <Input
+        id="menu-name"
+        label="Nombre del menú"
+        placeholder="Menú principal"
+        error={errors.name?.message}
+        {...register('name')}
+      />
+    </Dialog>
   );
 }

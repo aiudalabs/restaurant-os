@@ -68,26 +68,29 @@ export default function CategoryList({
           variant="ghost"
           size="sm"
           onClick={() => setIsAdding(true)}
-          className="h-7 w-7 p-0"
+          className="h-10 w-10 p-0 sm:h-7 sm:w-7"
+          aria-label="Nueva categoría"
         >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
 
       {isAdding && (
-        <div className="flex gap-2 px-1">
-          <Input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Nombre de categoría"
-            className="h-10 text-sm"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreate();
-              if (e.key === 'Escape') setIsAdding(false);
-            }}
-          />
-          <Button size="sm" onClick={handleCreate}>
+        <div className="flex items-start gap-2 px-1">
+          <div className="min-w-0 flex-1">
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Nombre de categoría"
+              className="h-10 text-sm"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreate();
+                if (e.key === 'Escape') setIsAdding(false);
+              }}
+            />
+          </div>
+          <Button size="sm" className="h-10" onClick={handleCreate}>
             Crear
           </Button>
         </div>
@@ -97,18 +100,20 @@ export default function CategoryList({
         {categories.map((cat) => (
           <li key={cat.id}>
             {editingId === cat.id ? (
-              <div className="flex gap-2 px-1">
-                <Input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="h-10 text-sm"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleUpdate(cat.id);
-                    if (e.key === 'Escape') setEditingId(null);
-                  }}
-                />
-                <Button size="sm" onClick={() => handleUpdate(cat.id)}>
+              <div className="flex items-start gap-2 px-1">
+                <div className="min-w-0 flex-1">
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="h-10 text-sm"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleUpdate(cat.id);
+                      if (e.key === 'Escape') setEditingId(null);
+                    }}
+                  />
+                </div>
+                <Button size="sm" className="h-10" onClick={() => handleUpdate(cat.id)}>
                   OK
                 </Button>
               </div>
@@ -116,18 +121,24 @@ export default function CategoryList({
               <button
                 onClick={() => onSelect(cat.id)}
                 className={cn(
-                  'm3-state flex w-full items-center justify-between rounded-full px-4 py-2.5 text-sm transition-colors group',
+                  'm3-state flex w-full items-center justify-between gap-2 rounded-full px-4 py-2.5 text-sm transition-colors group',
                   selectedId === cat.id
                     ? 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] font-semibold'
                     : 'text-gray-700',
                   !cat.isActive && 'opacity-50',
                 )}
               >
-                <span className="truncate">{cat.name}</span>
-                <span className="hidden group-hover:flex items-center gap-1">
+                <span className="min-w-0 truncate">{cat.name}</span>
+                {/* Touch screens have no hover: the selected category always shows its actions. */}
+                <span
+                  className={cn(
+                    'shrink-0 items-center gap-1',
+                    selectedId === cat.id ? 'flex' : 'hidden group-hover:flex',
+                  )}
+                >
                   <span
                     role="button"
-                    className="m3-state rounded-full p-1"
+                    className="m3-state rounded-full p-2 sm:p-1"
                     onClick={(e) => {
                       e.stopPropagation();
                       startEdit(cat);
@@ -137,7 +148,7 @@ export default function CategoryList({
                   </span>
                   <span
                     role="button"
-                    className="m3-state rounded-full px-1.5 py-0.5"
+                    className="m3-state rounded-full px-2 py-1.5 sm:px-1.5 sm:py-0.5"
                     onClick={(e) => {
                       e.stopPropagation();
                       onToggle(cat.id, !cat.isActive);
@@ -147,7 +158,7 @@ export default function CategoryList({
                   </span>
                   <span
                     role="button"
-                    className="m3-state rounded-full p-1 text-red-500"
+                    className="m3-state rounded-full p-2 text-red-500 sm:p-1"
                     onClick={(e) => {
                       e.stopPropagation();
                       onDelete(cat.id);

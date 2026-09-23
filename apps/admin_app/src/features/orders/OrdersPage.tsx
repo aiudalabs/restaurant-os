@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { Search, X, Eye, CheckCircle, Truck, XCircle, Lock } from 'lucide-react';
+import { Search, Eye, CheckCircle, Truck, XCircle, Lock, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
@@ -62,163 +63,164 @@ interface OrderDetailDialogProps {
 }
 
 function OrderDetailDialog({ order, items, itemsLoading, onClose, onUpdateStatus, updating }: OrderDetailDialogProps) {
+  const canConfirm = order.status === 'pending';
+  const canDeliver = order.status === 'ready';
+  const canClose = order.status === 'delivered';
+  const canCancel = !['cancelled', 'closed'].includes(order.status);
+
+  // Status actions live in the pinned footer so they stay reachable on phones.
+  const actions =
+    canConfirm || canDeliver || canClose || canCancel ? (
+      <>
+        {canConfirm && (
+          <Button
+            size="sm"
+            variant="primary"
+            className="max-sm:h-11"
+            disabled={updating}
+            onClick={() => onUpdateStatus(order.id, 'confirmed')}
+          >
+            <CheckCircle className="mr-1.5 h-4 w-4" />
+            Confirmar
+          </Button>
+        )}
+        {canDeliver && (
+          <Button
+            size="sm"
+            variant="primary"
+            className="max-sm:h-11"
+            disabled={updating}
+            onClick={() => onUpdateStatus(order.id, 'delivered')}
+          >
+            <Truck className="mr-1.5 h-4 w-4" />
+            Marcar entregado
+          </Button>
+        )}
+        {canClose && (
+          <Button
+            size="sm"
+            variant="tonal"
+            className="max-sm:h-11"
+            disabled={updating}
+            onClick={() => onUpdateStatus(order.id, 'closed')}
+          >
+            <Lock className="mr-1.5 h-4 w-4" />
+            Cerrar
+          </Button>
+        )}
+        {canCancel && (
+          <Button
+            size="sm"
+            variant="destructive"
+            className="max-sm:h-11"
+            disabled={updating}
+            onClick={() => onUpdateStatus(order.id, 'cancelled')}
+          >
+            <XCircle className="mr-1.5 h-4 w-4" />
+            Cancelar
+          </Button>
+        )}
+      </>
+    ) : undefined;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card rounded-[1.75rem] shadow-[var(--shadow-e3)] w-full max-w-lg max-h-[80vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-bold text-gray-900">
-            Pedido - Mesa {order.tableNumber}
-          </h2>
-          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
-            <X className="h-5 w-5" />
-          </button>
+    <Dialog title={`Pedido · ${order.tableNumber}`} onClose={onClose} footer={actions} className="sm:max-w-lg">
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-gray-500">Estado</span>
+            <p>
+              <span
+                className={cn(
+                  'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                  statusColor(order.status),
+                )}
+              >
+                {statusLabel(order.status)}
+              </span>
+            </p>
+          </div>
+          <div>
+            <span className="text-gray-500">Fecha</span>
+            <p className="font-medium text-gray-900">
+              {order.createdAt?.toDate().toLocaleString('es-PA') ?? '-'}
+            </p>
+          </div>
+          <div>
+            <span className="text-gray-500">Subtotal</span>
+            <p className="font-medium text-gray-900">${order.subtotal.toFixed(2)}</p>
+          </div>
+          <div>
+            <span className="text-gray-500">Impuesto ({(order.taxPercent * 100).toFixed(0)}%)</span>
+            <p className="font-medium text-gray-900">${order.taxAmount.toFixed(2)}</p>
+          </div>
+          <div>
+            <span className="text-gray-500">Propina</span>
+            <p className="font-medium text-gray-900">${order.tipAmount.toFixed(2)}</p>
+          </div>
+          <div>
+            <span className="text-gray-500">Total</span>
+            <p className="text-lg font-bold text-orange-700">${order.total.toFixed(2)}</p>
+          </div>
         </div>
 
-        <div className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-500">Estado</span>
-              <p>
-                <span
-                  className={cn(
-                    'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                    statusColor(order.status),
-                  )}
-                >
-                  {statusLabel(order.status)}
-                </span>
-              </p>
-            </div>
-            <div>
-              <span className="text-gray-500">Fecha</span>
-              <p className="font-medium text-gray-900">
-                {order.createdAt?.toDate().toLocaleString('es-PA') ?? '-'}
-              </p>
-            </div>
-            <div>
-              <span className="text-gray-500">Subtotal</span>
-              <p className="font-medium text-gray-900">${order.subtotal.toFixed(2)}</p>
-            </div>
-            <div>
-              <span className="text-gray-500">Impuesto ({(order.taxPercent * 100).toFixed(0)}%)</span>
-              <p className="font-medium text-gray-900">${order.taxAmount.toFixed(2)}</p>
-            </div>
-            <div>
-              <span className="text-gray-500">Propina</span>
-              <p className="font-medium text-gray-900">${order.tipAmount.toFixed(2)}</p>
-            </div>
-            <div>
-              <span className="text-gray-500">Total</span>
-              <p className="text-lg font-bold text-orange-700">${order.total.toFixed(2)}</p>
-            </div>
+        {order.notes && (
+          <div className="rounded-2xl bg-yellow-50 p-3 text-sm text-yellow-800">
+            <strong>Notas:</strong> {order.notes}
           </div>
+        )}
 
-          {order.notes && (
-            <div className="rounded-2xl bg-yellow-50 p-3 text-sm text-yellow-800">
-              <strong>Notas:</strong> {order.notes}
+        <div>
+          <h3 className="mb-2 text-lg font-bold text-gray-900">Items del pedido</h3>
+          {itemsLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-orange-600 border-t-transparent" />
+            </div>
+          ) : items.length === 0 ? (
+            <p className="text-sm text-gray-400">No se encontraron items.</p>
+          ) : (
+            <div className="space-y-2">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--color-surface-container-high)] px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900">
+                      {item.quantity}x {item.productName}
+                    </p>
+                    {(item.modifiers?.length ?? 0) > 0 && (
+                      <p className="text-xs text-gray-500">
+                        {item.modifiers?.map((m) => m.value).join(', ')}
+                      </p>
+                    )}
+                    {item.specialInstructions && (
+                      <p className="text-xs text-yellow-600 italic">
+                        {item.specialInstructions}
+                      </p>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-sm font-semibold text-gray-700">
+                    ${item.totalPrice.toFixed(2)}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
+        </div>
 
-          <div>
-            <h3 className="mb-2 text-lg font-bold text-gray-900">Items del pedido</h3>
-            {itemsLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-orange-600 border-t-transparent" />
-              </div>
-            ) : items.length === 0 ? (
-              <p className="text-sm text-gray-400">No se encontraron items.</p>
-            ) : (
-              <div className="space-y-2">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between rounded-2xl bg-[var(--color-surface-container-high)] px-4 py-3"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {item.quantity}x {item.productName}
-                      </p>
-                      {(item.modifiers?.length ?? 0) > 0 && (
-                        <p className="text-xs text-gray-500">
-                          {item.modifiers?.map((m) => m.value).join(', ')}
-                        </p>
-                      )}
-                      {item.specialInstructions && (
-                        <p className="text-xs text-yellow-600 italic">
-                          {item.specialInstructions}
-                        </p>
-                      )}
-                    </div>
-                    <span className="text-sm font-semibold text-gray-700">
-                      ${item.totalPrice.toFixed(2)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="pt-4 border-t border-gray-200">
-            <h3 className="mb-1 text-lg font-bold text-gray-900">Pago</h3>
-            <div className="text-sm text-gray-600">
-              <p>Metodo: {order.payment.method ?? 'No definido'}</p>
-              <p>Estado: {order.payment.status ?? 'Pendiente'}</p>
-              {order.payment.confirmationNumber && (
-                <p>Confirmacion: {order.payment.confirmationNumber}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Status action buttons */}
-          <div className="pt-4 border-t border-gray-200 flex flex-wrap gap-2">
-            {order.status === 'pending' && (
-              <Button
-                size="sm"
-                variant="primary"
-                disabled={updating}
-                onClick={() => onUpdateStatus(order.id, 'confirmed')}
-              >
-                <CheckCircle className="mr-1.5 h-4 w-4" />
-                Confirmar
-              </Button>
-            )}
-            {order.status === 'ready' && (
-              <Button
-                size="sm"
-                variant="primary"
-                disabled={updating}
-                onClick={() => onUpdateStatus(order.id, 'delivered')}
-              >
-                <Truck className="mr-1.5 h-4 w-4" />
-                Marcar entregado
-              </Button>
-            )}
-            {order.status === 'delivered' && (
-              <Button
-                size="sm"
-                variant="tonal"
-                disabled={updating}
-                onClick={() => onUpdateStatus(order.id, 'closed')}
-              >
-                <Lock className="mr-1.5 h-4 w-4" />
-                Cerrar
-              </Button>
-            )}
-            {!['cancelled', 'closed'].includes(order.status) && (
-              <Button
-                size="sm"
-                variant="destructive"
-                disabled={updating}
-                onClick={() => onUpdateStatus(order.id, 'cancelled')}
-              >
-                <XCircle className="mr-1.5 h-4 w-4" />
-                Cancelar
-              </Button>
+        <div className="pt-4 border-t border-gray-200">
+          <h3 className="mb-1 text-lg font-bold text-gray-900">Pago</h3>
+          <div className="text-sm text-gray-600">
+            <p>Metodo: {order.payment.method ?? 'No definido'}</p>
+            <p>Estado: {order.payment.status ?? 'Pendiente'}</p>
+            {order.payment.confirmationNumber && (
+              <p>Confirmacion: {order.payment.confirmationNumber}</p>
             )}
           </div>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -271,7 +273,7 @@ export default function OrdersPage() {
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
-            placeholder="Buscar por mesa o ID..."
+            placeholder="Buscar por cliente, mesa o ID..."
             className="pl-11"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -280,7 +282,7 @@ export default function OrdersPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as OrderStatus | 'all')}
-          className="h-12 rounded-full bg-[var(--color-surface-container-high)] px-5 text-sm font-medium text-gray-900 focus:outline-none sm:ml-auto"
+          className="h-12 w-full rounded-full bg-[var(--color-surface-container-high)] px-5 text-sm font-medium text-gray-900 focus:outline-none sm:ml-auto sm:w-auto"
         >
           <option value="all">Todos los estados</option>
           {ALL_STATUSES.map((s) => (
@@ -297,72 +299,108 @@ export default function OrdersPage() {
           <p className="text-sm text-gray-500">No se encontraron pedidos.</p>
         </div>
       ) : (
-        <div className="m3-card overflow-hidden p-2">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                  Mesa
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                  Estado
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                  Items
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                  Total
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                  Fecha
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredOrders.map((order) => (
-                <tr
-                  key={order.id}
-                  className="transition-colors hover:bg-[var(--color-surface-container-high)]"
+        <>
+          {/* Phones: tappable cards */}
+          <ul className="space-y-3 md:hidden">
+            {filteredOrders.map((order) => (
+              <li key={order.id}>
+                <button
+                  onClick={() => handleViewOrder(order)}
+                  className="m3-card m3-state flex w-full items-center gap-3 p-4 text-left"
                 >
-                  <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                    #{order.tableNumber}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={cn(
-                        'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                        statusColor(order.status),
-                      )}
-                    >
-                      {statusLabel(order.status)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{order.itemCount}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                    ${order.total.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">
-                    {order.createdAt?.toDate().toLocaleString('es-PA') ?? '-'}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => handleViewOrder(order)}
-                    >
-                      <Eye className="mr-1 h-3.5 w-3.5" />
-                      Ver
-                    </Button>
-                  </td>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate font-semibold text-gray-900">{order.tableNumber}</span>
+                      <span className="shrink-0 font-bold text-gray-900">${order.total.toFixed(2)}</span>
+                    </div>
+                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <span
+                        className={cn(
+                          'inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                          statusColor(order.status),
+                        )}
+                      >
+                        {statusLabel(order.status)}
+                      </span>
+                      <span className="truncate text-xs text-gray-500">
+                        {order.itemCount} ítems · {order.createdAt?.toDate().toLocaleString('es-PA') ?? '-'}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-gray-400" />
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {/* Tablet/desktop: table */}
+          <div className="m3-card hidden overflow-x-auto p-2 md:block">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead>
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
+                    Cliente / Mesa
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
+                    Estado
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
+                    Items
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
+                    Total
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
+                    Fecha
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">
+                    Acciones
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredOrders.map((order) => (
+                  <tr
+                    key={order.id}
+                    className="transition-colors hover:bg-[var(--color-surface-container-high)]"
+                  >
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+                      {order.tableNumber}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={cn(
+                          'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                          statusColor(order.status),
+                        )}
+                      >
+                        {statusLabel(order.status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{order.itemCount}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+                      ${order.total.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {order.createdAt?.toDate().toLocaleString('es-PA') ?? '-'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => handleViewOrder(order)}
+                      >
+                        <Eye className="mr-1 h-3.5 w-3.5" />
+                        Ver
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {selectedOrder && (

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { httpsCallable } from 'firebase/functions';
-import { Plus, Pencil, Trash2, Power, X, KeyRound, Copy } from 'lucide-react';
+import { Plus, Pencil, Trash2, Power, KeyRound, Copy } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { functions } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
@@ -43,62 +44,58 @@ function StationPinDialog({ station, onClose }: { station: Station; onClose: () 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card w-full max-w-md rounded-[1.75rem] p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">PIN de «{station.name}»</h2>
-          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-500">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <p className="mb-4 text-sm text-gray-500">
-          El KDS de esta estación entra con este PIN (4-6 dígitos). Se guarda cifrado y validado
-          en el servidor.
-        </p>
-
-        <Input
-          id="station-pin"
-          label="PIN"
-          type="text"
-          inputMode="numeric"
-          value={pin}
-          onChange={(e) => {
-            setPin(e.target.value.replace(/\D/g, '').slice(0, 6));
-            setSaved(false);
-          }}
-          placeholder="Ej: 4821"
-        />
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-        {saved && <p className="mt-2 text-sm font-semibold text-green-600">✓ PIN guardado.</p>}
-
-        <div className="mt-5 rounded-2xl bg-[var(--color-surface-container-high)] p-4">
-          <p className="text-xs font-medium text-gray-500">Link del KDS para este dispositivo</p>
-          <div className="mt-1 flex items-center justify-between gap-2">
-            <code className="truncate font-mono text-xs text-gray-900">{kdsLink}</code>
-            <button
-              onClick={() => navigator.clipboard?.writeText(kdsLink)}
-              className="m3-state shrink-0 rounded-full p-2 text-gray-500"
-              title="Copiar"
-            >
-              <Copy className="h-4 w-4" />
-            </button>
-          </div>
-          <p className="mt-1 text-xs text-gray-500">
-            Ábrelo una vez en el tablet; luego solo pide el PIN.
-          </p>
-        </div>
-
-        <div className="mt-5 flex justify-end gap-2">
+    <Dialog
+      title={`PIN de «${station.name}»`}
+      onClose={onClose}
+      footer={
+        <>
           <Button variant="ghost" onClick={onClose}>
             Cerrar
           </Button>
           <Button onClick={save} disabled={saving}>
             {saving ? 'Guardando…' : 'Guardar PIN'}
           </Button>
+        </>
+      }
+    >
+      <p className="mb-4 text-sm text-gray-500">
+        El KDS de esta estación entra con este PIN (4-6 dígitos). Se guarda cifrado y validado
+        en el servidor.
+      </p>
+
+      <Input
+        id="station-pin"
+        label="PIN"
+        type="text"
+        inputMode="numeric"
+        value={pin}
+        onChange={(e) => {
+          setPin(e.target.value.replace(/\D/g, '').slice(0, 6));
+          setSaved(false);
+        }}
+        placeholder="Ej: 4821"
+      />
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {saved && <p className="mt-2 text-sm font-semibold text-green-600">✓ PIN guardado.</p>}
+
+      <div className="mt-5 rounded-2xl bg-[var(--color-surface-container-high)] p-4">
+        <p className="text-xs font-medium text-gray-500">Link del KDS para este dispositivo</p>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <code className="min-w-0 truncate font-mono text-xs text-gray-900">{kdsLink}</code>
+          <button
+            onClick={() => navigator.clipboard?.writeText(kdsLink)}
+            className="m3-state shrink-0 rounded-full p-3 text-gray-500 sm:p-2"
+            title="Copiar"
+            aria-label="Copiar link"
+          >
+            <Copy className="h-4 w-4" />
+          </button>
         </div>
+        <p className="mt-1 text-xs text-gray-500">
+          Ábrelo una vez en el tablet; luego solo pide el PIN.
+        </p>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -185,95 +182,90 @@ function StationFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card p-6 rounded-[1.75rem] w-full max-w-md">
-        <div className="flex items-center justify-between pb-4">
-          <h2 className="text-lg font-bold text-gray-900">
-            {isEditing ? 'Editar estacion' : 'Nueva estacion'}
-          </h2>
-          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <Dialog
+      title={isEditing ? 'Editar estacion' : 'Nueva estacion'}
+      onClose={onClose}
+      onSubmit={handleSubmit(onSubmit)}
+      footer={
+        <>
+          <Button variant="tonal" type="button" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting
+              ? 'Guardando...'
+              : isEditing
+                ? 'Guardar cambios'
+                : 'Crear estacion'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Input
+          id="name"
+          label="Nombre"
+          placeholder="Ej: Cocina, Bar, Postres"
+          error={errors.name?.message}
+          {...register('name')}
+        />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input
-            id="name"
-            label="Nombre"
-            placeholder="Ej: Cocina, Bar, Postres"
-            error={errors.name?.message}
-            {...register('name')}
-          />
-
-          <div className="space-y-1.5">
-            <label htmlFor="color" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-              Color
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                id="color"
-                type="color"
-                className="h-12 w-14 cursor-pointer rounded-xl border border-[var(--color-outline-variant)] bg-transparent"
-                {...register('color')}
-              />
+        <div className="space-y-1.5">
+          <label htmlFor="color" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
+            Color
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              id="color"
+              type="color"
+              className="h-12 w-14 cursor-pointer rounded-xl border border-[var(--color-outline-variant)] bg-transparent"
+              {...register('color')}
+            />
+            <div className="min-w-0 flex-1">
               <Input
-                className="flex-1"
                 placeholder="#FF5722"
                 {...register('color')}
               />
             </div>
-            {errors.color?.message && (
-              <p className="text-sm text-red-600">{errors.color.message}</p>
-            )}
           </div>
+          {errors.color?.message && (
+            <p className="text-sm text-red-600">{errors.color.message}</p>
+          )}
+        </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-              Categorias asignadas
-            </label>
-            {categories.length === 0 ? (
-              <p className="text-sm text-gray-400">
-                No hay categorias en el menu. Crea categorias primero.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {categories.map((cat) => {
-                  const isSelected = selectedCategoryIds.includes(cat.id);
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => toggleCategoryId(cat.id)}
-                      className={cn(
-                        'm3-state rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
-                        isSelected
-                          ? 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)]'
-                          : 'bg-[var(--color-surface-container-high)] text-gray-600',
-                      )}
-                    >
-                      {cat.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="tonal" type="button" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? 'Guardando...'
-                : isEditing
-                  ? 'Guardar cambios'
-                  : 'Crear estacion'}
-            </Button>
-          </div>
-        </form>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
+            Categorias asignadas
+          </label>
+          {categories.length === 0 ? (
+            <p className="text-sm text-gray-400">
+              No hay categorias en el menu. Crea categorias primero.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => {
+                const isSelected = selectedCategoryIds.includes(cat.id);
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => toggleCategoryId(cat.id)}
+                    className={cn(
+                      'm3-state rounded-full px-4 py-2.5 text-sm font-medium transition-colors sm:px-3 sm:py-1.5',
+                      isSelected
+                        ? 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)]'
+                        : 'bg-[var(--color-surface-container-high)] text-gray-600',
+                    )}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -326,7 +318,7 @@ export default function StationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end">
-        <Button onClick={handleAdd}>
+        <Button onClick={handleAdd} className="max-sm:w-full">
           <Plus className="mr-1.5 h-4 w-4" />
           Nueva estacion
         </Button>
@@ -350,13 +342,13 @@ export default function StationsPage() {
                 !station.isActive && 'opacity-50',
               )}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
                   <div
                     className="h-4 w-4 rounded-full shrink-0"
                     style={{ backgroundColor: station.color }}
                   />
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="font-semibold text-gray-900">{station.name}</h3>
                     <p className="text-sm text-gray-500">
                       {(station.categoryIds?.length ?? 0) === 0
@@ -366,11 +358,11 @@ export default function StationsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="-mx-2 flex flex-wrap items-center gap-1 border-t border-[var(--color-outline-variant)] pt-2 sm:mx-0 sm:border-t-0 sm:pt-0">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-xs"
+                    className="h-10 text-xs sm:h-7"
                     onClick={() => handleEdit(station)}
                   >
                     <Pencil className="mr-1 h-3.5 w-3.5" />
@@ -379,7 +371,7 @@ export default function StationsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-xs text-orange-600"
+                    className="h-10 text-xs text-orange-600 sm:h-7"
                     onClick={() => setPinStation(station)}
                   >
                     <KeyRound className="mr-1 h-3.5 w-3.5" />
@@ -389,7 +381,7 @@ export default function StationsPage() {
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      'h-7 text-xs',
+                      'h-10 text-xs sm:h-7',
                       station.isActive ? 'text-gray-500' : 'text-green-600',
                     )}
                     onClick={() => toggleStation(station.id, !station.isActive)}
@@ -400,8 +392,9 @@ export default function StationsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-xs text-red-500 hover:text-red-700"
+                    className="h-10 text-xs text-red-500 hover:text-red-700 sm:h-7"
                     onClick={() => handleDelete(station)}
+                    aria-label="Eliminar estación"
                   >
                     <Trash2 className="mr-1 h-3.5 w-3.5" />
                   </Button>

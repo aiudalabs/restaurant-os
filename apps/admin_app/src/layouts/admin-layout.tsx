@@ -136,7 +136,7 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="flex h-screen bg-[var(--color-surface)]">
+    <div className="flex h-dvh bg-[var(--color-surface)]">
       {/* Scrim (mobile) */}
       {drawerOpen && (
         <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setDrawerOpen(false)} />
@@ -153,19 +153,20 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main column */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      {/* min-w-0: a wide child (table, chart) must never widen the page past the viewport. */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top app bar */}
-        <header className="flex h-16 items-center gap-3 px-4 lg:px-8">
+        <header className="flex h-16 shrink-0 items-center gap-3 px-4 lg:px-8">
           <button
-            className="m3-state rounded-full p-2 text-gray-700 lg:hidden"
+            className="m3-state shrink-0 rounded-full p-2 text-gray-700 lg:hidden"
             onClick={() => setDrawerOpen(true)}
             aria-label="Abrir menú"
           >
             <Menu className="h-6 w-6" />
           </button>
-          <h1 className="text-[22px] font-bold text-gray-900">{current.label}</h1>
+          <h1 className="min-w-0 truncate text-[22px] font-bold text-gray-900">{current.label}</h1>
 
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             <button
               onClick={toggle}
               className="m3-state rounded-full p-2.5 text-gray-700"
