@@ -44,15 +44,20 @@ async function loadSession(uid: string): Promise<Session | null> {
   const u = userSnap.data();
   const stationId: string = u.stationId ?? '';
   let stationName = 'Estación';
+  let branchName = '';
   if (stationId) {
     try {
       const st = await getDoc(doc(db, 'stations', stationId));
-      if (st.exists()) stationName = st.data().name ?? 'Estación';
-    } catch {
-      /* keep default */
+      if (st.exists()) {
+        stationName = st.data().name ?? 'Estación';
+        const br = await getDoc(doc(db, 'branches', st.data().branchId));
+        branchName = br.data()?.name ?? '';
+      }
+    } catch (e) {
+      console.error('[kds] station/branch name lookup failed', e);
     }
   }
-  return { uid, orgId: u.orgId ?? '', stationId, stationName, displayName: u.displayName ?? '' };
+  return { uid, orgId: u.orgId ?? '', stationId, stationName, branchName, displayName: u.displayName ?? '' };
 }
 
 export interface StationInfo {

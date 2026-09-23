@@ -23,9 +23,11 @@ import type {
   Product,
 } from '../types';
 
+export const BRANCH_NOT_FOUND = 'Sucursal no encontrada';
+
 export async function loadBranch(branchId: string): Promise<Branch> {
   const snap = await getDoc(doc(db, paths.branches, branchId));
-  if (!snap.exists()) throw new Error('Sucursal no encontrada');
+  if (!snap.exists()) throw new Error(BRANCH_NOT_FOUND);
   const d = snap.data();
   return {
     id: snap.id,

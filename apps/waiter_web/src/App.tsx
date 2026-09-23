@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useWaiterAuth } from './lib/auth';
-import { loadBranch } from './lib/api';
+import { BRANCH_NOT_FOUND, loadBranch } from './lib/api';
 import { LoginScreen } from './screens/LoginScreen';
 import { OrdersScreen } from './screens/OrdersScreen';
 import { NewOrderScreen } from './screens/NewOrderScreen';
@@ -35,13 +35,24 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
   const [view, setView] = useState<'orders' | 'new'>('orders');
 
   useEffect(() => {
-    Promise.all(session.branchIds.map((id) => loadBranch(id).catch(() => null)))
-      .then((list) => {
-        const ok = list.filter((b): b is Branch => b !== null);
-        if (ok.length === 0) setError('No se pudo cargar tu sucursal.');
-        setBranches(ok);
-      })
-      .catch(() => setError('No se pudo cargar tu sucursal.'));
+    let missing = false;
+    const load = (id: string) =>
+      loadBranch(id).catch((e: Error) => {
+        if (e.message === BRANCH_NOT_FOUND) missing = true;
+        else console.error('[waiter] branch load failed', e);
+        return null;
+      });
+    Promise.all(session.branchIds.map(load)).then((list) => {
+      const ok = list.filter((b): b is Branch => b !== null);
+      if (ok.length === 0) {
+        setError(
+          missing
+            ? 'Tu cuenta está asignada a una sucursal que ya no existe. Pide al administrador que te vuelva a crear en «Usuarios».'
+            : 'No se pudo cargar tu sucursal. Revisa tu conexión e intenta de nuevo.',
+        );
+      }
+      setBranches(ok);
+    });
   }, [session.branchIds]);
 
   const changeBranch = (id: string) => {
@@ -53,7 +64,16 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
     }
   };
 
-  if (error) return <p className="p-6 text-center text-brand">{error}</p>;
+  if (error) {
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center gap-6 p-6 text-center">
+        <p className="max-w-sm font-medium text-brand">{error}</p>
+        <button onClick={onLogout} className="rounded-xl border border-line px-5 py-3 font-semibold text-muted">
+          Salir
+        </button>
+      </div>
+    );
+  }
   const branch = branches.find((b) => b.id === branchId) ?? branches[0];
   if (!branch) return <Spinner full />;
 

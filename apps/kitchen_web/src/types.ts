@@ -21,5 +21,6 @@ export interface Session {
   orgId: string;
   stationId: string;
   stationName: string;
+  branchName: string;
   displayName: string;
 }

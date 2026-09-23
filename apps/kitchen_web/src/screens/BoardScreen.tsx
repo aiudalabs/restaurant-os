@@ -57,7 +57,10 @@ export function BoardScreen({ session, onLogout }: { session: Session; onLogout:
       <header className="flex items-center gap-3 border-b border-line bg-panel px-4 py-3">
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-lg">🔥</span>
         <div className="leading-tight">
-          <h1 className="text-lg font-extrabold">{session.stationName}</h1>
+          <h1 className="text-lg font-extrabold">
+            {session.stationName}
+            {session.branchName && <span className="font-medium text-muted"> · {session.branchName}</span>}
+          </h1>
           <p className="text-xs text-muted">
             {tickets.length} {tickets.length === 1 ? 'pedido activo' : 'pedidos activos'}
           </p>
