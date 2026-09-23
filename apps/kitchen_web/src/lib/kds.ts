@@ -57,7 +57,9 @@ export function watchTickets(stationId: string, cb: (tickets: KdsTicket[]) => vo
 
       const tickets: KdsTicket[] = [...byOrder.values()].map((g) => {
         const first = g.items[0];
-        const receivedAt = first.sentToStationAt ?? first.updatedAt ?? Date.now();
+        // Earliest arrival across the ticket's items. Prefer sentToStationAt (fixed
+        // at routing); updatedAt is only a fallback for tickets routed before it existed.
+        const receivedAt = Math.min(...g.items.map((it) => it.sentToStationAt ?? it.updatedAt ?? Date.now()));
         return {
           orderId: g.orderId,
           tableNumber: first.tableNumber ?? '?',

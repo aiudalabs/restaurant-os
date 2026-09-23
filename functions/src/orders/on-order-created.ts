@@ -147,12 +147,17 @@ export const onOrderCreated = functions.firestore
       if (!goesToKdsNow) continue;
 
       const rtdbKey = `order_items/${station.id}/${orderId}_${item.id}`;
+      // sentToStationAt never changes after this: the KDS orders tickets FIFO by
+      // it (updatedAt moves on every status tap). specialInstructions carries the
+      // waiter's notes ("sin cebolla") to the kitchen.
       rtdbUpdates[rtdbKey] = {
         status: "queued",
         updatedAt: admin.database.ServerValue.TIMESTAMP,
+        sentToStationAt: admin.database.ServerValue.TIMESTAMP,
         tableNumber: order.tableNumber,
         productName: item.productName,
         quantity: item.quantity,
+        specialInstructions: item.specialInstructions ?? "",
         orderId: orderId,
       };
 

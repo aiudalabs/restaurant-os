@@ -81,21 +81,22 @@ export function BoardScreen({ session, onLogout }: { session: Session; onLogout:
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4">
-        {tickets.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted">
-            <div className="text-5xl">🍽️</div>
-            <p className="text-lg font-semibold">Sin pedidos por ahora</p>
-            <p className="text-sm">Los nuevos pedidos aparecerán aquí automáticamente.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {tickets.map((t) => (
-              <TicketCard key={t.orderId} ticket={t} stationId={session.stationId} now={now} />
-            ))}
-          </div>
-        )}
-      </main>
+      {tickets.length === 0 ? (
+        <main className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center text-muted">
+          <div className="text-5xl">🍽️</div>
+          <p className="text-lg font-semibold">Sin pedidos por ahora</p>
+          <p className="text-sm">Los nuevos pedidos aparecerán aquí automáticamente.</p>
+        </main>
+      ) : (
+        // FIFO rail: tickets arrive oldest-first; row-reverse on the SCROLL container
+        // pins the oldest (next to cook) to the right edge, always on screen, and
+        // new tickets enter on the left — overflow spills left and scrolls.
+        <main className="flex min-h-0 flex-1 flex-row-reverse gap-4 overflow-x-auto overflow-y-hidden p-4">
+          {tickets.map((t, i) => (
+            <TicketCard key={t.orderId} ticket={t} stationId={session.stationId} now={now} isNext={i === 0} />
+          ))}
+        </main>
+      )}
     </div>
   );
 }
