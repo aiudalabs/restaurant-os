@@ -1,191 +1,254 @@
-import { useState } from 'react';
-import { Link, Outlet, useMatchRoute, useRouterState } from '@tanstack/react-router';
-import {
-  LayoutDashboard,
-  Store,
-  UtensilsCrossed,
-  Grid3X3,
-  Radio,
-  Users,
-  ClipboardList,
-  BarChart3,
-  Sparkles,
-  LogOut,
-  Menu,
-  X,
-  Sun,
-  Moon,
-  ChevronDown,
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useTheme } from '@/hooks/use-theme';
+import { Icon } from '@/components/ui/icon';
+import { IconButton } from '@/components/ui/button';
 
-const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/assistant', label: 'Asistente IA', icon: Sparkles },
-  { to: '/branches', label: 'Sucursales', icon: Store },
-  { to: '/menu', label: 'Menú', icon: UtensilsCrossed },
-  { to: '/tables', label: 'Mesas', icon: Grid3X3 },
-  { to: '/stations', label: 'Estaciones', icon: Radio },
-  { to: '/users', label: 'Usuarios', icon: Users },
-  { to: '/orders', label: 'Pedidos', icon: ClipboardList },
-  { to: '/reports', label: 'Reportes', icon: BarChart3 },
-] as const;
+interface NavItem {
+  to: string;
+  label: string;
+  icon: string;
+}
+
+// Order = frequency of use. The first three also live in the phone's bottom bar.
+const NAV_ITEMS: NavItem[] = [
+  { to: '/', label: 'Hoy', icon: 'space_dashboard' },
+  { to: '/orders', label: 'Pedidos', icon: 'receipt_long' },
+  { to: '/menu', label: 'Menú', icon: 'restaurant_menu' },
+  { to: '/stations', label: 'Estaciones', icon: 'soup_kitchen' },
+  { to: '/tables', label: 'Mesas', icon: 'table_restaurant' },
+  { to: '/users', label: 'Equipo', icon: 'group' },
+  { to: '/branches', label: 'Sucursales', icon: 'storefront' },
+  { to: '/reports', label: 'Reportes', icon: 'bar_chart' },
+  { to: '/assistant', label: 'Asistente IA', icon: 'auto_awesome' },
+];
+const BOTTOM_BAR = NAV_ITEMS.slice(0, 3);
+// Rail keeps the destinations used during service; the rest sit behind its menu button.
+const RAIL_ITEMS = NAV_ITEMS.slice(0, 6);
+
+function isActive(pathname: string, to: string) {
+  return to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(`${to}/`);
+}
 
 export default function AdminLayout() {
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const { appUser, logout } = useAuth();
   const { branches, selectedBranchId, setSelectedBranchId, selectedBranch } = useBranchContext();
   const { theme, toggle } = useTheme();
-  const matchRoute = useMatchRoute();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const current =
-    [...NAV_ITEMS].reverse().find((i) => (i.to === '/' ? pathname === '/' : pathname.startsWith(i.to))) ??
-    NAV_ITEMS[0];
+  const current = NAV_ITEMS.find((i) => isActive(pathname, i.to)) ?? NAV_ITEMS[0];
 
-  const nav = (
-    <>
-      {/* Brand */}
-      <div className="flex items-center gap-3 px-5 pb-2 pt-6">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-600 text-xl text-[var(--color-on-primary)] shadow-[var(--shadow-e1)]">
-          🍽️
-        </div>
-        <div className="leading-tight">
-          <p className="font-bold text-gray-900">RestaurantOS</p>
-          <p className="text-xs text-gray-500">Panel de administración</p>
-        </div>
-        <button
-          className="m3-state ml-auto rounded-full p-2 text-gray-500 lg:hidden"
-          onClick={() => setDrawerOpen(false)}
-          aria-label="Cerrar menú"
-        >
-          <X className="h-5 w-5" />
-        </button>
+  // Close the modal drawer on navigation and on Escape.
+  useEffect(() => setModalOpen(false), [pathname]);
+  useEffect(() => {
+    if (!modalOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setModalOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modalOpen]);
+
+  // Full navigation drawer content (standard drawer on large screens, modal elsewhere).
+  const drawer = (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-3 px-7 pb-2 pt-5">
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)]">
+          <Icon name="restaurant" filled />
+        </span>
+        <span className="t-title-medium text-[var(--md-sys-color-on-surface)]">RestaurantOS</span>
       </div>
 
-      {/* Branch selector */}
-      <div className="px-4 py-3">
-        {branches.length > 1 ? (
-          <div className="relative">
-            <select
-              value={selectedBranchId}
-              onChange={(e) => setSelectedBranchId(e.target.value)}
-              className="w-full appearance-none rounded-full bg-[var(--color-surface-container-high)] py-2.5 pl-4 pr-9 text-sm font-medium text-gray-900"
-            >
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-          </div>
-        ) : (
-          <div className="rounded-full bg-[var(--color-surface-container-high)] px-4 py-2.5 text-sm font-medium text-gray-700">
-            {selectedBranch?.name ?? 'Sin sucursal'}
-          </div>
-        )}
+      <div className="px-3 py-3">
+        <label htmlFor="branch-select" className="t-label-medium block px-4 pb-1 text-[var(--md-sys-color-on-surface-variant)]">
+          Sucursal
+        </label>
+        <div className="relative">
+          <Icon name="storefront" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--md-sys-color-on-surface-variant)]" />
+          <select
+            id="branch-select"
+            value={selectedBranchId}
+            onChange={(e) => setSelectedBranchId(e.target.value)}
+            disabled={branches.length <= 1}
+            className="t-title-small h-14 w-full appearance-none rounded-2xl bg-[var(--md-sys-color-surface-container-high)] pl-12 pr-10 text-[var(--md-sys-color-on-surface)] disabled:opacity-100"
+          >
+            {branches.length === 0 && <option value="">Sin sucursal</option>}
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+          {branches.length > 1 && (
+            <Icon name="unfold_more" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--md-sys-color-on-surface-variant)]" />
+          )}
+        </div>
       </div>
 
-      {/* Navigation — M3 pill items */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
-        {NAV_ITEMS.map(({ to, label, icon: Icon }) => {
-          const isActive = to === '/' ? pathname === '/' : Boolean(matchRoute({ to, fuzzy: true }));
+      <nav aria-label="Secciones" className="min-h-0 flex-1 overflow-y-auto px-3 pb-2">
+        {NAV_ITEMS.map((item) => {
+          const active = isActive(pathname, item.to);
           return (
             <Link
-              key={to}
-              to={to}
-              onClick={() => setDrawerOpen(false)}
+              key={item.to}
+              to={item.to}
+              aria-current={active ? 'page' : undefined}
               className={cn(
-                'm3-state flex items-center gap-4 rounded-full px-4 py-3 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)]'
-                  : 'text-gray-600 hover:text-gray-900',
+                'm3-state t-label-large flex h-14 items-center gap-3 rounded-full pl-4 pr-6',
+                active
+                  ? 'bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]'
+                  : 'text-[var(--md-sys-color-on-surface-variant)]',
               )}
             >
-              <Icon className={cn('h-5 w-5 shrink-0', isActive && 'text-orange-600')} />
-              {label}
+              <Icon name={item.icon} filled={active} />
+              {item.label}
             </Link>
           );
         })}
       </nav>
 
-      {/* User footer */}
       <div className="p-3">
-        <div className="flex items-center gap-3 rounded-full bg-[var(--color-surface-container-high)] px-3 py-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-600 text-sm font-bold text-[var(--color-on-primary)]">
+        <div className="flex items-center gap-3 rounded-full bg-[var(--md-sys-color-surface-container-high)] py-2 pl-2 pr-1">
+          <span className="t-title-small grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--md-sys-color-tertiary-container)] text-[var(--md-sys-color-on-tertiary-container)]">
             {appUser?.displayName?.charAt(0).toUpperCase() ?? '?'}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-gray-900">{appUser?.displayName}</p>
-            <p className="truncate text-xs capitalize text-gray-500">{appUser?.role}</p>
-          </div>
-          <button
-            onClick={logout}
-            className="m3-state rounded-full p-2 text-gray-500 hover:text-red-600"
-            title="Cerrar sesión"
-          >
-            <LogOut className="h-[18px] w-[18px]" />
-          </button>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="t-title-small block truncate text-[var(--md-sys-color-on-surface)]">{appUser?.displayName}</span>
+            <span className="t-body-small block truncate text-[var(--md-sys-color-on-surface-variant)]">
+              {appUser?.role === 'admin' ? 'Administrador' : 'Gerente'}
+            </span>
+          </span>
+          <IconButton icon="logout" label="Cerrar sesión" onClick={logout} />
         </div>
       </div>
-    </>
+    </div>
   );
 
   return (
-    <div className="flex h-dvh bg-[var(--color-surface)]">
-      {/* Scrim (mobile) */}
-      {drawerOpen && (
-        <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setDrawerOpen(false)} />
-      )}
+    <div className="flex h-dvh bg-[var(--md-sys-color-surface)]">
+      {/* Standard navigation drawer — expanded windows (≥1200px) */}
+      <aside className="hidden w-[300px] shrink-0 bg-[var(--md-sys-color-surface-container-low)] min-[1200px]:block">{drawer}</aside>
 
-      {/* Navigation drawer */}
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col bg-[var(--color-surface-container)] transition-transform lg:static lg:translate-x-0 lg:m-3 lg:h-auto lg:rounded-[2rem]',
-          drawerOpen ? 'translate-x-0' : '-translate-x-full',
-        )}
+      {/* Navigation rail — medium windows (600–1199px) */}
+      <nav
+        aria-label="Secciones"
+        className="hidden w-[88px] shrink-0 flex-col items-center gap-3 pt-3 min-[600px]:flex min-[1200px]:hidden"
       >
-        {nav}
-      </aside>
+        <IconButton icon="menu" label="Abrir menú completo" onClick={() => setModalOpen(true)} />
+        <div className="mt-2 flex flex-col items-center gap-3">
+          {RAIL_ITEMS.map((item) => {
+            const active = isActive(pathname, item.to);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                aria-current={active ? 'page' : undefined}
+                className="group t-label-medium flex w-20 flex-col items-center gap-1 text-[var(--md-sys-color-on-surface-variant)] aria-[current=page]:text-[var(--md-sys-color-on-surface)]"
+              >
+                <span
+                  className={cn(
+                    'm3-state grid h-8 w-14 place-items-center rounded-full',
+                    active
+                      ? 'bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]'
+                      : '',
+                  )}
+                >
+                  <Icon name={item.icon} filled={active} />
+                </span>
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
 
-      {/* Main column */}
-      {/* min-w-0: a wide child (table, chart) must never widen the page past the viewport. */}
+      {/* Main column — min-w-0 keeps wide content from stretching the page */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Top app bar */}
-        <header className="flex h-16 shrink-0 items-center gap-3 px-4 lg:px-8">
-          <button
-            className="m3-state shrink-0 rounded-full p-2 text-gray-700 lg:hidden"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Abrir menú"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-          <h1 className="min-w-0 truncate text-[22px] font-bold text-gray-900">{current.label}</h1>
-
-          <div className="ml-auto flex shrink-0 items-center gap-1">
-            <button
-              onClick={toggle}
-              className="m3-state rounded-full p-2.5 text-gray-700"
-              title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-              aria-label="Cambiar tema"
-            >
-              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </button>
-            <div className="ml-1 flex h-10 w-10 items-center justify-center rounded-full bg-orange-600 text-sm font-bold text-[var(--color-on-primary)]">
-              {appUser?.displayName?.charAt(0).toUpperCase() ?? '?'}
-            </div>
+        <header className="flex h-16 shrink-0 items-center gap-2 pl-4 pr-2 sm:pl-6 sm:pr-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="t-title-large truncate text-[var(--md-sys-color-on-surface)]">{current.label}</h1>
+            {selectedBranch && (
+              <p className="t-body-small truncate text-[var(--md-sys-color-on-surface-variant)] min-[1200px]:hidden">
+                {selectedBranch.name}
+              </p>
+            )}
           </div>
+          <IconButton
+            icon={theme === 'dark' ? 'light_mode' : 'dark_mode'}
+            label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema oscuro'}
+            onClick={toggle}
+          />
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto px-4 pb-8 lg:px-8">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto px-4 pb-28 sm:px-6 sm:pb-10">
+          <div key={pathname} className="mx-auto max-w-[1200px]" style={{ animation: 'm3-view-in 250ms var(--md-ease-emphasized-decelerate)' }}>
+            <Outlet />
+          </div>
         </main>
       </div>
+
+      {/* Navigation bar — compact windows (<600px) */}
+      <nav
+        aria-label="Secciones"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 bg-[var(--md-sys-color-surface-container)] pb-[max(12px,env(safe-area-inset-bottom))] pt-3 min-[600px]:hidden"
+      >
+        {BOTTOM_BAR.map((item) => {
+          const active = isActive(pathname, item.to);
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              aria-current={active ? 'page' : undefined}
+              className="t-label-medium flex flex-col items-center gap-1 text-[var(--md-sys-color-on-surface-variant)] aria-[current=page]:text-[var(--md-sys-color-on-surface)]"
+            >
+              <span
+                className={cn(
+                  'm3-state grid h-8 w-16 place-items-center rounded-full',
+                  active && 'bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]',
+                )}
+              >
+                <Icon name={item.icon} filled={active} />
+              </span>
+              {item.label}
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          aria-current={BOTTOM_BAR.some((i) => i.to === current.to) ? undefined : 'page'}
+          className="t-label-medium flex flex-col items-center gap-1 text-[var(--md-sys-color-on-surface-variant)] aria-[current=page]:text-[var(--md-sys-color-on-surface)]"
+        >
+          <span
+            className={cn(
+              'm3-state grid h-8 w-16 place-items-center rounded-full',
+              !BOTTOM_BAR.some((i) => i.to === current.to) &&
+                'bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]',
+            )}
+          >
+            <Icon name="menu" />
+          </span>
+          Más
+        </button>
+      </nav>
+
+      {/* Modal navigation drawer — opened from the rail or the bar's "Más" */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 min-[1200px]:hidden">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setModalOpen(false)} style={{ animation: 'm3-fade-in 150ms linear' }} />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú"
+            className="absolute inset-y-0 left-0 w-[min(320px,85vw)] rounded-r-2xl bg-[var(--md-sys-color-surface-container-low)] pb-[env(safe-area-inset-bottom)]"
+            style={{ animation: 'm3-drawer-in 300ms var(--md-ease-emphasized-decelerate)' }}
+          >
+            {drawer}
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

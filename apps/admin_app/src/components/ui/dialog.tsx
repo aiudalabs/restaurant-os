@@ -1,6 +1,6 @@
 import type { FormEventHandler, ReactNode } from 'react';
-import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { IconButton } from './button';
 
 interface DialogProps {
   title: ReactNode;
@@ -14,14 +14,14 @@ interface DialogProps {
   children: ReactNode;
 }
 
-// Full-screen sheet on phones (scrollable body, pinned header/footer);
-// centered M3 card from `sm` up.
+// M3 dialog: full-screen on phones (scrollable body, pinned header/footer);
+// basic dialog from `sm` up — surface-container-high, extra-large (28dp) corners.
 export function Dialog({ title, onClose, footer, onSubmit, className, children }: DialogProps) {
   const content = (
     <>
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-2">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-2 pt-2">{children}</div>
       {footer && (
-        <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-[var(--color-outline-variant)] px-6 py-4 max-sm:*:flex-1 sm:border-t-0 sm:pb-6">
+        <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-[var(--md-sys-color-outline-variant)] px-6 py-4 max-sm:*:flex-1 sm:border-t-0 sm:pb-6">
           {footer}
         </div>
       )}
@@ -29,20 +29,23 @@ export function Dialog({ title, onClose, footer, onSubmit, className, children }
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 sm:p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 sm:p-4"
+      style={{ animation: 'm3-fade-in 150ms linear' }}
+    >
       <div
         role="dialog"
         aria-modal="true"
         className={cn(
-          'm3-card flex h-dvh w-full flex-col rounded-none sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-[1.75rem]',
+          'flex h-dvh w-full flex-col bg-[var(--md-sys-color-surface-container-high)] [--field-bg:var(--md-sys-color-surface-container-high)]',
+          'sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-[28px]',
           className,
         )}
+        style={{ animation: 'm3-dialog-in 250ms var(--md-ease-emphasized-decelerate)' }}
       >
-        <div className="flex shrink-0 items-center justify-between gap-2 px-6 pb-4 pt-4 sm:pt-6">
-          <h2 className="min-w-0 text-lg font-bold text-gray-900">{title}</h2>
-          <button onClick={onClose} className="m3-state shrink-0 rounded-full p-2.5 text-gray-600" aria-label="Cerrar">
-            <X className="h-5 w-5" />
-          </button>
+        <div className="flex shrink-0 items-center justify-between gap-2 py-3 pl-6 pr-3 sm:pb-2 sm:pt-5">
+          <h2 className="t-headline-small min-w-0 text-[var(--md-sys-color-on-surface)]">{title}</h2>
+          <IconButton icon="close" label="Cerrar" onClick={onClose} />
         </div>
         {onSubmit ? (
           <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
