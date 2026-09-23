@@ -17,9 +17,9 @@ interface Props {
 
 export function PaymentSheet({ customerName, total, busy, onPick, onClose }: Props) {
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-t-3xl bg-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+        className="w-full max-w-md rounded-t-3xl bg-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-3xl sm:pb-5"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="text-center text-sm text-muted">Cobrar a {customerName}</p>

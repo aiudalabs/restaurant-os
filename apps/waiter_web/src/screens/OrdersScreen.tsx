@@ -56,14 +56,23 @@ export function OrdersScreen({ session, branch, branches, onChangeBranch, onNewO
               </p>
             )}
           </div>
-          <button onClick={onLogout} className="shrink-0 rounded-full border border-line px-3 py-2 text-sm font-medium text-muted">
-            Salir
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={onNewOrder}
+              disabled={!branch.menuId}
+              className="hidden rounded-xl bg-brand px-5 py-3 font-bold text-white active:bg-brandDark disabled:opacity-50 md:block"
+            >
+              + Nuevo pedido
+            </button>
+            <button onClick={onLogout} className="rounded-full border border-line px-3 py-2 text-sm font-medium text-muted">
+              Salir
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="flex-1 space-y-3 px-4 pb-28 pt-4">
-        {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-brand">{error}</p>}
+      <main className="flex-1 px-4 pb-28 pt-4 md:pb-6">
+        {error && <p className="mb-3 rounded-xl bg-red-50 p-3 text-sm text-brand">{error}</p>}
         {!orders && !error && <Spinner full />}
         {orders?.length === 0 && (
           <div className="py-16 text-center text-muted">
@@ -72,10 +81,13 @@ export function OrdersScreen({ session, branch, branches, onChangeBranch, onNewO
             <p className="text-sm">Toca “Nuevo pedido” para empezar</p>
           </div>
         )}
-        {orders?.map((o) => <OrderCard key={o.id} order={o} orgId={session.orgId} now={now} />)}
+        {/* Oldest first: phone = vertical list; larger/touch screens = grid, left→right. */}
+        <div className="grid items-start gap-3 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+          {orders?.map((o) => <OrderCard key={o.id} order={o} orgId={session.orgId} now={now} />)}
+        </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 bg-gradient-to-t from-bg via-bg to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6">
+      <div className="fixed inset-x-0 bottom-0 md:hidden bg-gradient-to-t from-bg via-bg to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6">
         <button
           onClick={onNewOrder}
           disabled={!branch.menuId}
