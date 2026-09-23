@@ -1,13 +1,11 @@
-import { useState, useMemo } from 'react';
-import { Search, Eye, CheckCircle, Truck, XCircle, Lock, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Dialog } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
+import { useState, useMemo, type ReactNode } from 'react';
+import { Button, IconButton } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { Card, EmptyState, FilterChip, SideSheet, StatusChip, type StatusTone } from '@/components/ui/m3';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useAllOrders, useOrderItems, useUpdateOrderStatus } from '@/hooks/use-orders';
-import type { Order, OrderStatus } from '@/types/order';
+import type { Order, OrderStatus, PaymentMethod, PaymentStatus } from '@/types/order';
 import type { OrderItem } from '@/types/order-item';
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -23,23 +21,35 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   closed: 'Cerrado',
 };
 
-const STATUS_COLORS: Record<OrderStatus, string> = {
-  pending_payment: 'bg-amber-100 text-amber-700',
-  payment_failed: 'bg-red-100 text-red-700',
-  paid: 'bg-blue-100 text-blue-700',
-  pending: 'bg-yellow-100 text-yellow-700',
-  confirmed: 'bg-blue-100 text-blue-700',
-  in_preparation: 'bg-orange-100 text-orange-700',
-  ready: 'bg-green-100 text-green-700',
-  delivered: 'bg-gray-100 text-gray-700',
-  cancelled: 'bg-red-100 text-red-700',
-  closed: 'bg-gray-100 text-gray-500',
+// Tones follow the spec: listo → success, en cocina → info, por cobrar/alerta → error.
+const STATUS_TONES: Record<OrderStatus, StatusTone> = {
+  pending_payment: 'error',
+  payment_failed: 'error',
+  paid: 'neutral',
+  pending: 'error',
+  confirmed: 'info',
+  in_preparation: 'info',
+  ready: 'success',
+  delivered: 'outline',
+  cancelled: 'outline',
+  closed: 'outline',
 };
 
-// Never render a blank badge if an unknown status ever appears.
+// Never render a blank chip if an unknown status ever appears.
 const statusLabel = (s: OrderStatus): string => STATUS_LABELS[s] ?? s;
-const statusColor = (s: OrderStatus): string =>
-  STATUS_COLORS[s] ?? 'bg-gray-100 text-gray-500';
+const statusTone = (s: OrderStatus): StatusTone => STATUS_TONES[s] ?? 'outline';
+
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  cash: 'Efectivo',
+  card: 'Tarjeta',
+  yappy: 'Yappy',
+};
+
+const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  pending: 'Pendiente',
+  paid: 'Pagado',
+  failed: 'Fallido',
+};
 
 const ALL_STATUSES: OrderStatus[] = [
   'pending',
@@ -51,9 +61,23 @@ const ALL_STATUSES: OrderStatus[] = [
   'closed',
 ];
 
-// ─── Order Detail Dialog ───
+const money = (n: number): string => `$${n.toFixed(2)}`;
+const formatDate = (order: Order): string => order.createdAt?.toDate().toLocaleString('es-PA') ?? '-';
 
-interface OrderDetailDialogProps {
+function Spinner({ size = 32 }: { size?: number }) {
+  return (
+    <div
+      role="status"
+      aria-label="Cargando"
+      className="animate-spin rounded-full border-4 border-[var(--md-sys-color-primary)] border-t-transparent"
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
+// ─── Order Detail Sheet ───
+
+interface OrderDetailSheetProps {
   order: Order;
   items: OrderItem[];
   itemsLoading: boolean;
@@ -62,165 +86,150 @@ interface OrderDetailDialogProps {
   updating: boolean;
 }
 
-function OrderDetailDialog({ order, items, itemsLoading, onClose, onUpdateStatus, updating }: OrderDetailDialogProps) {
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="t-body-medium text-[var(--md-sys-color-on-surface-variant)]">{label}</dt>
+      <dd className="t-body-medium text-right tabular-nums text-[var(--md-sys-color-on-surface)]">{children}</dd>
+    </div>
+  );
+}
+
+function OrderDetailSheet({ order, items, itemsLoading, onClose, onUpdateStatus, updating }: OrderDetailSheetProps) {
+  const [actionError, setActionError] = useState('');
+
   const canConfirm = order.status === 'pending';
   const canDeliver = order.status === 'ready';
   const canClose = order.status === 'delivered';
   const canCancel = !['cancelled', 'closed'].includes(order.status);
 
+  const run = async (status: OrderStatus) => {
+    setActionError('');
+    try {
+      await onUpdateStatus(order.id, status);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'No se pudo actualizar el pedido.');
+    }
+  };
+
   // Status actions live in the pinned footer so they stay reachable on phones.
   const actions =
     canConfirm || canDeliver || canClose || canCancel ? (
       <>
-        {canConfirm && (
-          <Button
-            size="sm"
-            variant="primary"
-            className="max-sm:h-11"
-            disabled={updating}
-            onClick={() => onUpdateStatus(order.id, 'confirmed')}
-          >
-            <CheckCircle className="mr-1.5 h-4 w-4" />
-            Confirmar
-          </Button>
-        )}
-        {canDeliver && (
-          <Button
-            size="sm"
-            variant="primary"
-            className="max-sm:h-11"
-            disabled={updating}
-            onClick={() => onUpdateStatus(order.id, 'delivered')}
-          >
-            <Truck className="mr-1.5 h-4 w-4" />
-            Marcar entregado
+        {canCancel && (
+          <Button variant="ghost" icon="cancel" className="text-[var(--md-sys-color-error)]" disabled={updating} onClick={() => run('cancelled')}>
+            Cancelar
           </Button>
         )}
         {canClose && (
-          <Button
-            size="sm"
-            variant="tonal"
-            className="max-sm:h-11"
-            disabled={updating}
-            onClick={() => onUpdateStatus(order.id, 'closed')}
-          >
-            <Lock className="mr-1.5 h-4 w-4" />
+          <Button variant="tonal" icon="lock" disabled={updating} onClick={() => run('closed')}>
             Cerrar
           </Button>
         )}
-        {canCancel && (
-          <Button
-            size="sm"
-            variant="destructive"
-            className="max-sm:h-11"
-            disabled={updating}
-            onClick={() => onUpdateStatus(order.id, 'cancelled')}
-          >
-            <XCircle className="mr-1.5 h-4 w-4" />
-            Cancelar
+        {canDeliver && (
+          <Button icon="local_shipping" disabled={updating} onClick={() => run('delivered')}>
+            Marcar entregado
+          </Button>
+        )}
+        {canConfirm && (
+          <Button icon="check_circle" disabled={updating} onClick={() => run('confirmed')}>
+            Confirmar
           </Button>
         )}
       </>
     ) : undefined;
 
   return (
-    <Dialog title={`Pedido · ${order.tableNumber}`} onClose={onClose} footer={actions} className="sm:max-w-lg">
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-500">Estado</span>
-            <p>
-              <span
-                className={cn(
-                  'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                  statusColor(order.status),
-                )}
-              >
-                {statusLabel(order.status)}
-              </span>
-            </p>
-          </div>
-          <div>
-            <span className="text-gray-500">Fecha</span>
-            <p className="font-medium text-gray-900">
-              {order.createdAt?.toDate().toLocaleString('es-PA') ?? '-'}
-            </p>
-          </div>
-          <div>
-            <span className="text-gray-500">Subtotal</span>
-            <p className="font-medium text-gray-900">${order.subtotal.toFixed(2)}</p>
-          </div>
-          <div>
-            <span className="text-gray-500">Impuesto ({(order.taxPercent * 100).toFixed(0)}%)</span>
-            <p className="font-medium text-gray-900">${order.taxAmount.toFixed(2)}</p>
-          </div>
-          <div>
-            <span className="text-gray-500">Propina</span>
-            <p className="font-medium text-gray-900">${order.tipAmount.toFixed(2)}</p>
-          </div>
-          <div>
-            <span className="text-gray-500">Total</span>
-            <p className="text-lg font-bold text-orange-700">${order.total.toFixed(2)}</p>
-          </div>
+    <SideSheet title={`Pedido · ${order.tableNumber}`} onClose={onClose} footer={actions}>
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusChip tone={statusTone(order.status)}>{statusLabel(order.status)}</StatusChip>
+          <span className="t-body-medium text-[var(--md-sys-color-on-surface-variant)]">{formatDate(order)}</span>
         </div>
 
+        {actionError && (
+          <p role="alert" className="t-body-medium rounded-lg bg-[var(--md-sys-color-error-container)] px-3 py-2 text-[var(--md-sys-color-on-error-container)]">
+            {actionError}
+          </p>
+        )}
+
         {order.notes && (
-          <div className="rounded-2xl bg-yellow-50 p-3 text-sm text-yellow-800">
-            <strong>Notas:</strong> {order.notes}
+          <div className="flex gap-3 rounded-xl bg-[var(--md-sys-color-secondary-container)] p-4 text-[var(--md-sys-color-on-secondary-container)]">
+            <Icon name="sticky_note_2" size={20} />
+            <p className="t-body-medium">
+              <span className="t-label-large">Notas: </span>
+              {order.notes}
+            </p>
           </div>
         )}
 
-        <div>
-          <h3 className="mb-2 text-lg font-bold text-gray-900">Items del pedido</h3>
+        <section>
+          <h3 className="t-title-medium mb-2 text-[var(--md-sys-color-on-surface)]">Items del pedido</h3>
           {itemsLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-orange-600 border-t-transparent" />
+            <div className="flex justify-center py-4">
+              <Spinner size={20} />
             </div>
           ) : items.length === 0 ? (
-            <p className="text-sm text-gray-400">No se encontraron items.</p>
+            <p className="t-body-medium text-[var(--md-sys-color-on-surface-variant)]">No se encontraron items.</p>
           ) : (
-            <div className="space-y-2">
+            <ul className="divide-y divide-[var(--md-sys-color-outline-variant)]">
               {items.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--color-surface-container-high)] px-4 py-3"
-                >
+                <li key={item.id} className="flex items-start justify-between gap-3 py-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
-                      {item.quantity}x {item.productName}
+                    <p className="t-body-large text-[var(--md-sys-color-on-surface)]">
+                      <span className="tabular-nums">{item.quantity}×</span> {item.productName}
                     </p>
                     {(item.modifiers?.length ?? 0) > 0 && (
-                      <p className="text-xs text-gray-500">
+                      <p className="t-body-small text-[var(--md-sys-color-on-surface-variant)]">
                         {item.modifiers?.map((m) => m.value).join(', ')}
                       </p>
                     )}
                     {item.specialInstructions && (
-                      <p className="text-xs text-yellow-600 italic">
-                        {item.specialInstructions}
-                      </p>
+                      <p className="t-body-small italic text-[var(--md-sys-color-tertiary)]">{item.specialInstructions}</p>
                     )}
                   </div>
-                  <span className="shrink-0 text-sm font-semibold text-gray-700">
-                    ${item.totalPrice.toFixed(2)}
+                  <span className="t-body-medium shrink-0 tabular-nums text-[var(--md-sys-color-on-surface)]">
+                    {money(item.totalPrice)}
                   </span>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </div>
+        </section>
 
-        <div className="pt-4 border-t border-gray-200">
-          <h3 className="mb-1 text-lg font-bold text-gray-900">Pago</h3>
-          <div className="text-sm text-gray-600">
-            <p>Metodo: {order.payment.method ?? 'No definido'}</p>
-            <p>Estado: {order.payment.status ?? 'Pendiente'}</p>
+        <section className="border-t border-[var(--md-sys-color-outline-variant)] pt-4">
+          <h3 className="t-title-medium mb-2 text-[var(--md-sys-color-on-surface)]">Totales</h3>
+          <dl className="space-y-1">
+            <DetailRow label="Subtotal">{money(order.subtotal)}</DetailRow>
+            <DetailRow label={`Impuesto (${(order.taxPercent * 100).toFixed(0)}%)`}>{money(order.taxAmount)}</DetailRow>
+            <DetailRow label="Propina">{money(order.tipAmount)}</DetailRow>
+            <div className="flex items-baseline justify-between gap-4 pt-2">
+              <dt className="t-title-medium text-[var(--md-sys-color-on-surface)]">Total</dt>
+              <dd className="t-title-large text-[var(--md-sys-color-primary)]">
+                <span className="tabular-nums">{money(order.total)}</span>
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className="border-t border-[var(--md-sys-color-outline-variant)] pt-4">
+          <h3 className="t-title-medium mb-2 text-[var(--md-sys-color-on-surface)]">Pago</h3>
+          <dl className="space-y-1">
+            <DetailRow label="Metodo">
+              {order.payment.method ? PAYMENT_METHOD_LABELS[order.payment.method] ?? order.payment.method : 'No definido'}
+            </DetailRow>
+            <DetailRow label="Estado">
+              {order.payment.status ? PAYMENT_STATUS_LABELS[order.payment.status] ?? order.payment.status : 'Pendiente'}
+            </DetailRow>
             {order.payment.confirmationNumber && (
-              <p>Confirmacion: {order.payment.confirmationNumber}</p>
+              <DetailRow label="Confirmacion">{order.payment.confirmationNumber}</DetailRow>
             )}
-          </div>
-        </div>
+          </dl>
+        </section>
+
+        <p className="t-body-small break-all text-[var(--md-sys-color-on-surface-variant)]">ID {order.id}</p>
       </div>
-    </Dialog>
+    </SideSheet>
   );
 }
 
@@ -253,6 +262,12 @@ export default function OrdersPage() {
     });
   }, [orders, statusFilter, searchQuery]);
 
+  const statusCounts = useMemo(() => {
+    const counts: Partial<Record<OrderStatus, number>> = {};
+    for (const order of orders) counts[order.status] = (counts[order.status] ?? 0) + 1;
+    return counts;
+  }, [orders]);
+
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
     fetchItems(order.id, order.orgId);
@@ -261,7 +276,7 @@ export default function OrdersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-600 border-t-transparent" />
+        <Spinner />
       </div>
     );
   }
@@ -269,142 +284,91 @@ export default function OrdersPage() {
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
+      <div className="flex flex-col gap-4">
+        <div className="relative w-full sm:max-w-md">
+          <Icon
+            name="search"
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--md-sys-color-on-surface-variant)]"
+          />
+          <input
+            type="search"
+            aria-label="Buscar pedidos"
             placeholder="Buscar por cliente, mesa o ID..."
-            className="pl-11"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            className="t-body-large h-14 w-full rounded-full bg-[var(--md-sys-color-surface-container-high)] pl-14 pr-14 text-[var(--md-sys-color-on-surface)] placeholder:text-[var(--md-sys-color-on-surface-variant)] [&::-webkit-search-cancel-button]:hidden"
           />
+          {searchQuery && (
+            <IconButton
+              icon="close"
+              label="Limpiar búsqueda"
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+              onClick={() => setSearchQuery('')}
+            />
+          )}
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as OrderStatus | 'all')}
-          className="h-12 w-full rounded-full bg-[var(--color-surface-container-high)] px-5 text-sm font-medium text-gray-900 focus:outline-none sm:ml-auto sm:w-auto"
-        >
-          <option value="all">Todos los estados</option>
+        <div role="group" aria-label="Filtrar por estado" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          <FilterChip selected={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>
+            Todos <span className="tabular-nums opacity-80">{orders.length}</span>
+          </FilterChip>
           {ALL_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABELS[s]}
-            </option>
+            <FilterChip key={s} selected={statusFilter === s} onClick={() => setStatusFilter(s)}>
+              {STATUS_LABELS[s]} <span className="tabular-nums opacity-80">{statusCounts[s] ?? 0}</span>
+            </FilterChip>
           ))}
-        </select>
+        </div>
       </div>
 
-      {/* Orders Table */}
       {filteredOrders.length === 0 ? (
-        <div className="rounded-[1.75rem] border-2 border-dashed border-gray-200 py-12 text-center">
-          <p className="text-sm text-gray-500">No se encontraron pedidos.</p>
-        </div>
+        <Card>
+          <EmptyState
+            icon="receipt_long"
+            title="No se encontraron pedidos."
+            body={statusFilter !== 'all' || searchQuery ? 'Prueba con otro estado o búsqueda.' : undefined}
+          />
+        </Card>
       ) : (
-        <>
-          {/* Phones: tappable cards */}
-          <ul className="space-y-3 md:hidden">
+        <Card className="overflow-hidden">
+          <div className="t-label-medium flex items-center gap-4 border-b border-[var(--md-sys-color-outline-variant)] px-4 py-3 text-[var(--md-sys-color-on-surface-variant)]">
+            <span className="flex-1">Cliente / Mesa</span>
+            <span>Estado · Total</span>
+          </div>
+          <ul className="divide-y divide-[var(--md-sys-color-outline-variant)]">
             {filteredOrders.map((order) => (
               <li key={order.id}>
                 <button
+                  type="button"
                   onClick={() => handleViewOrder(order)}
-                  className="m3-card m3-state flex w-full items-center gap-3 p-4 text-left"
+                  className="m3-state flex w-full items-center gap-4 px-4 py-3 text-left text-[var(--md-sys-color-on-surface)]"
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate font-semibold text-gray-900">{order.tableNumber}</span>
-                      <span className="shrink-0 font-bold text-gray-900">${order.total.toFixed(2)}</span>
-                    </div>
-                    <div className="mt-1.5 flex items-center justify-between gap-2">
-                      <span
-                        className={cn(
-                          'inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                          statusColor(order.status),
-                        )}
-                      >
-                        {statusLabel(order.status)}
-                      </span>
-                      <span className="truncate text-xs text-gray-500">
-                        {order.itemCount} ítems · {order.createdAt?.toDate().toLocaleString('es-PA') ?? '-'}
-                      </span>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-gray-400" />
+                  <span
+                    aria-hidden="true"
+                    className="t-title-medium grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)]"
+                  >
+                    {order.tableNumber.trim().charAt(0).toUpperCase() || '#'}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="t-title-medium block truncate">{order.tableNumber}</span>
+                    <span className="t-body-medium block truncate text-[var(--md-sys-color-on-surface-variant)]">
+                      {order.itemCount} ítems · {formatDate(order)}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
+                    <StatusChip tone={statusTone(order.status)}>{statusLabel(order.status)}</StatusChip>
+                    <span className="t-title-medium min-w-[4.5rem] text-right">
+                      <span className="tabular-nums">{money(order.total)}</span>
+                    </span>
+                  </span>
+                  <Icon name="chevron_right" className="max-sm:hidden text-[var(--md-sys-color-on-surface-variant)]" />
                 </button>
               </li>
             ))}
           </ul>
-
-          {/* Tablet/desktop: table */}
-          <div className="m3-card hidden overflow-x-auto p-2 md:block">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                    Cliente / Mesa
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                    Estado
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                    Items
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                    Total
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                    Fecha
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="transition-colors hover:bg-[var(--color-surface-container-high)]"
-                  >
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                      {order.tableNumber}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                          statusColor(order.status),
-                        )}
-                      >
-                        {statusLabel(order.status)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{order.itemCount}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                      ${order.total.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {order.createdAt?.toDate().toLocaleString('es-PA') ?? '-'}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => handleViewOrder(order)}
-                      >
-                        <Eye className="mr-1 h-3.5 w-3.5" />
-                        Ver
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        </Card>
       )}
 
       {selectedOrder && (
-        <OrderDetailDialog
+        <OrderDetailSheet
           order={selectedOrder}
           items={items}
           itemsLoading={itemsLoading}
