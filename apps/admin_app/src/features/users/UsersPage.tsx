@@ -1,18 +1,40 @@
 import { useState } from 'react';
-import { Plus, Power, Shield, User, Wrench, ConciergeBell, Pencil, Trash2 } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button, IconButton } from '@/components/ui/button';
+import { Input, Select } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog } from '@/components/ui/dialog';
+import { Card, EmptyState, PageHeader, StatusChip, Switch, type StatusTone } from '@/components/ui/m3';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useUsers } from '@/hooks/use-users';
 import { useStations } from '@/hooks/use-stations';
 import type { AppUser, UserRole } from '@/types/user';
+
+const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
+  { value: 'operator', label: 'Operador' },
+  { value: 'waiter', label: 'Mesero' },
+  { value: 'manager', label: 'Manager' },
+  { value: 'admin', label: 'Admin' },
+];
+
+const ROLE_CONFIG: Record<UserRole, { label: string; icon: string; tone: StatusTone }> = {
+  admin: { label: 'Admin', icon: 'shield_person', tone: 'info' },
+  manager: { label: 'Manager', icon: 'manage_accounts', tone: 'success' },
+  operator: { label: 'Operador', icon: 'skillet', tone: 'neutral' },
+  waiter: { label: 'Mesero', icon: 'room_service', tone: 'neutral' },
+};
+
+function ErrorBanner({ children }: { children: string }) {
+  return (
+    <p className="t-body-medium rounded-lg bg-[var(--md-sys-color-error-container)] px-3 py-2 text-[var(--md-sys-color-on-error-container)]">
+      {children}
+    </p>
+  );
+}
 
 // ─── Edit User Dialog (doc fields only: name / role / station) ───
 
@@ -50,9 +72,6 @@ function EditUserDialog({
     }
   };
 
-  const selectCls =
-    'flex h-12 w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 text-[15px] text-[var(--color-on-surface)] focus:outline-none focus:border-orange-600';
-
   return (
     <Dialog
       title="Editar usuario"
@@ -68,41 +87,45 @@ function EditUserDialog({
         </>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-6 pt-2">
         <Input
           id="edit-name"
           label="Nombre completo"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
         />
-        <p className="break-all text-xs text-gray-500">
-          Email: <span className="font-mono">{user.email}</span> (no editable)
-        </p>
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-[var(--color-on-surface-variant)]">Rol</label>
-          <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} className={selectCls}>
-            <option value="operator">Operador</option>
-            <option value="waiter">Mesero</option>
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
+        <Input
+          id="edit-email"
+          label="Email"
+          value={user.email}
+          readOnly
+          disabled
+          supporting="El email no se puede editar."
+        />
+        <Select id="edit-role" label="Rol" value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
+          {ROLE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </Select>
         {role === 'operator' && (
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-              Estación
-            </label>
-            <select value={stationId} onChange={(e) => setStationId(e.target.value)} className={selectCls}>
-              <option value="">Sin estación asignada</option>
-              {stations.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="edit-station"
+            label="Estación"
+            value={stationId}
+            onChange={(e) => setStationId(e.target.value)}
+            supporting="El operador entra al KDS de esta estación."
+          >
+            <option value="">Sin estación asignada</option>
+            {stations.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </Select>
         )}
-        {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        {error && <ErrorBanner>{error}</ErrorBanner>}
       </div>
     </Dialog>
   );
@@ -117,13 +140,6 @@ const USER_FORM_SCHEMA = z.object({
 });
 
 type UserFormValues = z.infer<typeof USER_FORM_SCHEMA>;
-
-const ROLE_CONFIG: Record<UserRole, { label: string; icon: typeof Shield; color: string }> = {
-  admin: { label: 'Admin', icon: Shield, color: 'text-red-600 bg-red-50' },
-  manager: { label: 'Manager', icon: User, color: 'text-blue-600 bg-blue-50' },
-  operator: { label: 'Operador', icon: Wrench, color: 'text-green-600 bg-green-50' },
-  waiter: { label: 'Mesero', icon: ConciergeBell, color: 'text-purple-600 bg-purple-50' },
-};
 
 // ─── User Form Dialog ───
 
@@ -183,9 +199,6 @@ function UserFormDialog({ orgId, branchIds, stations, onSave, onClose }: UserFor
     }
   };
 
-  const selectCls =
-    'flex h-12 w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 text-[15px] text-[var(--color-on-surface)] focus:outline-none focus:border-orange-600 focus:bg-[var(--color-surface-container)]';
-
   return (
     <Dialog
       title="Nuevo usuario"
@@ -193,21 +206,22 @@ function UserFormDialog({ orgId, branchIds, stations, onSave, onClose }: UserFor
       onSubmit={handleSubmit(onSubmit)}
       footer={
         <>
-          <Button variant="tonal" type="button" onClick={onClose}>
+          <Button variant="ghost" type="button" onClick={onClose}>
             Cancelar
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Creando...' : 'Crear usuario'}
+            {isSubmitting ? 'Creando…' : 'Crear usuario'}
           </Button>
         </>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-6 pt-2">
         <Input
           id="displayName"
           label="Nombre completo"
           placeholder="Ej: Juan Perez"
           error={errors.displayName?.message}
+          isRequired
           {...register('displayName')}
         />
         <Input
@@ -216,122 +230,117 @@ function UserFormDialog({ orgId, branchIds, stations, onSave, onClose }: UserFor
           type="email"
           placeholder="usuario@restaurante.com"
           error={errors.email?.message}
+          isRequired
           {...register('email')}
         />
         <Input
           id="password"
-          label="Contrasena"
+          label="Contraseña"
           type="password"
-          placeholder="Minimo 6 caracteres"
+          placeholder="Mínimo 6 caracteres"
           error={errors.password?.message}
+          isRequired
           {...register('password')}
         />
 
-        <div className="space-y-1.5">
-          <label htmlFor="role" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-            Rol
-          </label>
-          <select id="role" className={selectCls} {...register('role')}>
-            <option value="operator">Operador</option>
-            <option value="waiter">Mesero</option>
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
+        <Select id="role" label="Rol" {...register('role')}>
+          {ROLE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </Select>
 
         {role === 'operator' && (
-          <div className="space-y-1.5">
-            <label htmlFor="stationId" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-              Estacion
-            </label>
-            <select id="stationId" className={selectCls} {...register('stationId')}>
-              <option value="">Sin estacion asignada</option>
-              {stations.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="stationId"
+            label="Estación"
+            supporting="El operador entra al KDS de esta estación."
+            {...register('stationId')}
+          >
+            <option value="">Sin estación asignada</option>
+            {stations.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </Select>
         )}
 
-        {serverError && (
-          <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
-            {serverError}
-          </div>
-        )}
+        {serverError && <ErrorBanner>{serverError}</ErrorBanner>}
       </div>
     </Dialog>
   );
 }
 
-// ─── Row pieces (shared by the phone cards and the desktop table) ───
+// ─── Row ───
 
-function RoleBadge({ role }: { role: UserRole }) {
+function RoleChip({ role }: { role: UserRole }) {
   // Fallback keeps an unknown role from crashing the list.
   const roleConfig = ROLE_CONFIG[role] ?? ROLE_CONFIG.operator;
-  const RoleIcon = roleConfig.icon;
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
-        roleConfig.color,
-      )}
-    >
-      <RoleIcon className="h-3 w-3" />
+    <StatusChip tone={roleConfig.tone} icon={roleConfig.icon}>
       {roleConfig.label}
-    </span>
+    </StatusChip>
   );
 }
 
-function StatusBadge({ isActive }: { isActive: boolean }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold',
-        isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500',
-      )}
-    >
-      {isActive ? 'Activo' : 'Inactivo'}
-    </span>
-  );
-}
-
-function UserActions({
+function UserRow({
   user,
+  stationName,
   canDelete,
   onEdit,
   onToggle,
   onDelete,
 }: {
   user: AppUser;
+  stationName: string | null;
   canDelete: boolean;
   onEdit: () => void;
-  onToggle: () => void;
+  onToggle: (isActive: boolean) => void;
   onDelete: () => void;
 }) {
+  const initial = (user.displayName || user.email || '?').trim().charAt(0).toUpperCase();
+  const switchId = `user-active-${user.id}`;
+
   return (
-    <div className="flex flex-wrap items-center gap-1 md:justify-end">
-      <Button variant="ghost" size="sm" className="h-10 text-xs md:h-7" onClick={onEdit}>
-        <Pencil className="mr-1 h-3.5 w-3.5" />
-        Editar
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className={cn('h-10 text-xs md:h-7', user.isActive ? 'text-gray-500' : 'text-green-600')}
-        onClick={onToggle}
-      >
-        <Power className="mr-1 h-3.5 w-3.5" />
-        {user.isActive ? 'Desactivar' : 'Activar'}
-      </Button>
-      {canDelete && (
-        <Button variant="ghost" size="sm" className="h-10 text-xs text-red-600 md:h-7" onClick={onDelete}>
-          <Trash2 className="mr-1 h-3.5 w-3.5" />
-          Eliminar
-        </Button>
-      )}
-    </div>
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+      <div className={cn('flex min-w-0 flex-1 basis-64 items-center gap-4', !user.isActive && 'opacity-60')}>
+        <span className="t-title-medium grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)]">
+          {initial}
+        </span>
+        <div className="min-w-0">
+          <p className="t-title-medium truncate text-[var(--md-sys-color-on-surface)]">{user.displayName}</p>
+          <p className="t-body-medium truncate text-[var(--md-sys-color-on-surface-variant)]">{user.email}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 max-md:pl-14">
+        <RoleChip role={user.role} />
+        {/* Stations are per branch: an operator of another branch shows no station chip. */}
+        {user.role === 'operator' && (stationName || !user.stationId) && (
+          <StatusChip tone="outline" icon="soup_kitchen">
+            {stationName ?? 'Sin estación'}
+          </StatusChip>
+        )}
+      </div>
+
+      <div className="ml-auto flex items-center gap-1">
+        <label htmlFor={switchId} className="t-label-large mr-2 cursor-pointer text-[var(--md-sys-color-on-surface-variant)]">
+          {user.isActive ? 'Activo' : 'Inactivo'}
+        </label>
+        <Switch id={switchId} checked={user.isActive} onChange={onToggle} />
+        <IconButton icon="edit" label="Editar usuario" onClick={onEdit} className="ml-2" />
+        {canDelete && (
+          <IconButton
+            icon="delete"
+            label="Eliminar usuario"
+            onClick={onDelete}
+            className="text-[var(--md-sys-color-error)]"
+          />
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -352,111 +361,55 @@ export default function UsersPage() {
   const [editUser, setEditUser] = useState<AppUser | null>(null);
   const [confirmUser, setConfirmUser] = useState<AppUser | null>(null);
   const stationOptions = stations.map((s) => ({ id: s.id, name: s.name }));
+  const stationName = (id?: string) => stations.find((s) => s.id === id)?.name ?? null;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--md-sys-color-primary)] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-end">
-        <Button onClick={() => setShowForm(true)} disabled={!branchId} className="max-sm:w-full">
-          <Plus className="mr-1.5 h-4 w-4" />
-          Nuevo usuario
-        </Button>
-      </div>
+    <div>
+      <PageHeader
+        subtitle="Quién entra al panel, a la app del mesero y al KDS."
+        actions={
+          <Button icon="person_add" onClick={() => setShowForm(true)} disabled={!branchId} className="max-sm:w-full">
+            Nuevo usuario
+          </Button>
+        }
+      />
 
       {users.length === 0 ? (
-        <div className="m3-card p-5 py-12 text-center">
-          <p className="text-sm text-gray-500">No hay usuarios registrados.</p>
-          <Button variant="ghost" size="sm" className="mt-2" onClick={() => setShowForm(true)}>
-            <Plus className="mr-1 h-4 w-4" />
-            Crear el primero
-          </Button>
-        </div>
+        <Card>
+          <EmptyState
+            icon="group"
+            title="No hay usuarios registrados."
+            action={
+              <Button variant="tonal" icon="person_add" onClick={() => setShowForm(true)} disabled={!branchId}>
+                Crear el primero
+              </Button>
+            }
+          />
+        </Card>
       ) : (
-        <>
-          {/* Phones: stacked cards */}
-          <ul className="space-y-3 md:hidden">
+        <Card>
+          <ul className="divide-y divide-[var(--md-sys-color-outline-variant)]">
             {users.map((user) => (
-              <li key={user.id} className={cn('m3-card p-4', !user.isActive && 'opacity-50')}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-gray-900">{user.displayName}</p>
-                    <p className="truncate text-sm text-gray-500">{user.email}</p>
-                  </div>
-                  <StatusBadge isActive={user.isActive} />
-                </div>
-                <div className="mt-2">
-                  <RoleBadge role={user.role} />
-                </div>
-                <div className="mt-3 border-t border-[var(--color-outline-variant)] pt-2">
-                  <UserActions
-                    user={user}
-                    canDelete={user.id !== appUser?.id}
-                    onEdit={() => setEditUser(user)}
-                    onToggle={() => toggleUser(user.id, !user.isActive)}
-                    onDelete={() => setConfirmUser(user)}
-                  />
-                </div>
-              </li>
+              <UserRow
+                key={user.id}
+                user={user}
+                stationName={stationName(user.stationId)}
+                canDelete={user.id !== appUser?.id}
+                onEdit={() => setEditUser(user)}
+                onToggle={(isActive) => toggleUser(user.id, isActive)}
+                onDelete={() => setConfirmUser(user)}
+              />
             ))}
           </ul>
-
-          {/* Tablet/desktop: table */}
-          <div className="m3-card hidden overflow-x-auto md:block">
-            <table className="min-w-full divide-y divide-[var(--color-outline-variant)]">
-              <thead className="bg-[var(--color-surface-container-high)]">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Nombre
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Email
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Rol
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Estado
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-outline-variant)]">
-                {users.map((user) => (
-                  <tr key={user.id} className={cn(!user.isActive && 'opacity-50')}>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {user.displayName}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{user.email}</td>
-                    <td className="px-4 py-3">
-                      <RoleBadge role={user.role} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge isActive={user.isActive} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <UserActions
-                        user={user}
-                        canDelete={user.id !== appUser?.id}
-                        onEdit={() => setEditUser(user)}
-                        onToggle={() => toggleUser(user.id, !user.isActive)}
-                        onDelete={() => setConfirmUser(user)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        </Card>
       )}
 
       {showForm && (
