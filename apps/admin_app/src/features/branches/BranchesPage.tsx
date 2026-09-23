@@ -145,7 +145,7 @@ function BranchDialog({
           ))}
         </div>
         <p className="mt-4 text-xs text-gray-500">
-          Guárdalas ahora — la contraseña no se vuelve a mostrar. Puedes cambiarlas en «Usuarios».
+          Guárdalas ahora — la contraseña no se vuelve a mostrar. Para entrar más fácil al KDS, ponle un PIN a cada estación en «Estaciones».
         </p>
       </Dialog>
     );
