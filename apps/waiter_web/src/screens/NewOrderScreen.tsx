@@ -3,22 +3,34 @@ import { createOrder, loadMenu, type MenuData } from '../lib/api';
 import { money } from '../lib/format';
 import { Spinner } from '../components/Spinner';
 import { CartPanel } from '../components/CartPanel';
+import { clearDraft, loadDraft, saveDraft } from '../lib/draft';
+import { closeLayers, openLayer, topLayer } from '../lib/nav';
 import type { Branch, CartLine, Product } from '../types';
 
 interface Props {
   branch: Branch;
-  onDone: () => void;
 }
 
-export function NewOrderScreen({ branch, onDone }: Props) {
+export function NewOrderScreen({ branch }: Props) {
   const [menu, setMenu] = useState<MenuData | null>(null);
   const [menuError, setMenuError] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [customerName, setCustomerName] = useState('');
-  const [lines, setLines] = useState<CartLine[]>([]);
-  const [reviewing, setReviewing] = useState(false);
+  // Resume the unsent order of this branch, if any.
+  const [draft] = useState(() => loadDraft(branch.id));
+  const [customerName, setCustomerName] = useState(draft?.customerName ?? '');
+  const [lines, setLines] = useState<CartLine[]>(draft?.lines ?? []);
+  // The review sheet is a history entry, so the phone's back button closes it.
+  const [reviewing, setReviewing] = useState(() => topLayer() === 'review');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
+
+  useEffect(() => saveDraft(branch.id, { customerName, lines }), [branch.id, customerName, lines]);
+
+  useEffect(() => {
+    const onPop = () => setReviewing(topLayer() === 'review');
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   useEffect(() => {
     loadMenu(branch.menuId)
@@ -83,7 +95,8 @@ export function NewOrderScreen({ branch, onDone }: Props) {
     setSendError('');
     try {
       await createOrder(branch, customerName, lines);
-      onDone();
+      clearDraft(branch.id);
+      closeLayers();
     } catch (e) {
       console.error('[waiter] create order failed', e);
       setSendError('No se pudo enviar el pedido. Revisa tu conexión e intenta de nuevo.');
@@ -91,22 +104,33 @@ export function NewOrderScreen({ branch, onDone }: Props) {
     }
   };
 
-  const leave = () => {
-    if (lines.length > 0 && !window.confirm('¿Descartar este pedido?')) return;
-    onDone();
+  // Leaving keeps the draft: the orders screen offers to continue it.
+  const leave = () => closeLayers();
+
+  const discard = () => {
+    setLines([]);
+    setCustomerName('');
+    clearDraft(branch.id);
+    closeLayers();
   };
 
-  const cart = (
-    <CartPanel
-      customerName={customerName}
-      lines={lines}
-      taxPercent={branch.taxPercent}
-      sending={sending}
-      sendError={sendError}
-      onUpdateLine={updateLine}
-      onSend={send}
-    />
-  );
+  const openReview = () => {
+    openLayer('review');
+    setReviewing(true);
+  };
+  const closeReview = () => window.history.back();
+
+  const cartProps = {
+    customerName,
+    lines,
+    taxPercent: branch.taxPercent,
+    sending,
+    sendError,
+    onNameChange: setCustomerName,
+    onUpdateLine: updateLine,
+    onSend: send,
+    onDiscard: discard,
+  };
 
   return (
     <div className="flex min-h-full lg:h-full">
@@ -114,7 +138,7 @@ export function NewOrderScreen({ branch, onDone }: Props) {
         <header className="sticky top-0 z-10 space-y-3 border-b border-line bg-panel/95 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
           <div className="flex items-center gap-3">
             <button onClick={leave} className="rounded-full border border-line px-3 py-2 text-sm font-medium text-muted">
-              ← Volver
+              ← Pedidos
             </button>
             <p className="text-lg font-extrabold">Nuevo pedido</p>
           </div>
@@ -187,7 +211,7 @@ export function NewOrderScreen({ branch, onDone }: Props) {
         {itemCount > 0 && (
           <div className="fixed inset-x-0 bottom-0 bg-gradient-to-t from-bg via-bg to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6 lg:hidden">
             <button
-              onClick={() => setReviewing(true)}
+              onClick={openReview}
               className="flex w-full items-center justify-between rounded-2xl bg-brand px-5 py-4 text-lg font-bold text-white shadow-lg active:bg-brandDark"
             >
               <span>Revisar ({itemCount})</span>
@@ -198,18 +222,20 @@ export function NewOrderScreen({ branch, onDone }: Props) {
       </div>
 
       {/* Large screens: the cart is always visible next to the menu. */}
-      <aside className="hidden w-96 shrink-0 flex-col border-l border-line bg-panel pb-4 lg:flex">{cart}</aside>
+      <aside className="hidden w-96 shrink-0 flex-col border-l border-line bg-panel pb-4 lg:flex">
+        <CartPanel {...cartProps} />
+      </aside>
 
       {reviewing && (
         <div
           className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 lg:hidden"
-          onClick={() => setReviewing(false)}
+          onClick={closeReview}
         >
           <div
             className="flex max-h-[90vh] w-full max-w-md flex-col rounded-t-3xl bg-panel pb-[max(1rem,env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
-            {cart}
+            <CartPanel {...cartProps} onClose={closeReview} />
           </div>
         </div>
       )}
