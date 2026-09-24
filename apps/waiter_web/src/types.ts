@@ -5,6 +5,11 @@ export interface Session {
   displayName: string;
 }
 
+export interface RosterWaiter {
+  uid: string;
+  displayName: string;
+}
+
 export interface Branch {
   id: string;
   orgId: string;

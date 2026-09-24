@@ -18,10 +18,21 @@ function savedBranch(): string {
 }
 
 export function App() {
-  const { session, loading, error, login, logout } = useWaiterAuth();
+  const { session, loading, error, deviceBranch, roster, login, loginWithPin, logout, resetDevice } = useWaiterAuth();
 
   if (loading) return <Spinner full />;
-  if (!session) return <LoginScreen error={error} onLogin={login} />;
+  if (!session) {
+    return (
+      <LoginScreen
+        error={error}
+        deviceBranch={deviceBranch}
+        roster={roster}
+        onLogin={login}
+        onPin={loginWithPin}
+        onResetDevice={resetDevice}
+      />
+    );
+  }
   return <Workspace session={session} onLogout={logout} />;
 }
 
