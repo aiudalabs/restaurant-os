@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     customer_app_url: str = "https://restaurant-os-pedir.web.app"
     # Admin dashboard origin — calls the AI assistant endpoints cross-origin.
     admin_app_url: str = "https://restaurant-os-68c79.web.app"
+    # Firebase Hosting preview channels of the admin site (e.g. …--m3-verde-abc123.web.app)
+    admin_preview_origin_regex: str = r"https://restaurant-os-68c79--[a-z0-9-]+\.web\.app"
     # Server-to-server verification (go-live hardening). The PagueloFácil callback
     # is NOT signed, so before releasing an order to the kitchen we should re-check
     # the transaction against PagueloFácil's REST API. Provide the access token +
