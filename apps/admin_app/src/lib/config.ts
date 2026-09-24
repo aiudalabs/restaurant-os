@@ -13,3 +13,13 @@ export function buildCustomerQrUrl(orgId: string, branchId: string, tableId: str
 export const BFF_URL: string = (
   import.meta.env.VITE_BFF_URL ?? 'https://restaurantos-bff-t454q6kiqa-uc.a.run.app'
 ).replace(/\/$/, '');
+
+// Waiter web app. A device opened once with ?branch=… is set up for that branch:
+// waiters then sign in by picking their name and typing their 6-digit PIN.
+export const WAITER_APP_URL: string = (
+  import.meta.env.VITE_WAITER_APP_URL ?? 'https://restaurant-os-mesero.web.app'
+).replace(/\/$/, '');
+
+export function buildWaiterDeviceUrl(branchId: string): string {
+  return `${WAITER_APP_URL}/?branch=${branchId}`;
+}

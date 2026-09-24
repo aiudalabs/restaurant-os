@@ -13,6 +13,8 @@ import { useBranchContext } from '@/hooks/use-branch-context';
 import { useUsers } from '@/hooks/use-users';
 import { useStations } from '@/hooks/use-stations';
 import type { AppUser, UserRole } from '@/types/user';
+import { setWaiterPin } from '@/services/user.service';
+import { buildWaiterDeviceUrl } from '@/lib/config';
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'operator', label: 'Operador' },
@@ -285,6 +287,98 @@ function RoleChip({ role }: { role: UserRole }) {
   );
 }
 
+// ─── Waiter PIN dialog ───
+
+function WaiterPinDialog({ user, branchId, onClose }: { user: AppUser; branchId: string; onClose: () => void }) {
+  const [pin, setPin] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+  const deviceUrl = buildWaiterDeviceUrl(branchId);
+
+  const save = async () => {
+    if (!/^\d{6}$/.test(pin)) {
+      setError('El PIN debe ser de 6 dígitos.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await setWaiterPin(user.id, pin);
+      setSaved(true);
+      setPin('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar el PIN.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(deviceUrl);
+      setCopied(true);
+    } catch {
+      setError('No se pudo copiar. Selecciona el link y cópialo a mano.');
+    }
+  };
+
+  return (
+    <Dialog
+      title={`PIN de ${user.displayName}`}
+      onClose={onClose}
+      className="sm:max-w-lg"
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            {saved ? 'Listo' : 'Cancelar'}
+          </Button>
+          <Button type="button" onClick={save} disabled={saving || pin.length !== 6}>
+            {saving ? 'Guardando…' : 'Guardar PIN'}
+          </Button>
+        </>
+      }
+    >
+      <p className="t-body-medium mb-6 text-[var(--md-sys-color-on-surface-variant)]">
+        {user.displayName} entra a la app del mesero tocando su nombre y escribiendo este PIN. Se guarda cifrado; tras 5
+        intentos fallidos su acceso se bloquea (5 min, luego 30 min, luego 24 h).
+      </p>
+      <Input
+        id="waiter-pin"
+        label="PIN (6 dígitos)"
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        value={pin}
+        error={error || undefined}
+        supporting={saved ? `PIN guardado. Díselo a ${user.displayName}.` : undefined}
+        onChange={(e) => {
+          setPin(e.target.value.replace(/\D/g, '').slice(0, 6));
+          setSaved(false);
+          setError('');
+        }}
+        placeholder="Ej: 482913"
+      />
+
+      <div className="mt-6 rounded-xl bg-[var(--md-sys-color-surface-container-highest)] p-4">
+        <p className="t-label-medium text-[var(--md-sys-color-on-surface-variant)]">
+          Link para configurar el celular o la tablet del mesero
+        </p>
+        <div className="mt-2 flex items-center gap-2">
+          <code className="t-body-small min-w-0 flex-1 truncate text-[var(--md-sys-color-on-surface)]">{deviceUrl}</code>
+          <Button type="button" variant="ghost" icon={copied ? 'check' : 'content_copy'} onClick={copy}>
+            {copied ? 'Copiado' : 'Copiar'}
+          </Button>
+        </div>
+        <p className="t-body-small mt-1 text-[var(--md-sys-color-on-surface-variant)]">
+          Ábrelo una vez en cada dispositivo; después solo piden nombre y PIN.
+        </p>
+      </div>
+    </Dialog>
+  );
+}
+
 function UserRow({
   user,
   stationName,
@@ -292,6 +386,7 @@ function UserRow({
   onEdit,
   onToggle,
   onDelete,
+  onPin,
 }: {
   user: AppUser;
   stationName: string | null;
@@ -299,6 +394,7 @@ function UserRow({
   onEdit: () => void;
   onToggle: (isActive: boolean) => void;
   onDelete: () => void;
+  onPin: () => void;
 }) {
   const initial = (user.displayName || user.email || '?').trim().charAt(0).toUpperCase();
   const switchId = `user-active-${user.id}`;
@@ -330,7 +426,10 @@ function UserRow({
           {user.isActive ? 'Activo' : 'Inactivo'}
         </label>
         <Switch id={switchId} checked={user.isActive} onChange={onToggle} />
-        <IconButton icon="edit" label="Editar usuario" onClick={onEdit} className="ml-2" />
+        {user.role === 'waiter' && (
+          <IconButton icon="password" label={`PIN de ${user.displayName}`} onClick={onPin} className="ml-2" />
+        )}
+        <IconButton icon="edit" label="Editar usuario" onClick={onEdit} className={user.role === 'waiter' ? undefined : 'ml-2'} />
         {canDelete && (
           <IconButton
             icon="delete"
@@ -360,6 +459,7 @@ export default function UsersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState<AppUser | null>(null);
   const [confirmUser, setConfirmUser] = useState<AppUser | null>(null);
+  const [pinUser, setPinUser] = useState<AppUser | null>(null);
   const stationOptions = stations.map((s) => ({ id: s.id, name: s.name }));
   const stationName = (id?: string) => stations.find((s) => s.id === id)?.name ?? null;
 
@@ -406,6 +506,7 @@ export default function UsersPage() {
                 onEdit={() => setEditUser(user)}
                 onToggle={(isActive) => toggleUser(user.id, isActive)}
                 onDelete={() => setConfirmUser(user)}
+                onPin={() => setPinUser(user)}
               />
             ))}
           </ul>
@@ -430,6 +531,8 @@ export default function UsersPage() {
           onClose={() => setEditUser(null)}
         />
       )}
+
+      {pinUser && <WaiterPinDialog user={pinUser} branchId={branchId} onClose={() => setPinUser(null)} />}
 
       {confirmUser && (
         <ConfirmDialog
