@@ -14,5 +14,6 @@ export { provisionBranch } from "./branches/provision-branch";
 export { deleteBranch } from "./branches/delete-branch";
 export { setStationPin } from "./kds/set-station-pin";
 export { kdsLogin, kdsStationInfo } from "./kds/kds-login";
+export { setWaiterPin, waiterRoster, waiterLogin } from "./staff/waiter-pin";
 export { yappyWebhook } from "./payments/yappy-webhook";
 export { getOrderReports } from "./reports/get-order-reports";

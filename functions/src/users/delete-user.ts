@@ -34,7 +34,10 @@ export const deleteUser = functions.https.onCall(
       throw new functions.https.HttpsError("permission-denied", "El usuario pertenece a otra organización.");
     }
 
-    await db.collection("users").doc(data.userId).delete();
+    await Promise.all([
+      db.collection("users").doc(data.userId).delete(),
+      db.collection("staff_pins").doc(data.userId).delete(), // waiter PIN, if any
+    ]);
     try {
       await admin.auth().deleteUser(data.userId);
     } catch (e) {

@@ -32,7 +32,15 @@ order_items
 users
 integrations
 audit_log
+kds_pins        ← server-only: PIN hasheado por estación (KDS)
+staff_pins      ← server-only: PIN hasheado por mesero (waiter_web)
 ```
+
+`kds_pins/{stationId}` y `staff_pins/{userId}` los escriben y leen solo Cloud Functions
+(`setStationPin`/`kdsLogin`, `setWaiterPin`/`waiterLogin`). Forma común:
+`{ orgId, salt, pinHash, failedAttempts, lockLevel, lockedUntil, updatedAt }` más
+`branchId, stationId, operatorUid` (kds_pins) o `userId` (staff_pins). PIN de 6 dígitos,
+pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos fallidos.
 
 ---
 
