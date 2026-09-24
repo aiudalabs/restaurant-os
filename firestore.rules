@@ -135,6 +135,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ─── Waiter PINs ────────────────────────────────────────────────
+    // Hashed personal PINs of waiters — server-only (set via setWaiterPin,
+    // verified via waiterLogin). Same shape and lockout as kds_pins.
+
+    match /staff_pins/{userId} {
+      allow read, write: if false;
+    }
+
     // ─── Audit Log ──────────────────────────────────────────────────
     // Read-only for managers. Writes only from Cloud Functions.
 

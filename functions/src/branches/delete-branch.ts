@@ -55,6 +55,7 @@ export const deleteBranch = functions.https.onCall(
       if (others.length === 0 && u.role !== "admin") {
         // dedicated operator → remove entirely
         batch.delete(d.ref);
+        batch.delete(db.collection("staff_pins").doc(d.id)); // waiter PIN, if any
         toDeleteAuth.push(d.id);
       } else {
         batch.update(d.ref, { branchIds: others });
