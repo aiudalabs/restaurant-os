@@ -26,6 +26,9 @@ app.add_middleware(
         "http://localhost:5173",
         "http://localhost:4173",
     ],
+    # Preview channels get a random host per channel; match them by pattern
+    # (restricted to this project's admin site) instead of listing each one.
+    allow_origin_regex=settings.admin_preview_origin_regex,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
