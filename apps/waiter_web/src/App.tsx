@@ -5,6 +5,8 @@ import { LoginScreen } from './screens/LoginScreen';
 import { OrdersScreen } from './screens/OrdersScreen';
 import { NewOrderScreen } from './screens/NewOrderScreen';
 import { Spinner } from './components/Spinner';
+import { loadDraft } from './lib/draft';
+import { openLayer, topLayer } from './lib/nav';
 import type { Branch, Session } from './types';
 
 const BRANCH_KEY = 'waiter_branch';
@@ -43,7 +45,13 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
   });
   const [branches, setBranches] = useState<Branch[]>([]);
   const [error, setError] = useState('');
-  const [view, setView] = useState<'orders' | 'new'>('orders');
+  // The new-order screen is a history entry (see lib/nav): back returns here.
+  const [view, setView] = useState<'orders' | 'new'>(() => (topLayer() ? 'new' : 'orders'));
+  useEffect(() => {
+    const onPop = () => setView(topLayer() ? 'new' : 'orders');
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   useEffect(() => {
     let missing = false;
@@ -89,7 +97,7 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
   if (!branch) return <Spinner full />;
 
   if (view === 'new') {
-    return <NewOrderScreen branch={branch} onDone={() => setView('orders')} />;
+    return <NewOrderScreen branch={branch} />;
   }
   return (
     <OrdersScreen
@@ -97,7 +105,11 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
       branch={branch}
       branches={branches}
       onChangeBranch={changeBranch}
-      onNewOrder={() => setView('new')}
+      draft={loadDraft(branch.id)}
+      onNewOrder={() => {
+        openLayer('new');
+        setView('new');
+      }}
       onLogout={onLogout}
     />
   );

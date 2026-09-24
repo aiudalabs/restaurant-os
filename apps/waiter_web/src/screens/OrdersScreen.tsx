@@ -3,17 +3,25 @@ import { watchActiveOrders } from '../lib/api';
 import { OrderCard } from '../components/OrderCard';
 import { Spinner } from '../components/Spinner';
 import type { Branch, Order, Session } from '../types';
+import type { OrderDraft } from '../lib/draft';
 
 interface Props {
   session: Session;
   branch: Branch;
   branches: Branch[];
   onChangeBranch: (id: string) => void;
+  /** Unsent order kept on this device, if any. */
+  draft: OrderDraft | null;
   onNewOrder: () => void;
   onLogout: () => void;
 }
 
-export function OrdersScreen({ session, branch, branches, onChangeBranch, onNewOrder, onLogout }: Props) {
+export function OrdersScreen({ session, branch, branches, onChangeBranch, draft, onNewOrder, onLogout }: Props) {
+  const draftItems = draft?.lines.reduce((n, l) => n + l.quantity, 0) ?? 0;
+  const draftName = draft?.customerName.trim();
+  const newOrderLabel = draft
+    ? `Continuar pedido${draftName ? ` de ${draftName}` : ''}${draftItems ? ` (${draftItems})` : ''}`
+    : '+ Nuevo pedido';
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState('');
   const [now, setNow] = useState(() => Date.now());
@@ -62,7 +70,7 @@ export function OrdersScreen({ session, branch, branches, onChangeBranch, onNewO
               disabled={!branch.menuId}
               className="hidden rounded-xl bg-brand px-5 py-3 font-bold text-white active:bg-brandDark disabled:opacity-50 md:block"
             >
-              + Nuevo pedido
+              {newOrderLabel}
             </button>
             <button onClick={onLogout} className="rounded-full border border-line px-3 py-2 text-sm font-medium text-muted">
               Salir
@@ -93,7 +101,7 @@ export function OrdersScreen({ session, branch, branches, onChangeBranch, onNewO
           disabled={!branch.menuId}
           className="w-full rounded-2xl bg-brand py-4 text-lg font-bold text-white shadow-lg active:bg-brandDark disabled:opacity-50"
         >
-          + Nuevo pedido
+          {newOrderLabel}
         </button>
         {!branch.menuId && (
           <p className="mt-2 text-center text-xs text-muted">Esta sucursal no tiene menú asignado.</p>
