@@ -24,6 +24,23 @@ interface DailyRevenue {
   orders: number;
 }
 
+/** One row per order, for the CSV export (cancelled orders included). */
+interface OrderRow {
+  id: string;
+  date: string; // YYYY-MM-DD, org timezone
+  time: string; // HH:mm, org timezone
+  label: string; // tableNumber: customer name (waiter), pickup code (QR) or table
+  source: string; // waiter | qr | …
+  status: string;
+  items: string; // "3 Pasta Alfredo; 1 Tiramisú"
+  subtotal: number;
+  tax: number;
+  tip: number;
+  total: number;
+  paymentMethod: string; // cash | card | yappy | ""
+  paymentStatus: string; // paid | pending | ""
+}
+
 interface OrderReportData {
   totalOrders: number; // non-cancelled
   totalRevenue: number; // paid orders only (money actually collected)
@@ -32,18 +49,18 @@ interface OrderReportData {
   topProducts: ProductCount[];
   ordersByStatus: Record<string, number>; // every status, cancelled included
   dailyRevenue: DailyRevenue[];
+  orders: OrderRow[];
 }
 
 const DEFAULT_TIMEZONE = "America/Panama";
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** YYYY-MM-DD formatter for a timezone; falls back to Panamá if the zone is invalid. */
-function dayFormatter(timeZone: string): Intl.DateTimeFormat {
-  const opts: Intl.DateTimeFormatOptions = { year: "numeric", month: "2-digit", day: "2-digit" };
+/** Date formatter for a timezone; falls back to Panamá if the zone is invalid. */
+function formatter(locale: string, opts: Intl.DateTimeFormatOptions, timeZone: string): Intl.DateTimeFormat {
   try {
-    return new Intl.DateTimeFormat("en-CA", { ...opts, timeZone });
+    return new Intl.DateTimeFormat(locale, { ...opts, timeZone });
   } catch {
-    return new Intl.DateTimeFormat("en-CA", { ...opts, timeZone: DEFAULT_TIMEZONE });
+    return new Intl.DateTimeFormat(locale, { ...opts, timeZone: DEFAULT_TIMEZONE });
   }
 }
 
@@ -118,7 +135,9 @@ export const getOrderReports = functions.https.onCall(
           .get(),
         firestore.collection("organizations").doc(data.orgId).get(),
       ]);
-      const toDay = dayFormatter((orgSnap.data()?.timezone as string) || DEFAULT_TIMEZONE);
+      const tz = (orgSnap.data()?.timezone as string) || DEFAULT_TIMEZONE;
+      const toDay = formatter("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }, tz); // YYYY-MM-DD
+      const toTime = formatter("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }, tz); // HH:mm
 
       const all = ordersSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Record<string, unknown> & { id: string });
       const active = all.filter((o) => o.status !== "cancelled");
@@ -142,9 +161,12 @@ export const getOrderReports = functions.https.onCall(
         days.set(date, day);
       }
 
-      // 6. Top products from the non-cancelled orders' items
+      // 6. Items of every order (detail export); top products count only
+      //    non-cancelled items of non-cancelled orders.
       const productMap = new Map<string, ProductCount>();
-      const orderIds = active.map((o) => o.id);
+      const itemsByOrder = new Map<string, string[]>();
+      const activeIds = new Set(active.map((o) => o.id));
+      const orderIds = all.map((o) => o.id);
       const batchSize = 30; // Firestore "in" limit
       for (let i = 0; i < orderIds.length; i += batchSize) {
         const itemsSnap = await firestore
@@ -153,7 +175,10 @@ export const getOrderReports = functions.https.onCall(
           .get();
         for (const itemDoc of itemsSnap.docs) {
           const item = itemDoc.data();
-          if (item.status === "cancelled") continue;
+          const lines = itemsByOrder.get(item.orderId) ?? [];
+          lines.push(`${item.quantity ?? 1} ${item.productName ?? ""}`);
+          itemsByOrder.set(item.orderId, lines);
+          if (item.status === "cancelled" || !activeIds.has(item.orderId)) continue;
           const key = item.productId ?? item.productName;
           const p = productMap.get(key) ?? { productName: item.productName ?? "", quantity: 0, revenue: 0 };
           p.quantity += item.quantity ?? 0;
@@ -178,6 +203,32 @@ export const getOrderReports = functions.https.onCall(
         `${active.length} orders, $${totalRevenue.toFixed(2)} collected`
       );
 
+      const orderRows: OrderRow[] = all
+        .map((o) => {
+          const at = (o.createdAt as admin.firestore.Timestamp | undefined)?.toDate();
+          const payment = o.payment as Record<string, unknown> | undefined;
+          return {
+            sortKey: at?.getTime() ?? 0,
+            row: {
+              id: o.id,
+              date: at ? toDay.format(at) : "",
+              time: at ? toTime.format(at) : "",
+              label: String(o.tableNumber ?? o.customerName ?? ""),
+              source: String(o.source ?? ""),
+              status: String(o.status ?? ""),
+              items: (itemsByOrder.get(o.id) ?? []).join("; "),
+              subtotal: round2((o.subtotal as number) ?? 0),
+              tax: round2((o.taxAmount as number) ?? 0),
+              tip: round2((o.tipAmount as number) ?? 0),
+              total: round2((o.total as number) ?? 0),
+              paymentMethod: String(payment?.method ?? ""),
+              paymentStatus: String(payment?.status ?? ""),
+            },
+          };
+        })
+        .sort((a, b) => a.sortKey - b.sortKey)
+        .map((x) => x.row);
+
       const report: OrderReportData = {
         totalOrders: active.length,
         totalRevenue: round2(totalRevenue),
@@ -188,6 +239,7 @@ export const getOrderReports = functions.https.onCall(
         dailyRevenue: Array.from(days.values())
           .sort((a, b) => a.date.localeCompare(b.date))
           .map((d) => ({ ...d, revenue: round2(d.revenue) })),
+        orders: orderRows,
       };
       return report;
     } catch (error) {
