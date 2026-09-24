@@ -61,3 +61,8 @@ export async function createOperatorUser(
   const result = await fn(payload);
   return result.data.uid;
 }
+
+/** Sets or replaces a waiter's 6-digit PIN (hashed server-side in staff_pins). */
+export async function setWaiterPin(userId: string, pin: string): Promise<void> {
+  await httpsCallable<{ userId: string; pin: string }, { success: boolean }>(functions, 'setWaiterPin')({ userId, pin });
+}

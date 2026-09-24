@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Power, Shield, User, Wrench, ConciergeBell, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Power, Shield, User, Wrench, ConciergeBell, Pencil, Trash2, KeyRound, Copy, Check } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,6 +13,8 @@ import { useBranchContext } from '@/hooks/use-branch-context';
 import { useUsers } from '@/hooks/use-users';
 import { useStations } from '@/hooks/use-stations';
 import type { AppUser, UserRole } from '@/types/user';
+import { setWaiterPin } from '@/services/user.service';
+import { buildWaiterDeviceUrl } from '@/lib/config';
 
 // ─── Edit User Dialog (doc fields only: name / role / station) ───
 
@@ -297,21 +299,117 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
   );
 }
 
+// ─── Waiter PIN dialog ───
+
+function WaiterPinDialog({ user, branchId, onClose }: { user: AppUser; branchId: string; onClose: () => void }) {
+  const [pin, setPin] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+  const deviceUrl = buildWaiterDeviceUrl(branchId);
+
+  const save = async () => {
+    if (!/^\d{6}$/.test(pin)) {
+      setError('El PIN debe ser de 6 dígitos.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await setWaiterPin(user.id, pin);
+      setSaved(true);
+      setPin('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar el PIN.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(deviceUrl);
+      setCopied(true);
+    } catch {
+      setError('No se pudo copiar. Selecciona el link y cópialo a mano.');
+    }
+  };
+
+  return (
+    <Dialog
+      title={`PIN de ${user.displayName}`}
+      onClose={onClose}
+      className="sm:max-w-lg"
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            {saved ? 'Listo' : 'Cancelar'}
+          </Button>
+          <Button type="button" onClick={save} disabled={saving || pin.length !== 6}>
+            {saving ? 'Guardando…' : 'Guardar PIN'}
+          </Button>
+        </>
+      }
+    >
+      <p className="mb-4 text-sm text-gray-500">
+        {user.displayName} entra a la app del mesero tocando su nombre y escribiendo este PIN. Se guarda cifrado; tras 5
+        intentos fallidos su acceso se bloquea (5 min, luego 30 min, luego 24 h).
+      </p>
+      <Input
+        id="waiter-pin"
+        label="PIN (6 dígitos)"
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        value={pin}
+        onChange={(e) => {
+          setPin(e.target.value.replace(/\D/g, '').slice(0, 6));
+          setSaved(false);
+        }}
+        placeholder="Ej: 482913"
+      />
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {saved && <p className="mt-2 text-sm font-semibold text-green-600">✓ PIN guardado. Díselo a {user.displayName}.</p>}
+
+      <div className="mt-6 rounded-xl bg-[var(--color-surface-container-high)] p-4">
+        <p className="text-xs font-medium text-gray-500">Link para configurar el celular o la tablet del mesero</p>
+        <div className="mt-2 flex items-center gap-2">
+          <code className="min-w-0 flex-1 truncate font-mono text-xs text-gray-900">{deviceUrl}</code>
+          <Button type="button" variant="ghost" size="sm" onClick={copy}>
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? 'Copiado' : 'Copiar'}
+          </Button>
+        </div>
+        <p className="mt-2 text-xs text-gray-500">Ábrelo una vez en cada dispositivo; después solo piden nombre y PIN.</p>
+      </div>
+    </Dialog>
+  );
+}
+
 function UserActions({
   user,
   canDelete,
   onEdit,
   onToggle,
   onDelete,
+  onPin,
 }: {
   user: AppUser;
   canDelete: boolean;
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
+  onPin: () => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-1 md:justify-end">
+      {user.role === 'waiter' && (
+        <Button variant="ghost" size="sm" className="h-10 text-xs md:h-7" onClick={onPin}>
+          <KeyRound className="mr-1 h-3.5 w-3.5" />
+          PIN
+        </Button>
+      )}
       <Button variant="ghost" size="sm" className="h-10 text-xs md:h-7" onClick={onEdit}>
         <Pencil className="mr-1 h-3.5 w-3.5" />
         Editar
@@ -351,6 +449,7 @@ export default function UsersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState<AppUser | null>(null);
   const [confirmUser, setConfirmUser] = useState<AppUser | null>(null);
+  const [pinUser, setPinUser] = useState<AppUser | null>(null);
   const stationOptions = stations.map((s) => ({ id: s.id, name: s.name }));
 
   if (loading) {
@@ -401,6 +500,7 @@ export default function UsersPage() {
                     onEdit={() => setEditUser(user)}
                     onToggle={() => toggleUser(user.id, !user.isActive)}
                     onDelete={() => setConfirmUser(user)}
+                    onPin={() => setPinUser(user)}
                   />
                 </div>
               </li>
@@ -449,6 +549,7 @@ export default function UsersPage() {
                         onEdit={() => setEditUser(user)}
                         onToggle={() => toggleUser(user.id, !user.isActive)}
                         onDelete={() => setConfirmUser(user)}
+                    onPin={() => setPinUser(user)}
                       />
                     </td>
                   </tr>
@@ -477,6 +578,8 @@ export default function UsersPage() {
           onClose={() => setEditUser(null)}
         />
       )}
+
+      {pinUser && <WaiterPinDialog user={pinUser} branchId={branchId} onClose={() => setPinUser(null)} />}
 
       {confirmUser && (
         <ConfirmDialog
