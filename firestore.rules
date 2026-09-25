@@ -24,6 +24,9 @@ service cloud.firestore {
     function isManager() { return hasUserDoc() && myRole() in ['admin', 'manager']; }
     function isOperator() { return hasUserDoc() && myRole() in ['admin', 'manager', 'operator']; }
     function belongsToMyOrg(orgId) { return hasUserDoc() && myOrgId() == orgId; }
+    // Anonymous customers (QR) have no users doc and may order anywhere; staff
+    // may only create orders/items inside their own org.
+    function canCreateInOrg(orgId) { return isAuthed() && (!hasUserDoc() || belongsToMyOrg(orgId)); }
 
     // ─── Organizations ──────────────────────────────────────────────
 
@@ -83,20 +86,24 @@ service cloud.firestore {
 
     // ─── Orders ─────────────────────────────────────────────────────
     // A customer reads ONLY the orders they created (createdByUid).
-    // Staff read/update orders from their own org (no cross-tenant leak).
+    // Staff read orders from their own org (no cross-tenant leak). Only
+    // admin/manager/waiter may update them (payments, closing): KDS operator
+    // accounts cannot — status roll-up is done server-side by Cloud Functions.
 
     match /orders/{orderId} {
-      allow create: if isAuthed();
+      allow create: if canCreateInOrg(request.resource.data.orgId);
       allow read: if belongsToMyOrg(resource.data.orgId)
                   || resource.data.createdByUid == uid();
-      allow update: if belongsToMyOrg(resource.data.orgId);
+      allow update: if belongsToMyOrg(resource.data.orgId)
+                    && (isManager() || myRole() == 'waiter')
+                    && request.resource.data.orgId == resource.data.orgId;
     }
 
     // ─── Order Items ────────────────────────────────────────────────
     // Same scoping as orders. KDS operators update items of their station.
 
     match /order_items/{itemId} {
-      allow create: if isAuthed();
+      allow create: if canCreateInOrg(request.resource.data.orgId);
       allow read: if belongsToMyOrg(resource.data.orgId)
                   || resource.data.createdByUid == uid();
       allow update: if belongsToMyOrg(resource.data.orgId)
@@ -125,6 +132,14 @@ service cloud.firestore {
     // kdsLogin). No client can read the hash or write a PIN.
 
     match /kds_pins/{stationId} {
+      allow read, write: if false;
+    }
+
+    // ─── Waiter PINs ────────────────────────────────────────────────
+    // Hashed personal PINs of waiters — server-only (set via setWaiterPin,
+    // verified via waiterLogin). Same shape and lockout as kds_pins.
+
+    match /staff_pins/{userId} {
       allow read, write: if false;
     }
 

@@ -10,7 +10,7 @@ import {
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '@/lib/firebase';
 import { paths } from '@/lib/firestore-paths';
-import type { AppUser } from '@/types/user';
+import type { AppUser, UserRole } from '@/types/user';
 
 export function watchUsers(
   orgId: string,
@@ -43,7 +43,7 @@ interface CreateOperatorPayload {
   displayName: string;
   orgId: string;
   branchIds: string[];
-  role: 'admin' | 'manager' | 'operator';
+  role: UserRole;
   stationId?: string;
 }
 
@@ -60,4 +60,9 @@ export async function createOperatorUser(
   );
   const result = await fn(payload);
   return result.data.uid;
+}
+
+/** Sets or replaces a waiter's 6-digit PIN (hashed server-side in staff_pins). */
+export async function setWaiterPin(userId: string, pin: string): Promise<void> {
+  await httpsCallable<{ userId: string; pin: string }, { success: boolean }>(functions, 'setWaiterPin')({ userId, pin });
 }

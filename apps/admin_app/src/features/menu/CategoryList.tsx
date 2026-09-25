@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Button, IconButton } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Category } from '@/types/menu';
 
@@ -11,7 +10,7 @@ interface CategoryListProps {
   onSelect: (id: string) => void;
   onCreate: (name: string) => Promise<void>;
   onUpdate: (id: string, name: string) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  onDelete: (id: string) => void;
   onToggle: (id: string, isActive: boolean) => Promise<void>;
   loading: boolean;
 }
@@ -52,118 +51,120 @@ export default function CategoryList({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-orange-600 border-t-transparent" />
+      <div className="flex items-center justify-center py-8" role="status" aria-label="Cargando categorías">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--md-sys-color-primary)] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between px-1">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-          Categorías
-        </h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsAdding(true)}
-          className="h-7 w-7 p-0"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+    <div className="space-y-1">
+      <div className="flex items-center justify-between pl-3">
+        <h3 className="t-title-small text-[var(--md-sys-color-on-surface-variant)]">Categorías</h3>
+        <IconButton icon="add" label="Nueva categoría" onClick={() => setIsAdding(true)} />
       </div>
 
       {isAdding && (
-        <div className="flex gap-2 px-1">
-          <Input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Nombre de categoría"
-            className="h-10 text-sm"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreate();
-              if (e.key === 'Escape') setIsAdding(false);
-            }}
-          />
-          <Button size="sm" onClick={handleCreate}>
+        <div className="flex items-center gap-1 pb-2 pt-3">
+          <div className="min-w-0 flex-1">
+            <Input
+              id="category-new"
+              label="Nueva categoría"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Nombre de categoría"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreate();
+                if (e.key === 'Escape') setIsAdding(false);
+              }}
+            />
+          </div>
+          <Button size="sm" className="px-3" onClick={handleCreate}>
             Crear
           </Button>
+          <IconButton icon="close" label="Cancelar" onClick={() => setIsAdding(false)} />
         </div>
       )}
 
       <ul className="space-y-0.5">
-        {categories.map((cat) => (
-          <li key={cat.id}>
-            {editingId === cat.id ? (
-              <div className="flex gap-2 px-1">
-                <Input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="h-10 text-sm"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleUpdate(cat.id);
-                    if (e.key === 'Escape') setEditingId(null);
-                  }}
-                />
-                <Button size="sm" onClick={() => handleUpdate(cat.id)}>
+        {categories.map((cat) => {
+          const selected = selectedId === cat.id;
+          if (editingId === cat.id) {
+            return (
+              <li key={cat.id} className="flex items-center gap-1 py-2">
+                <div className="min-w-0 flex-1">
+                  <Input
+                    id={`category-edit-${cat.id}`}
+                    label="Nombre"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleUpdate(cat.id);
+                      if (e.key === 'Escape') setEditingId(null);
+                    }}
+                  />
+                </div>
+                <Button size="sm" className="px-3" onClick={() => handleUpdate(cat.id)}>
                   OK
                 </Button>
-              </div>
-            ) : (
+                <IconButton icon="close" label="Cancelar" onClick={() => setEditingId(null)} />
+              </li>
+            );
+          }
+          return (
+            <li
+              key={cat.id}
+              className={cn(
+                'group flex h-14 items-center rounded-full pr-1',
+                selected
+                  ? 'bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]'
+                  : 'text-[var(--md-sys-color-on-surface-variant)]',
+              )}
+            >
               <button
+                type="button"
+                aria-current={selected ? 'true' : undefined}
                 onClick={() => onSelect(cat.id)}
+                className="m3-state flex h-full min-w-0 flex-1 flex-col items-start justify-center rounded-full pl-4 pr-2 text-left"
+              >
+                <span className={cn('t-label-large w-full truncate', !cat.isActive && 'opacity-60')}>{cat.name}</span>
+                {!cat.isActive && <span className="t-label-small opacity-80">Oculta</span>}
+              </button>
+              {/* Touch screens have no hover: the selected category always shows its actions. */}
+              <span
                 className={cn(
-                  'm3-state flex w-full items-center justify-between rounded-full px-4 py-2.5 text-sm transition-colors group',
-                  selectedId === cat.id
-                    ? 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] font-semibold'
-                    : 'text-gray-700',
-                  !cat.isActive && 'opacity-50',
+                  'shrink-0 items-center',
+                  selected ? 'flex' : 'hidden group-hover:flex group-focus-within:flex',
                 )}
               >
-                <span className="truncate">{cat.name}</span>
-                <span className="hidden group-hover:flex items-center gap-1">
-                  <span
-                    role="button"
-                    className="m3-state rounded-full p-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startEdit(cat);
-                    }}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </span>
-                  <span
-                    role="button"
-                    className="m3-state rounded-full px-1.5 py-0.5"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggle(cat.id, !cat.isActive);
-                    }}
-                  >
-                    <span className="text-xs font-semibold">{cat.isActive ? 'OFF' : 'ON'}</span>
-                  </span>
-                  <span
-                    role="button"
-                    className="m3-state rounded-full p-1 text-red-500"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(cat.id);
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </span>
-                </span>
-              </button>
-            )}
-          </li>
-        ))}
+                <IconButton
+                  icon="edit"
+                  label="Renombrar categoría"
+                  className="text-current"
+                  onClick={() => startEdit(cat)}
+                />
+                <IconButton
+                  icon={cat.isActive ? 'visibility_off' : 'visibility'}
+                  label={cat.isActive ? 'Desactivar categoría' : 'Activar categoría'}
+                  className="text-current"
+                  onClick={() => onToggle(cat.id, !cat.isActive)}
+                />
+                <IconButton
+                  icon="delete"
+                  label="Eliminar categoría"
+                  className="text-[var(--md-sys-color-error)]"
+                  onClick={() => onDelete(cat.id)}
+                />
+              </span>
+            </li>
+          );
+        })}
       </ul>
 
       {categories.length === 0 && !isAdding && (
-        <p className="px-3 py-4 text-sm text-gray-400 text-center">
+        <p className="t-body-medium px-3 py-4 text-center text-[var(--md-sys-color-on-surface-variant)]">
           Sin categorías. Crea la primera.
         </p>
       )}

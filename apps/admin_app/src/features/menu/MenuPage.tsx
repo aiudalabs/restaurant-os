@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Plus, UtensilsCrossed, Store, Pencil, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Dialog } from '@/components/ui/dialog';
+import { Icon } from '@/components/ui/icon';
+import { Card, EmptyState, PageHeader } from '@/components/ui/m3';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useMenus, useCategories, useProducts } from '@/hooks/use-menu';
@@ -10,7 +12,9 @@ import CategoryList from './CategoryList';
 import ProductList from './ProductList';
 import ProductFormDialog from './ProductFormDialog';
 import MenuFormDialog from './MenuFormDialog';
+import { countProductsInCategory } from '@/services/menu.service';
 import type { Product } from '@/types/product';
+import type { Category } from '@/types/menu';
 
 export default function MenuPage() {
   const { appUser } = useAuth();
@@ -23,6 +27,8 @@ export default function MenuPage() {
   const [showProductForm, setShowProductForm] = useState(false);
   const [showMenuForm, setShowMenuForm] = useState(false);
   const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
+  const [confirmCategory, setConfirmCategory] = useState<Category | null>(null);
+  const [confirmCatCount, setConfirmCatCount] = useState<number | null>(null);
   const [confirmMenu, setConfirmMenu] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState('');
@@ -70,6 +76,13 @@ export default function MenuPage() {
     });
   };
 
+  const handleDeleteCategory = (id: string) => {
+    const cat = categories.find((c) => c.id === id) ?? null;
+    setConfirmCategory(cat);
+    setConfirmCatCount(null);
+    if (cat) countProductsInCategory(id).then(setConfirmCatCount).catch(() => setConfirmCatCount(0));
+  };
+
   const handleAddProduct = () => {
     setEditingProduct(null);
     setShowProductForm(true);
@@ -81,8 +94,8 @@ export default function MenuPage() {
 
   if (menusLoading || branchLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-600 border-t-transparent" />
+      <div className="flex items-center justify-center py-12" role="status" aria-label="Cargando">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--md-sys-color-primary)] border-t-transparent" />
       </div>
     );
   }
@@ -90,87 +103,90 @@ export default function MenuPage() {
   // No branch selected/created yet → can't have a menu.
   if (!selectedBranch) {
     return (
-      <div className="m3-card flex flex-col items-center gap-3 p-12 text-center">
-        <Store className="h-10 w-10 text-gray-400" />
-        <p className="text-gray-500">Primero crea una sucursal en la sección «Sucursales».</p>
-      </div>
+      <Card variant="filled">
+        <EmptyState
+          icon="storefront"
+          title="Todavía no hay sucursales"
+          body="Primero crea una sucursal en la sección «Sucursales»."
+        />
+      </Card>
     );
   }
 
   // Branch has no menu yet → create one FOR THIS BRANCH (never show another branch's menu).
   if (!activeMenuId) {
     return (
-      <div className="m3-card flex flex-col items-center gap-3 p-12 text-center">
-        <UtensilsCrossed className="h-10 w-10 text-gray-400" />
-        <p className="font-semibold text-gray-900">
-          «{selectedBranch.name}» todavía no tiene menú
-        </p>
-        <p className="max-w-sm text-sm text-gray-500">
-          Crea el menú de esta sucursal. Será el que vean sus clientes al escanear el QR.
-          Para reutilizar el menú de otra sucursal, asígnalo desde «Sucursales».
-        </p>
-        <Button onClick={() => setShowMenuForm(true)}>
-          <Plus className="h-5 w-5" /> Crear menú para esta sucursal
-        </Button>
+      <Card variant="filled">
+        <EmptyState
+          icon="restaurant_menu"
+          title={`«${selectedBranch.name}» todavía no tiene menú`}
+          body="Crea el menú de esta sucursal. Será el que vean sus clientes al escanear el QR. Para reutilizar el menú de otra sucursal, asígnalo desde «Sucursales»."
+          action={
+            <Button icon="add" onClick={() => setShowMenuForm(true)} className="h-auto min-h-10 whitespace-normal py-2">
+              Crear menú para esta sucursal
+            </Button>
+          }
+        />
         {showMenuForm && (
           <MenuFormDialog orgId={orgId} onSave={createMenuForBranch} onClose={() => setShowMenuForm(false)} />
         )}
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="pb-24 min-[840px]:pb-0">
       {/* Which branch's menu you're editing — no org-wide menu picker. */}
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary-container)] px-4 py-2 text-sm font-semibold text-[var(--color-on-primary-container)]">
-          <Store className="h-4 w-4" />
-          {selectedBranch.name}
-        </span>
-        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-surface-container-high)] px-4 py-2 text-sm font-medium text-gray-700">
-          <UtensilsCrossed className="h-4 w-4 text-orange-600" />
-          {branchMenu?.name ?? 'Menú'}
-        </span>
-        {branchMenu && (
-          <>
-            <button
-              onClick={() => {
-                setRenameValue(branchMenu.name);
-                setRenameOpen(true);
-              }}
-              className="m3-state rounded-full p-2 text-gray-500"
-              title="Renombrar menú"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setConfirmMenu(true)}
-              className="m3-state rounded-full p-2 text-red-600"
-              title="Eliminar menú"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </>
-        )}
-      </div>
+      <PageHeader
+        title={branchMenu?.name ?? 'Menú'}
+        subtitle={
+          <span className="inline-flex items-center gap-1.5">
+            <Icon name="storefront" size={18} />
+            Menú de la sucursal «{selectedBranch.name}»
+          </span>
+        }
+        actions={
+          branchMenu && (
+            <>
+              <Button
+                variant="outlined"
+                icon="edit"
+                onClick={() => {
+                  setRenameValue(branchMenu.name);
+                  setRenameOpen(true);
+                }}
+              >
+                Renombrar
+              </Button>
+              <Button
+                variant="ghost"
+                icon="delete"
+                className="text-[var(--md-sys-color-error)]"
+                onClick={() => setConfirmMenu(true)}
+              >
+                Eliminar menú
+              </Button>
+            </>
+          )
+        }
+      />
 
-      <div className="flex gap-6">
-        {/* Categories */}
-        <div className="m3-card w-64 shrink-0 self-start p-4">
+      {/* Stacked on phones; categories become a side pane from 840px (M3 expanded) up. */}
+      <div className="flex flex-col gap-6 min-[840px]:flex-row min-[840px]:items-start">
+        <Card variant="filled" className="w-full shrink-0 p-3 min-[840px]:sticky min-[840px]:top-4 min-[840px]:w-72">
           <CategoryList
             categories={categories}
             selectedId={activeCategoryId}
             onSelect={(id) => setSelectedCategoryId(id)}
             onCreate={handleCreateCategory}
             onUpdate={(id, name) => updateCategory(id, { name })}
-            onDelete={deleteCategory}
+            onDelete={handleDeleteCategory}
             onToggle={(id, isActive) => updateCategory(id, { isActive })}
             loading={categoriesLoading}
           />
-        </div>
+        </Card>
 
-        {/* Products */}
-        <div className="min-w-0 flex-1">
+        <section className="@container min-w-0 flex-1" aria-label="Productos">
           {activeCategoryId ? (
             <ProductList
               products={products}
@@ -182,11 +198,15 @@ export default function MenuPage() {
               onDelete={setConfirmProduct}
             />
           ) : (
-            <div className="m3-card flex items-center justify-center p-10 text-gray-400">
-              Crea una categoría para empezar a agregar productos.
-            </div>
+            <Card>
+              <EmptyState
+                icon="category"
+                title="Sin categorías"
+                body="Crea una categoría para empezar a agregar productos."
+              />
+            </Card>
           )}
-        </div>
+        </section>
       </div>
 
       {showProductForm && (
@@ -210,6 +230,21 @@ export default function MenuPage() {
         />
       )}
 
+      {confirmCategory && (
+        <ConfirmDialog
+          title="Eliminar categoría"
+          message={
+            confirmCatCount === null
+              ? `Calculando cuántos productos hay en "${confirmCategory.name}"…`
+              : confirmCatCount > 0
+                ? `¿Eliminar "${confirmCategory.name}"? Se borrarán también sus ${confirmCatCount} producto(s). Esta acción no se puede deshacer.`
+                : `¿Eliminar "${confirmCategory.name}"? No tiene productos. Esta acción no se puede deshacer.`
+          }
+          onConfirm={() => deleteCategory(confirmCategory.id)}
+          onClose={() => { setConfirmCategory(null); setConfirmCatCount(null); }}
+        />
+      )}
+
       {confirmMenu && (
         <ConfirmDialog
           title="Eliminar menú"
@@ -223,37 +258,36 @@ export default function MenuPage() {
       )}
 
       {renameOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="m3-card w-full max-w-sm rounded-[1.75rem] p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Renombrar menú</h2>
-              <button onClick={() => setRenameOpen(false)} className="m3-state rounded-full p-2 text-gray-500">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+        <Dialog
+          title="Renombrar menú"
+          onClose={() => setRenameOpen(false)}
+          className="sm:max-w-sm"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (activeMenuId && renameValue.trim()) {
+              await updateMenu(activeMenuId, { name: renameValue.trim() });
+            }
+            setRenameOpen(false);
+          }}
+          footer={
+            <>
+              <Button type="button" variant="ghost" onClick={() => setRenameOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Guardar</Button>
+            </>
+          }
+        >
+          <div className="pt-2">
             <Input
               id="menu-rename"
               label="Nombre del menú"
               value={renameValue}
+              autoFocus
               onChange={(e) => setRenameValue(e.target.value)}
             />
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setRenameOpen(false)}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={async () => {
-                  if (activeMenuId && renameValue.trim()) {
-                    await updateMenu(activeMenuId, { name: renameValue.trim() });
-                  }
-                  setRenameOpen(false);
-                }}
-              >
-                Guardar
-              </Button>
-            </div>
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   );

@@ -5,6 +5,19 @@
 cliente escanee el QR de una mesa vea **el menú del restaurante donde está**, aunque
 ese dueño tenga 20 restaurantes.
 
+> **Corrección (2026-09-22):** este documento afirmaba que `createOperatorUser` seteaba
+> *custom claims*. **Era falso** — no existía ninguna llamada a `setCustomUserClaims`. Además
+> había tres huecos que este audit no vio: (1) RTDB `order_items/{stationId}` legible y
+> escribible por **cualquier** usuario autenticado (incluido un cliente anónimo); (2) cualquier
+> staff de la org —incluida una tablet de cocina— podía actualizar pedidos (marcar cobrado);
+> (3) el bloqueo por intentos del PIN del KDS nunca se persistía (se lanzaba el error dentro de
+> la transacción y se revertía), así que el PIN se podía probar sin límite. Todo corregido en
+> la rama `feat/waiter-web-mobile-admin`: claims `{orgId, role, stationId}` (helper
+> `setStaffClaims` + trigger `syncStaffClaims`), RTDB aislado por `auth.token.stationId`,
+> pedidos editables solo por admin/manager/waiter, PIN de 6 dígitos con bloqueo creciente
+> (5 min → 30 min → 24 h), y `deleteBranch` borra también PINs y tickets RTDB.
+> Migración: `tools/backfill_staff_claims.py` antes de desplegar las reglas.
+
 > **Estado (2026-07-11):** ✅ **P0** (QR→customer_web configurable), ✅ **P1** (página
 > **Sucursales** + asignar menú; menú del admin scopeado a la sucursal), ✅ **P4**
 > (datos duplicados eliminados), ✅ **P2** (onboarding self-serve `createOrganization`

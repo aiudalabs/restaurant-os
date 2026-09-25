@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
+import { setStaffClaims } from "./staff-claims";
 
 interface CreateOperatorRequest {
   email: string;
@@ -8,14 +9,14 @@ interface CreateOperatorRequest {
   displayName: string;
   orgId: string;
   branchIds: string[];
-  role: "manager" | "operator";
+  role: "manager" | "operator" | "waiter";
   stationId?: string;
 }
 
 /**
  * createOperatorUser — Callable function
  *
- * Allows org admins to create operator/manager users.
+ * Allows org admins to create manager/operator/waiter users.
  * Creates the user in Firebase Auth + Firestore users collection.
  */
 export const createOperatorUser = functions.https.onCall(
@@ -56,10 +57,10 @@ export const createOperatorUser = functions.https.onCall(
       );
     }
 
-    if (!["manager", "operator"].includes(data.role)) {
+    if (!["manager", "operator", "waiter"].includes(data.role)) {
       throw new functions.https.HttpsError(
         "invalid-argument",
-        "Role must be 'manager' or 'operator'."
+        "Role must be 'manager', 'operator' or 'waiter'."
       );
     }
 
@@ -90,6 +91,7 @@ export const createOperatorUser = functions.https.onCall(
       };
 
       await firestore.collection("users").doc(userRecord.uid).set(userData);
+      await setStaffClaims(userRecord.uid, { orgId: data.orgId, role: data.role, stationId: data.stationId });
 
       // 7. Write audit log
       await firestore.collection("audit_log").add({

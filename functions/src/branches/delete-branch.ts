@@ -7,8 +7,8 @@ interface DeleteBranchRequest {
 
 /**
  * deleteBranch — Callable. An org admin deletes a branch AND cascades:
- * its stations, its tables, and its dedicated operators (users assigned ONLY to
- * this branch). Operators shared with other branches just lose this branch from
+ * its stations (plus their KDS PINs and live RTDB tickets), its tables, and its
+ * dedicated operators (users assigned ONLY to this branch). Operators shared with other branches just lose this branch from
  * their branchIds. Orders are left as historical records.
  */
 export const deleteBranch = functions.https.onCall(
@@ -35,7 +35,13 @@ export const deleteBranch = functions.https.onCall(
     let tableCount = 0;
 
     const stations = await db.collection("stations").where("branchId", "==", data.branchId).get();
-    stations.forEach((d) => { batch.delete(d.ref); stationCount++; });
+    const rtdbCleanup: Record<string, null> = {};
+    stations.forEach((d) => {
+      batch.delete(d.ref);
+      batch.delete(db.collection("kds_pins").doc(d.id));
+      rtdbCleanup[`order_items/${d.id}`] = null;
+      stationCount++;
+    });
 
     const tables = await db.collection("tables").where("branchId", "==", data.branchId).get();
     tables.forEach((d) => { batch.delete(d.ref); tableCount++; });
@@ -49,6 +55,7 @@ export const deleteBranch = functions.https.onCall(
       if (others.length === 0 && u.role !== "admin") {
         // dedicated operator → remove entirely
         batch.delete(d.ref);
+        batch.delete(db.collection("staff_pins").doc(d.id)); // waiter PIN, if any
         toDeleteAuth.push(d.id);
       } else {
         batch.update(d.ref, { branchIds: others });
@@ -57,6 +64,7 @@ export const deleteBranch = functions.https.onCall(
 
     batch.delete(branchSnap.ref);
     await batch.commit();
+    if (stationCount > 0) await admin.database().ref().update(rtdbCleanup);
 
     // Delete the orphaned operators' Auth records (outside the Firestore batch).
     let operatorCount = 0;

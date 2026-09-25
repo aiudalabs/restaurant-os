@@ -178,9 +178,12 @@ def _route_to_kds(order_id: str) -> None:
             updates[key] = {
                 "status": "queued",
                 "updatedAt": {".sv": "timestamp"},
+                # Fixed at routing time: the KDS orders tickets FIFO by it.
+                "sentToStationAt": {".sv": "timestamp"},
                 "tableNumber": table_number,
                 "productName": item.get("productName", ""),
                 "quantity": item.get("quantity", 1),
+                "specialInstructions": item.get("specialInstructions", ""),
                 "orderId": order_id,
             }
 

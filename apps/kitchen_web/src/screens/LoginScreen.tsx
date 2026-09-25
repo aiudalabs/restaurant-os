@@ -1,12 +1,15 @@
 import { useState } from 'react';
+import type { StationInfo } from '../lib/auth';
 
 export function LoginScreen({
   stationId,
+  stationInfo,
   error,
   onPin,
   onEmail,
 }: {
   stationId: string;
+  stationInfo: StationInfo | null;
   error: string;
   onPin: (pin: string) => void;
   onEmail: (email: string, password: string) => void;
@@ -21,10 +24,6 @@ export function LoginScreen({
     if (pin.length >= 6) return;
     const next = pin + d;
     setPin(next);
-    if (next.length >= 4) {
-      // Auto-submit at 4; if the PIN is longer the user can keep the pad open —
-      // but most PINs are 4, so submit and let the server validate.
-    }
   };
 
   const submitPin = () => {
@@ -32,15 +31,36 @@ export function LoginScreen({
     setPin('');
   };
 
+  if (mode === 'pin' && stationId && stationInfo?.missing) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+        <h1 className="text-2xl font-extrabold">Estación eliminada</h1>
+        <p className="mt-2 max-w-sm text-muted">
+          La estación de este dispositivo ya no existe. Pide al administrador el link del KDS de la nueva estación.
+        </p>
+        <button onClick={() => setMode('email')} className="mt-8 text-sm text-muted underline">
+          Configurar con email
+        </button>
+      </div>
+    );
+  }
+
   if (mode === 'pin' && stationId) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-4">
         <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand text-3xl">🔥</div>
         <h1 className="text-2xl font-extrabold">Ingresa tu PIN</h1>
-        <p className="mt-1 text-sm text-muted">Estación de este dispositivo</p>
+        {stationInfo ? (
+          <p className="mt-1 text-center text-sm text-muted">
+            <span className="font-bold text-ink">{stationInfo.stationName}</span>
+            {stationInfo.branchName && ` · ${stationInfo.branchName}`}
+          </p>
+        ) : (
+          <p className="mt-1 text-sm text-muted">Estación de este dispositivo</p>
+        )}
 
         <div className="my-6 flex gap-3">
-          {[0, 1, 2, 3, 4, 5].slice(0, Math.max(4, pin.length)).map((i) => (
+          {[0, 1, 2, 3, 4, 5].map((i) => (
             <span
               key={i}
               className={`h-4 w-4 rounded-full ${i < pin.length ? 'bg-brand' : 'bg-line'}`}

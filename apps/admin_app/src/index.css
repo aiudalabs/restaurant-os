@@ -4,127 +4,226 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Material Design 3 — warm expressive theme for RestaurantOS Admin.
-   The core trick: we remap Tailwind's white / gray / orange tokens to an M3
-   tonal palette. Existing pages (bg-white, text-gray-900, orange-600…) inherit
-   the M3 look automatically, and dark mode flips by overriding the same tokens.
+   Material Design 3 — RestaurantOS Admin.
+   Scheme: SchemeTonalSpot from seed #386A20 ("verde albahaca"), generated with
+   @material/material-color-utilities 0.4.0 — no hand-picked colors.
+
+   Two layers:
+   1. --md-sys-color-* : the full M3 color roles (use these in new code).
+   2. Tailwind palette remap: `orange` → primary tonal palette, `gray` →
+      neutral/neutral-variant, `red` → error, so existing classes
+      (bg-orange-600, text-gray-900, bg-red-50…) follow the scheme and flip
+      in dark mode with no per-page work. The legacy --color-* semantic names
+      used by pages are aliased to the M3 roles below.
    ───────────────────────────────────────────────────────────────────────── */
 @theme {
-  --font-sans: "Roboto Flex", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: "Roboto Flex", Roboto, ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: "Roboto Mono", ui-monospace, monospace;
 
-  /* Primary tonal ramp (warm terracotta-orange) mapped onto Tailwind `orange` */
-  --color-orange-50:  #fff3ea;
-  --color-orange-100: #ffdcc4;
-  --color-orange-200: #ffb783;
-  --color-orange-300: #ff9645;
-  --color-orange-400: #f97d1c;
-  --color-orange-500: #e56a08;
-  --color-orange-600: #c75300; /* primary */
-  --color-orange-700: #9c3f00;
-  --color-orange-800: #7a3100;
-  --color-orange-900: #522000;
+  /* primary tonal palette: tones 98 95 90 80 70 60 40 30 20 10 */
+  --color-orange-50: #eeffde;
+  --color-orange-100: #d3fdb8;
+  --color-orange-200: #c5efab;
+  --color-orange-300: #a9d291;
+  --color-orange-400: #8fb678;
+  --color-orange-500: #759b60;
+  --color-orange-600: #446732; /* primary */
+  --color-orange-700: #2d4f1c;
+  --color-orange-800: #173807;
+  --color-orange-900: #072100;
 
-  /* Neutral ramp (warm) mapped onto Tailwind `gray` */
-  --color-gray-50:  #faf4ef;
-  --color-gray-100: #f3ebe3;
-  --color-gray-200: #e7dbd0;
-  --color-gray-300: #d6c6b8;
-  --color-gray-400: #a99787;
-  --color-gray-500: #7d6b5c;
-  --color-gray-600: #5e4e41;
-  --color-gray-700: #453a30;
-  --color-gray-800: #2d251e;
-  --color-gray-900: #211a13;
+  /* error tonal palette */
+  --color-red-50: #fff8f7;
+  --color-red-100: #ffedea;
+  --color-red-200: #ffdad6;
+  --color-red-300: #ffb4ab;
+  --color-red-400: #ff897d;
+  --color-red-500: #ff5449;
+  --color-red-600: #ba1a1a; /* error */
+  --color-red-700: #93000a;
+  --color-red-800: #690005;
+  --color-red-900: #410002;
 
-  /* M3 semantic tokens for the hand-built components */
-  --color-primary: #c75300;
-  --color-on-primary: #ffffff;
-  --color-primary-container: #ffdcc4;
-  --color-on-primary-container: #331100;
-  --color-secondary-container: #f6e0cf;
-  --color-on-secondary-container: #3b2c1c;
-  --color-surface: #fdf8f4;
-  --color-surface-container: #f6ece3;
-  --color-surface-container-high: #f1e6dc;
-  --color-on-surface: #211a13;
-  --color-on-surface-variant: #5e4e41;
-  --color-outline: #86766a;
-  --color-outline-variant: #e7dbd0;
+  /* neutral (50–200, 800–900) + neutral-variant (300–700) */
+  --color-gray-50: #f2f5ea;
+  --color-gray-100: #edefe5;
+  --color-gray-200: #e1e4d9;
+  --color-gray-300: #c3c8bb;
+  --color-gray-400: #8d9286;
+  --color-gray-500: #74796d;
+  --color-gray-600: #43483e;
+  --color-gray-700: #2d3229;
+  --color-gray-800: #2e312b;
+  --color-gray-900: #191d16;
 
-  /* Shape */
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
-  --radius-2xl: 1.75rem;
-  --radius-3xl: 2rem;
+  /* M3 shape scale */
+  --radius-xs: 4px;   /* extra-small: text fields, snackbar */
+  --radius-sm: 8px;   /* small: chips, menus */
+  --radius-md: 12px;  /* medium: cards */
+  --radius-lg: 16px;  /* large: FAB, drawer, side sheet */
+  --radius-xl: 28px;  /* extra-large: dialogs, bottom sheets */
+  --radius-2xl: 28px;
+  --radius-3xl: 32px;
 
-  /* M3 elevation (soft, tinted shadows) */
-  --shadow-e1: 0 1px 2px 0 rgb(80 40 0 / 0.10), 0 1px 3px 1px rgb(80 40 0 / 0.06);
-  --shadow-e2: 0 1px 2px 0 rgb(80 40 0 / 0.12), 0 2px 6px 2px rgb(80 40 0 / 0.08);
-  --shadow-e3: 0 4px 8px 3px rgb(80 40 0 / 0.10), 0 1px 3px 0 rgb(80 40 0 / 0.12);
+  /* M3 elevation (used sparingly — tonal surfaces carry depth) */
+  --shadow-e1: 0 1px 2px rgb(0 0 0 / .3), 0 1px 3px 1px rgb(0 0 0 / .15);
+  --shadow-e2: 0 1px 2px rgb(0 0 0 / .3), 0 2px 6px 2px rgb(0 0 0 / .15);
+  --shadow-e3: 0 1px 3px rgb(0 0 0 / .3), 0 4px 8px 3px rgb(0 0 0 / .15);
+}
+
+:root {
+  --md-sys-color-primary: #446732;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #c5efab;
+  --md-sys-color-on-primary-container: #2d4f1c;
+  --md-sys-color-secondary: #55624c;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #d8e7cb;
+  --md-sys-color-on-secondary-container: #3e4a35;
+  --md-sys-color-tertiary: #386666;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #bbebec;
+  --md-sys-color-on-tertiary-container: #1e4e4f;
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #93000a;
+  --md-sys-color-surface: #f8faf0;
+  --md-sys-color-on-surface: #191d16;
+  --md-sys-color-on-surface-variant: #43483e;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f2f5ea;
+  --md-sys-color-surface-container: #edefe5;
+  --md-sys-color-surface-container-high: #e7e9df;
+  --md-sys-color-surface-container-highest: #e1e4d9;
+  --md-sys-color-inverse-surface: #2e312b;
+  --md-sys-color-inverse-on-surface: #f0f2e7;
+  --md-sys-color-inverse-primary: #a9d291;
+  --md-sys-color-outline: #74796d;
+  --md-sys-color-outline-variant: #c3c8bb;
+
+  /* Legacy aliases used across pages (keep until every page uses --md-sys-*) */
+  --color-primary: var(--md-sys-color-primary);
+  --color-on-primary: var(--md-sys-color-on-primary);
+  --color-primary-container: var(--md-sys-color-primary-container);
+  --color-on-primary-container: var(--md-sys-color-on-primary-container);
+  --color-secondary-container: var(--md-sys-color-secondary-container);
+  --color-on-secondary-container: var(--md-sys-color-on-secondary-container);
+  --color-surface: var(--md-sys-color-surface);
+  --color-surface-container-low: var(--md-sys-color-surface-container-low);
+  --color-surface-container: var(--md-sys-color-surface-container);
+  --color-surface-container-high: var(--md-sys-color-surface-container-high);
+  --color-surface-container-highest: var(--md-sys-color-surface-container-highest);
+  --color-on-surface: var(--md-sys-color-on-surface);
+  --color-on-surface-variant: var(--md-sys-color-on-surface-variant);
+  --color-outline: var(--md-sys-color-outline);
+  --color-outline-variant: var(--md-sys-color-outline-variant);
+
+  --md-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --md-ease-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-ease-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
 /* Dark theme: override the SAME tokens so the whole app flips with no per-page work. */
 .dark {
-  --color-orange-50:  #3a1c00;
-  --color-orange-100: #5c2f00;
-  --color-orange-200: #7a3f00;
-  --color-orange-300: #a15100;
-  --color-orange-400: #d06c05;
-  --color-orange-500: #f97d1c;
-  --color-orange-600: #ffb27a; /* primary (dark) */
-  --color-orange-700: #ffc99e;
-  --color-orange-800: #ffdcc4;
-  --color-orange-900: #ffece0;
+  --md-sys-color-primary: #a9d291;
+  --md-sys-color-on-primary: #173807;
+  --md-sys-color-primary-container: #2d4f1c;
+  --md-sys-color-on-primary-container: #c5efab;
+  --md-sys-color-secondary: #bdcbb0;
+  --md-sys-color-on-secondary: #283420;
+  --md-sys-color-secondary-container: #3e4a35;
+  --md-sys-color-on-secondary-container: #d8e7cb;
+  --md-sys-color-tertiary: #a0cfd0;
+  --md-sys-color-on-tertiary: #003738;
+  --md-sys-color-tertiary-container: #1e4e4f;
+  --md-sys-color-on-tertiary-container: #bbebec;
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffdad6;
+  --md-sys-color-surface: #11140f;
+  --md-sys-color-on-surface: #e1e4d9;
+  --md-sys-color-on-surface-variant: #c3c8bb;
+  --md-sys-color-surface-container-lowest: #0c0f0a;
+  --md-sys-color-surface-container-low: #191d16;
+  --md-sys-color-surface-container: #1d211a;
+  --md-sys-color-surface-container-high: #282b24;
+  --md-sys-color-surface-container-highest: #32362f;
+  --md-sys-color-inverse-surface: #e1e4d9;
+  --md-sys-color-inverse-on-surface: #2e312b;
+  --md-sys-color-inverse-primary: #446732;
+  --md-sys-color-outline: #8d9286;
+  --md-sys-color-outline-variant: #43483e;
 
-  --color-gray-50:  #191510;   /* page surface */
-  --color-gray-100: #221c16;
-  --color-gray-200: #38302a;   /* borders/outline-variant */
-  --color-gray-300: #4b4038;
-  --color-gray-400: #a99787;
-  --color-gray-500: #cbb6a6;
-  --color-gray-600: #ddcabc;
-  --color-gray-700: #e9dccf;
-  --color-gray-800: #f2e8dd;
-  --color-gray-900: #f7ede3;   /* primary text */
+  --color-orange-50: #072100;
+  --color-orange-100: #173807;
+  --color-orange-200: #2d4f1c;
+  --color-orange-300: #446732;
+  --color-orange-400: #759b60;
+  --color-orange-500: #8fb678;
+  --color-orange-600: #a9d291;
+  --color-orange-700: #c5efab;
+  --color-orange-800: #d3fdb8;
+  --color-orange-900: #eeffde;
 
-  --color-white: #211c17;      /* card surface in dark */
-  --color-black: #f7ede3;
+  --color-red-50: #410002;
+  --color-red-100: #690005;
+  --color-red-200: #93000a;
+  --color-red-300: #ba1a1a;
+  --color-red-400: #ff5449;
+  --color-red-500: #ff897d;
+  --color-red-600: #ffb4ab;
+  --color-red-700: #ffdad6;
+  --color-red-800: #ffedea;
+  --color-red-900: #fff8f7;
 
-  --color-primary: #ffb27a;
-  --color-on-primary: #4a1f00;
-  --color-primary-container: #6e3600;
-  --color-on-primary-container: #ffdcc4;
-  --color-secondary-container: #52402f;
-  --color-on-secondary-container: #f6e0cf;
-  --color-surface: #191510;
-  --color-surface-container: #241d17;
-  --color-surface-container-high: #2f271f;
-  --color-on-surface: #f7ede3;
-  --color-on-surface-variant: #d6c3b4;
-  --color-outline: #a08d7e;
-  --color-outline-variant: #4b4038;
+  --color-gray-50: #11140f;
+  --color-gray-100: #1d211a;
+  --color-gray-200: #43483e;
+  --color-gray-300: #5b6055;
+  --color-gray-400: #8d9286;
+  --color-gray-500: #a8ada0;
+  --color-gray-600: #c3c8bb;
+  --color-gray-700: #d9dbd1;
+  --color-gray-800: #e1e4d9;
+  --color-gray-900: #e1e4d9;
 
-  --shadow-e1: 0 1px 2px 0 rgb(0 0 0 / 0.35), 0 1px 3px 1px rgb(0 0 0 / 0.25);
-  --shadow-e2: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 2px 6px 2px rgb(0 0 0 / 0.28);
-  --shadow-e3: 0 4px 8px 3px rgb(0 0 0 / 0.36), 0 1px 3px 0 rgb(0 0 0 / 0.4);
+  --color-white: #191d16; /* card surface in dark (surface-container-low) */
+  --color-black: #e1e4d9;
 }
 
 html { color-scheme: light; }
 html.dark { color-scheme: dark; }
 
 body {
-  background: var(--color-surface);
-  color: var(--color-on-surface);
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
   font-family: var(--font-sans);
-  font-variation-settings: "opsz" 24;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Reusable M3 building blocks for the hand-built shell/components. */
 @layer components {
-  /* State layer: subtle hover/press wash used by nav items, icon buttons… */
+  /* Material Symbols (loaded from Google Fonts in index.html). */
+  .ms {
+    font-family: "Material Symbols Outlined";
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    direction: ltr;
+    font-feature-settings: "liga";
+    -webkit-font-feature-settings: "liga";
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .ms-fill { font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24; }
+
+  /* M3 state layer: hover 8% / focus & press 10% of the content color. */
   .m3-state { position: relative; isolation: isolate; }
   .m3-state::after {
     content: "";
@@ -133,32 +232,62 @@ body {
     border-radius: inherit;
     background: currentColor;
     opacity: 0;
-    transition: opacity 0.15s ease;
+    transition: opacity 150ms linear;
     z-index: -1;
     pointer-events: none;
   }
   .m3-state:hover::after { opacity: 0.08; }
-  .m3-state:active::after { opacity: 0.12; }
+  .m3-state:focus-visible::after,
+  .m3-state:active::after { opacity: 0.10; }
 
-  /* Elevated card surface */
+  /* Cards: filled / outlined / elevated (M3 medium corner). */
   .m3-card {
-    background: var(--color-white);
-    border-radius: var(--radius-2xl);
+    background: var(--md-sys-color-surface-container-low);
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-e1);
   }
+  .m3-card-filled {
+    background: var(--md-sys-color-surface-container-highest);
+    border-radius: var(--radius-md);
+  }
+  .m3-card-outlined {
+    background: var(--md-sys-color-surface);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--radius-md);
+  }
+
+  /* M3 typescale (baseline). */
+  .t-display-small { font: 400 36px/44px var(--font-sans); }
+  .t-headline-medium { font: 400 28px/36px var(--font-sans); }
+  .t-headline-small { font: 400 24px/32px var(--font-sans); }
+  .t-title-large { font: 400 22px/28px var(--font-sans); }
+  .t-title-medium { font: 500 16px/24px var(--font-sans); letter-spacing: .15px; }
+  .t-title-small { font: 500 14px/20px var(--font-sans); letter-spacing: .1px; }
+  .t-body-large { font: 400 16px/24px var(--font-sans); letter-spacing: .5px; }
+  .t-body-medium { font: 400 14px/20px var(--font-sans); letter-spacing: .25px; }
+  .t-body-small { font: 400 12px/16px var(--font-sans); letter-spacing: .4px; }
+  .t-label-large { font: 500 14px/20px var(--font-sans); letter-spacing: .1px; }
+  .t-label-medium { font: 500 12px/16px var(--font-sans); letter-spacing: .5px; }
+  .t-label-small { font: 500 11px/16px var(--font-sans); letter-spacing: .5px; }
 }
 
+@keyframes m3-fade-in { from { opacity: 0; } }
+@keyframes m3-sheet-in { from { transform: translateX(100%); } }
+@keyframes m3-drawer-in { from { transform: translateX(-100%); } }
+@keyframes m3-dialog-in { from { opacity: 0; transform: scale(.94); } }
+@keyframes m3-view-in { from { opacity: 0; transform: translateY(8px); } }
+
 /* Focus ring uses the primary color everywhere. */
-:where(a, button, input, select, textarea):focus-visible {
-  outline: 2px solid var(--color-primary);
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
   outline-offset: 2px;
 }
 
-/* Nicer scrollbars */
-* { scrollbar-width: thin; scrollbar-color: var(--color-outline-variant) transparent; }
+/* Scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--md-sys-color-outline-variant) transparent; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--color-outline-variant); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline-variant); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
 
 @media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

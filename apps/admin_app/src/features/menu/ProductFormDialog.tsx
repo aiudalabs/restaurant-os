@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Icon } from '@/components/ui/icon';
+import { Input, Textarea } from '@/components/ui/input';
+import { Dialog } from '@/components/ui/dialog';
 import ModifierGroupEditor from './ModifierGroupEditor';
+import { uploadProductImage } from '@/services/storage.service';
 import type { Product, ModifierGroup } from '@/types/product';
 
 const modifierOptionSchema = z.object({
@@ -28,9 +30,16 @@ const modifierGroupSchema = z.object({
 const productSchema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
   description: z.string().optional(),
+  waiterNote: z.string().optional(),
   price: z.preprocess(
     (val) => (val === '' || val === undefined ? undefined : Number(val)),
-    z.number({ required_error: 'Precio requerido', invalid_type_error: 'Precio debe ser un número' }).min(0, 'Precio debe ser >= 0'),
+    // Empty number inputs arrive as NaN (valueAsNumber) → treat like a missing price.
+    z
+      .number({
+        error: (iss) =>
+          iss.input === undefined || Number.isNaN(iss.input) ? 'Precio requerido' : 'Precio debe ser un número',
+      })
+      .min(0, 'Precio debe ser >= 0'),
   ),
   tags: z.string().optional(),
   preparationMinutes: z.preprocess(
@@ -41,14 +50,15 @@ const productSchema = z.object({
   modifierGroups: z.array(modifierGroupSchema),
 });
 
-type ProductFormValues = z.infer<typeof productSchema>;
+type ProductFormInput = z.input<typeof productSchema>;
+type ProductFormValues = z.output<typeof productSchema>;
 
 interface ProductFormDialogProps {
   product: Product | null;
   orgId: string;
   menuId: string;
   categoryId: string;
-  onSave: (data: Omit<Product, 'id'>) => Promise<void>;
+  onSave: (data: Omit<Product, 'id'>) => Promise<unknown>;
   onUpdate: (id: string, data: Partial<Product>) => Promise<void>;
   onClose: () => void;
 }
@@ -69,26 +79,48 @@ export default function ProductFormDialog({
     handleSubmit,
     control,
     reset,
-    watch,
+    setValue,
     formState: { errors, isSubmitting },
-  } = useForm<ProductFormValues>({
+  } = useForm<ProductFormInput, unknown, ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
       description: '',
-      price: undefined as unknown as number,
+      waiterNote: '',
+      price: undefined,
       tags: '',
       preparationMinutes: undefined,
       imageUrl: '',
       modifierGroups: [],
     },
   });
+  const imageUrl = useWatch({ control, name: 'imageUrl' });
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const onPhotoPicked = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow picking the same file again
+    if (!file) return;
+    setUploading(true);
+    setUploadError('');
+    try {
+      const url = await uploadProductImage(orgId, file);
+      setValue('imageUrl', url, { shouldValidate: true, shouldDirty: true });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'No se pudo subir la foto.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     if (product) {
       reset({
         name: product.name,
         description: product.description ?? '',
+        waiterNote: product.waiterNote ?? '',
         price: product.price,
         tags: (product.tags ?? []).join(', '),
         preparationMinutes: product.preparationMinutes,
@@ -106,10 +138,8 @@ export default function ProductFormDialog({
       ? values.tags.split(',').map((t) => t.trim()).filter(Boolean)
       : [];
 
-    const productData: Omit<Product, 'id'> = {
-      orgId,
-      menuId,
-      categoryId,
+    // Editable fields only; orgId/menuId/categoryId are set on create and never updated.
+    const fields: Omit<Product, 'id' | 'orgId' | 'menuId' | 'categoryId'> = {
       name: values.name,
       price: values.price,
       isActive: product?.isActive ?? true,
@@ -117,16 +147,17 @@ export default function ProductFormDialog({
       tags,
       modifierGroups: values.modifierGroups as ModifierGroup[],
     };
-    if (values.description) productData.description = values.description;
-    if (values.preparationMinutes != null) productData.preparationMinutes = values.preparationMinutes;
-    if (values.imageUrl) productData.imageUrl = values.imageUrl;
+    if (values.description) fields.description = values.description;
+    // Always written so clearing the field removes the note.
+    fields.waiterNote = (values.waiterNote ?? '').trim();
+    if (values.preparationMinutes != null) fields.preparationMinutes = values.preparationMinutes;
+    if (values.imageUrl) fields.imageUrl = values.imageUrl;
 
     try {
       if (isEditing) {
-        const { orgId: _o, menuId: _m, categoryId: _c, ...updateData } = productData;
-        await onUpdate(product.id, updateData);
+        await onUpdate(product.id, fields);
       } else {
-        await onSave(productData);
+        await onSave({ orgId, menuId, categoryId, ...fields });
       }
       onClose();
     } catch (err) {
@@ -136,133 +167,160 @@ export default function ProductFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[1.75rem]">
-        <div className="flex items-center justify-between border-b border-[var(--color-outline-variant)] px-6 py-4">
-          <h2 className="text-lg font-bold text-gray-900">
-            {isEditing ? 'Editar producto' : 'Nuevo producto'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="m3-state rounded-full p-2 text-gray-600"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <Dialog
+      title={isEditing ? 'Editar producto' : 'Nuevo producto'}
+      onClose={onClose}
+      onSubmit={handleSubmit(onSubmit)}
+      className="sm:max-w-2xl"
+      footer={
+        <>
+          <Button variant="ghost" type="button" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isSubmitting || uploading}>
+            {isSubmitting
+              ? 'Guardando...'
+              : isEditing
+                ? 'Guardar cambios'
+                : 'Crear producto'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-5 pt-2">
+        <Input
+          id="name"
+          label="Nombre"
+          isRequired
+          placeholder="Ej: Hamburguesa clásica"
+          error={errors.name?.message}
+          {...register('name')}
+        />
+
+        <Textarea
+          id="description"
+          label="Descripción"
+          rows={2}
+          placeholder="Descripción opcional del producto"
+          {...register('description')}
+        />
+
+        <Input
+          id="waiterNote"
+          label="Observaciones para el mesero"
+          placeholder="Ej: Se le puede agregar pollo"
+          supporting="Solo la ve el mesero, en letra chica bajo el nombre. El cliente no la ve."
+          {...register('waiterNote')}
+        />
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Input
+            id="price"
+            label="Precio"
+            isRequired
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            error={errors.price?.message}
+            {...register('price', { valueAsNumber: true })}
+          />
+          <Input
+            id="preparationMinutes"
+            label="Tiempo de preparación (min)"
+            type="number"
+            min="0"
+            placeholder="15"
+            {...register('preparationMinutes', { valueAsNumber: true })}
+          />
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          <Input
-            id="name"
-            label="Nombre"
-            isRequired
-            placeholder="Ej: Hamburguesa clásica"
-            error={errors.name?.message}
-            {...register('name')}
-          />
+        <Input
+          id="tags"
+          label="Tags"
+          placeholder="vegetariano, sin_gluten, picante"
+          supporting="Separados por coma"
+          {...register('tags')}
+        />
 
-          <div className="space-y-1.5">
-            <label htmlFor="description" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-              Descripción
-            </label>
-            <textarea
-              id="description"
-              rows={2}
-              className="flex w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 py-2.5 text-[15px] text-[var(--color-on-surface)] placeholder:text-[var(--color-on-surface-variant)]/60 transition-colors focus:outline-none focus:border-orange-600 focus:bg-[var(--color-surface-container)]"
-              placeholder="Descripción opcional del producto"
-              {...register('description')}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              id="price"
-              label="Precio"
-              isRequired
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              error={errors.price?.message}
-              {...register('price', { valueAsNumber: true })}
-            />
-            <Input
-              id="preparationMinutes"
-              label="Tiempo de preparación (min)"
-              type="number"
-              min="0"
-              placeholder="15"
-              {...register('preparationMinutes', { valueAsNumber: true })}
-            />
-          </div>
-
-          <Input
-            id="tags"
-            label="Tags (separados por coma)"
-            placeholder="vegetariano, sin_gluten, picante"
-            {...register('tags')}
-          />
-
-          <div className="space-y-2">
-            <Input
-              id="imageUrl"
-              label="URL de imagen"
-              type="url"
-              placeholder="https://..."
-              error={errors.imageUrl?.message}
-              {...register('imageUrl')}
-            />
-            {watch('imageUrl') ? (
-              <img
-                src={watch('imageUrl')}
-                alt="Vista previa"
-                className="h-32 w-full rounded-xl border border-[var(--color-outline-variant)] object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                }}
-                onLoad={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = 'block';
-                }}
-              />
-            ) : (
-              <div className="flex h-32 w-full items-center justify-center rounded-xl bg-[var(--color-surface-container-high)] text-3xl text-gray-400">
-                🍽️
-              </div>
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* accept image/* lets phones offer the camera or the gallery */}
+            <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={onPhotoPicked} />
+            <Button
+              type="button"
+              variant="tonal"
+              icon={uploading ? undefined : 'add_a_photo'}
+              disabled={uploading || isSubmitting}
+              onClick={() => fileInput.current?.click()}
+            >
+              {uploading && <Icon name="progress_activity" size={18} className="animate-spin" />}
+              {uploading ? 'Subiendo foto…' : imageUrl ? 'Cambiar foto' : 'Subir foto'}
+            </Button>
+            {imageUrl && !uploading && (
+              <Button type="button" variant="ghost" onClick={() => setValue('imageUrl', '', { shouldDirty: true })}>
+                Quitar
+              </Button>
             )}
           </div>
-
-          <hr className="border-[var(--color-outline-variant)]" />
-
-          <Controller
-            name="modifierGroups"
-            control={control}
-            render={({ field }) => (
-              <ModifierGroupEditor
-                groups={field.value}
-                onChange={field.onChange}
-              />
-            )}
+          {uploadError && (
+            <p role="alert" className="t-body-small text-[var(--md-sys-color-error)]">
+              {uploadError}
+            </p>
+          )}
+          <Input
+            id="imageUrl"
+            label="O pega la URL de una imagen"
+            type="url"
+            placeholder="https://..."
+            error={errors.imageUrl?.message}
+            {...register('imageUrl')}
           />
-
-          {submitError && (
-            <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
-              {submitError}
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt="Vista previa"
+              className="h-32 w-full rounded-xl border border-[var(--md-sys-color-outline-variant)] object-cover"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
+              onLoad={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'block';
+              }}
+            />
+          ) : (
+            <div className="flex h-32 w-full flex-col items-center justify-center gap-1 rounded-xl bg-[var(--md-sys-color-surface-container-highest)] text-[var(--md-sys-color-on-surface-variant)]">
+              <Icon name="image" size={32} />
+              <span className="t-body-small">Sin imagen</span>
             </div>
           )}
+        </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-outline-variant)]">
-            <Button variant="ghost" type="button" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? 'Guardando...'
-                : isEditing
-                  ? 'Guardar cambios'
-                  : 'Crear producto'}
-            </Button>
-          </div>
-        </form>
+        <hr className="border-[var(--md-sys-color-outline-variant)]" />
+
+        <Controller
+          name="modifierGroups"
+          control={control}
+          render={({ field }) => (
+            <ModifierGroupEditor
+              groups={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        />
+
+        {errors.modifierGroups && (
+          <p className="t-body-medium rounded-xl bg-[var(--md-sys-color-error-container)] p-3 text-[var(--md-sys-color-on-error-container)]">
+            Revisa los modificadores: cada grupo necesita nombre y al menos una opción con nombre.
+          </p>
+        )}
+
+        {submitError && (
+          <p className="t-body-medium rounded-xl bg-[var(--md-sys-color-error-container)] p-3 text-[var(--md-sys-color-on-error-container)]">
+            {submitError}
+          </p>
+        )}
       </div>
-    </div>
+    </Dialog>
   );
 }

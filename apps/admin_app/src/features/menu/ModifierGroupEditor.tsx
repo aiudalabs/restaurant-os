@@ -1,6 +1,8 @@
-import { Plus, Trash2, GripVertical } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import type { ReactNode } from 'react';
+import { Button, IconButton } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/m3';
 import type { ModifierGroup, ModifierOption } from '@/types/product';
 
 interface ModifierGroupEditorProps {
@@ -26,6 +28,27 @@ function emptyGroup(): ModifierGroup {
     maxSelect: 1,
     options: [emptyOption()],
   };
+}
+
+interface CheckboxFieldProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  children: ReactNode;
+}
+
+/** Native checkbox with a 40dp-tall touch target and M3 colors. */
+function CheckboxField({ checked, onChange, children }: CheckboxFieldProps) {
+  return (
+    <label className="t-body-medium inline-flex h-10 cursor-pointer items-center gap-2 whitespace-nowrap text-[var(--md-sys-color-on-surface)]">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-[18px] w-[18px] cursor-pointer accent-[var(--md-sys-color-primary)]"
+      />
+      {children}
+    </label>
+  );
 }
 
 export default function ModifierGroupEditor({
@@ -80,154 +103,114 @@ export default function ModifierGroupEditor({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-bold text-gray-900">
-          Grupos de modificadores
-        </h4>
-        <Button variant="ghost" size="sm" onClick={addGroup} type="button">
-          <Plus className="mr-1 h-4 w-4" />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h4 className="t-title-medium text-[var(--md-sys-color-on-surface)]">Grupos de modificadores</h4>
+        <Button variant="ghost" icon="add" onClick={addGroup} type="button">
           Agregar grupo
         </Button>
       </div>
 
       {groups.length === 0 && (
-        <p className="text-sm text-gray-400 text-center py-2">
+        <p className="t-body-medium py-2 text-center text-[var(--md-sys-color-on-surface-variant)]">
           Sin modificadores. Ejemplo: "Término de cocción", "Extras".
         </p>
       )}
 
       {groups.map((group, gi) => (
-        <div
-          key={group.id}
-          className="rounded-2xl bg-[var(--color-surface-container-high)] p-4 space-y-3"
-        >
-          <div className="flex items-center gap-2">
-            <GripVertical className="h-4 w-4 text-gray-300 shrink-0" />
-            <Input
-              value={group.name}
-              onChange={(e) => updateGroup(gi, { name: e.target.value })}
-              placeholder="Nombre del grupo (ej: Término)"
-              className="h-10 text-sm flex-1"
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-500 hover:text-red-700"
+        <Card key={group.id} variant="filled" className="space-y-3 p-4">
+          <div className="flex items-center gap-2 pt-2">
+            <Icon name="drag_indicator" size={20} className="shrink-0 text-[var(--md-sys-color-on-surface-variant)]" />
+            <div className="min-w-0 flex-1">
+              <Input
+                id={`group-name-${group.id}`}
+                label="Nombre del grupo"
+                value={group.name}
+                onChange={(e) => updateGroup(gi, { name: e.target.value })}
+                placeholder="Ej: Término"
+              />
+            </div>
+            <IconButton
+              icon="delete"
+              label="Eliminar grupo"
+              className="text-[var(--md-sys-color-error)]"
               onClick={() => removeGroup(gi)}
-              type="button"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            />
           </div>
 
-          <div className="flex flex-wrap gap-4 text-sm text-gray-700">
-            <label className="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={group.required}
-                onChange={(e) => updateGroup(gi, { required: e.target.checked })}
-                className="rounded accent-orange-600"
-              />
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <CheckboxField checked={group.required} onChange={(required) => updateGroup(gi, { required })}>
               Obligatorio
-            </label>
-            <label className="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={group.multiSelect}
-                onChange={(e) =>
-                  updateGroup(gi, { multiSelect: e.target.checked })
-                }
-                className="rounded accent-orange-600"
-              />
+            </CheckboxField>
+            <CheckboxField checked={group.multiSelect} onChange={(multiSelect) => updateGroup(gi, { multiSelect })}>
               Multi-selección
-            </label>
+            </CheckboxField>
             {group.multiSelect && (
-              <>
-                <label className="flex items-center gap-1.5">
-                  Mín:
-                  <input
+              <div className="flex gap-3 pt-2">
+                <div className="w-24">
+                  <Input
+                    id={`group-min-${group.id}`}
+                    label="Mín"
                     type="number"
                     min={0}
                     value={group.minSelect}
-                    onChange={(e) =>
-                      updateGroup(gi, { minSelect: Number(e.target.value) })
-                    }
-                    className="w-14 rounded-lg border border-transparent bg-[var(--color-surface-container)] px-2 py-1 text-sm text-gray-900 focus:outline-none focus:border-orange-600"
+                    onChange={(e) => updateGroup(gi, { minSelect: Number(e.target.value) })}
                   />
-                </label>
-                <label className="flex items-center gap-1.5">
-                  Máx:
-                  <input
+                </div>
+                <div className="w-24">
+                  <Input
+                    id={`group-max-${group.id}`}
+                    label="Máx"
                     type="number"
                     min={1}
                     value={group.maxSelect}
-                    onChange={(e) =>
-                      updateGroup(gi, { maxSelect: Number(e.target.value) })
-                    }
-                    className="w-14 rounded-lg border border-transparent bg-[var(--color-surface-container)] px-2 py-1 text-sm text-gray-900 focus:outline-none focus:border-orange-600"
+                    onChange={(e) => updateGroup(gi, { maxSelect: Number(e.target.value) })}
                   />
-                </label>
-              </>
+                </div>
+              </div>
             )}
           </div>
 
-          {/* Options */}
-          <div className="space-y-1.5 pl-6">
+          {/* Options. Phones: option name on its own row, price/default/delete below. */}
+          <div className="space-y-4 pt-1 sm:pl-7">
             {(group.options ?? []).map((opt, oi) => (
-              <div key={opt.id} className="flex items-center gap-2">
-                <Input
-                  value={opt.name}
-                  onChange={(e) =>
-                    updateOption(gi, oi, { name: e.target.value })
-                  }
-                  placeholder="Opción (ej: Término medio)"
-                  className="h-10 text-sm flex-1"
-                />
-                <input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={opt.extraPrice}
-                  onChange={(e) =>
-                    updateOption(gi, oi, {
-                      extraPrice: Number(e.target.value),
-                    })
-                  }
-                  placeholder="$0.00"
-                  className="w-20 rounded-lg border border-transparent bg-[var(--color-surface-container)] px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-orange-600"
-                />
-                <label className="flex items-center gap-1 text-xs text-gray-500 whitespace-nowrap">
-                  <input
-                    type="checkbox"
-                    checked={opt.isDefault}
-                    onChange={(e) =>
-                      updateOption(gi, oi, { isDefault: e.target.checked })
-                    }
-                    className="rounded accent-orange-600"
+              <div key={opt.id} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                <div className="min-w-0 basis-full sm:flex-1 sm:basis-auto">
+                  <Input
+                    id={`option-name-${opt.id}`}
+                    label="Opción"
+                    value={opt.name}
+                    onChange={(e) => updateOption(gi, oi, { name: e.target.value })}
+                    placeholder="Ej: Término medio"
                   />
-                  Default
-                </label>
-                <button
-                  type="button"
+                </div>
+                <div className="w-28 shrink-0">
+                  <Input
+                    id={`option-price-${opt.id}`}
+                    label="Precio extra"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={opt.extraPrice}
+                    onChange={(e) => updateOption(gi, oi, { extraPrice: Number(e.target.value) })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <CheckboxField checked={opt.isDefault} onChange={(isDefault) => updateOption(gi, oi, { isDefault })}>
+                  Por defecto
+                </CheckboxField>
+                <IconButton
+                  icon="delete"
+                  label="Eliminar opción"
+                  className="ml-auto text-[var(--md-sys-color-error)] sm:ml-0"
                   onClick={() => removeOption(gi, oi)}
-                  className="m3-state rounded-full p-1.5 text-red-400 hover:text-red-600"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                />
               </div>
             ))}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => addOption(gi)}
-              type="button"
-            >
-              <Plus className="mr-1 h-3 w-3" />
-              Opción
+            <Button variant="ghost" icon="add" size="sm" onClick={() => addOption(gi)} type="button">
+              Agregar opción
             </Button>
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   );

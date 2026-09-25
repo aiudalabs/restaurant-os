@@ -22,6 +22,8 @@ export interface Product {
   categoryId: string;
   name: string;
   description?: string;
+  /** Internal note shown to waiters under the product name (not in the customer app). */
+  waiterNote?: string;
   imageUrl?: string;
   price: number;
   isActive: boolean;

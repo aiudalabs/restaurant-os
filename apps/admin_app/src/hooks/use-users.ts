@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { httpsCallable } from 'firebase/functions';
-import type { AppUser } from '@/types/user';
+import type { AppUser, UserRole } from '@/types/user';
 import { functions } from '@/lib/firebase';
 import {
   watchUsers,
@@ -48,7 +48,7 @@ export function useUsers(orgId: string) {
       displayName: string;
       orgId: string;
       branchIds: string[];
-      role: 'admin' | 'manager' | 'operator';
+      role: UserRole;
       stationId?: string;
     }) => {
       return createOperatorUserService(payload);

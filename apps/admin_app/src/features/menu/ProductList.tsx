@@ -1,5 +1,6 @@
-import { Plus, Pencil, Power, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, IconButton } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { Card, EmptyState, ExtendedFab, Switch, TagChip } from '@/components/ui/m3';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types/product';
 
@@ -24,127 +25,133 @@ export default function ProductList({
 }: ProductListProps) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-orange-600 border-t-transparent" />
+      <div className="flex items-center justify-center py-12" role="status" aria-label="Cargando productos">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--md-sys-color-primary)] border-t-transparent" />
       </div>
     );
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-gray-900">{categoryName}</h3>
-        <Button size="sm" onClick={onAdd}>
-          <Plus className="mr-1.5 h-4 w-4" />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="t-title-large truncate text-[var(--md-sys-color-on-surface)]">{categoryName}</h3>
+          <p className="t-body-medium text-[var(--md-sys-color-on-surface-variant)]">
+            {products.length} {products.length === 1 ? 'producto' : 'productos'}
+          </p>
+        </div>
+        {/* Phones get the extended FAB instead (below). */}
+        <Button icon="add" onClick={onAdd} className="max-[839px]:hidden">
           Agregar producto
         </Button>
       </div>
 
+      <div className="min-[840px]:hidden">
+        <ExtendedFab icon="add" onClick={onAdd}>
+          Agregar producto
+        </ExtendedFab>
+      </div>
+
       {products.length === 0 ? (
-        <div className="m3-card flex flex-col items-center gap-2 p-10 text-center">
-          <p className="text-sm text-gray-500">
-            No hay productos en esta categoría.
-          </p>
-          <Button variant="ghost" size="sm" onClick={onAdd}>
-            <Plus className="mr-1 h-4 w-4" />
-            Crear el primero
-          </Button>
-        </div>
+        <Card>
+          <EmptyState
+            icon="restaurant"
+            title="No hay productos en esta categoría."
+            action={
+              <Button variant="tonal" icon="add" onClick={onAdd}>
+                Crear el primero
+              </Button>
+            }
+          />
+        </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 @lg:grid-cols-2 @3xl:grid-cols-3">
           {products.map((product) => (
-            <div
+            <ProductCard
               key={product.id}
-              className={cn(
-                'm3-card flex flex-col overflow-hidden',
-                !product.isActive && 'opacity-50',
-              )}
-            >
-              {product.imageUrl ? (
-                <img
-                  src={product.imageUrl}
-                  alt={product.name}
-                  loading="lazy"
-                  className="h-36 w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-36 w-full items-center justify-center bg-[var(--color-surface-container-high)] text-4xl">
-                  🍽️
-                </div>
-              )}
-              <div className="flex flex-1 flex-col p-5">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-semibold text-gray-900 truncate">
-                    {product.name}
-                  </h4>
-                  {product.description && (
-                    <p className="mt-0.5 text-sm text-gray-500 line-clamp-2">
-                      {product.description}
-                    </p>
-                  )}
-                </div>
-                <span className="text-sm font-bold text-orange-700 whitespace-nowrap">
-                  ${product.price.toFixed(2)}
-                </span>
-              </div>
-
-              {(product.tags?.length ?? 0) > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {product.tags?.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-block rounded-full bg-[var(--color-surface-container-high)] px-2.5 py-0.5 text-xs font-semibold text-gray-600"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {(product.modifierGroups?.length ?? 0) > 0 && (
-                <p className="mt-2 text-xs text-gray-400">
-                  {product.modifierGroups?.length} grupo(s) de modificadores
-                </p>
-              )}
-
-              <div className="mt-3 flex items-center gap-1 border-t border-[var(--color-outline-variant)] pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={() => onEdit(product)}
-                >
-                  <Pencil className="mr-1 h-3.5 w-3.5" />
-                  Editar
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    'h-8 text-xs',
-                    product.isActive ? 'text-gray-500' : 'text-green-600',
-                  )}
-                  onClick={() => onToggle(product.id, !product.isActive)}
-                >
-                  <Power className="mr-1 h-3.5 w-3.5" />
-                  {product.isActive ? 'Desactivar' : 'Activar'}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto h-8 text-xs text-red-600"
-                  onClick={() => onDelete(product)}
-                >
-                  <Trash2 className="mr-1 h-3.5 w-3.5" />
-                  Eliminar
-                </Button>
-              </div>
-              </div>
-            </div>
+              product={product}
+              onEdit={onEdit}
+              onToggle={onToggle}
+              onDelete={onDelete}
+            />
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+interface ProductCardProps {
+  product: Product;
+  onEdit: (product: Product) => void;
+  onToggle: (id: string, isActive: boolean) => void;
+  onDelete: (product: Product) => void;
+}
+
+function ProductCard({ product, onEdit, onToggle, onDelete }: ProductCardProps) {
+  const switchId = `product-active-${product.id}`;
+  const modifierCount = product.modifierGroups?.length ?? 0;
+
+  return (
+    <Card className="flex flex-col overflow-hidden">
+      {/* Inactive products are dimmed; the controls below stay at full contrast. */}
+      <div className={cn('flex flex-1 flex-col', !product.isActive && 'opacity-50')}>
+        {product.imageUrl ? (
+          <img src={product.imageUrl} alt={product.name} loading="lazy" className="h-36 w-full object-cover" />
+        ) : (
+          <div
+            className="t-display-small grid h-36 w-full place-items-center bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]"
+            aria-hidden="true"
+          >
+            {product.name.trim().charAt(0).toUpperCase() || '?'}
+          </div>
+        )}
+
+        <div className="flex flex-1 flex-col px-4 pt-4">
+          <div className="flex items-start justify-between gap-3">
+            <h4 className="t-title-medium min-w-0 flex-1 truncate text-[var(--md-sys-color-on-surface)]">
+              {product.name}
+            </h4>
+            <span className="t-title-large whitespace-nowrap tabular-nums text-[var(--md-sys-color-on-surface)]">
+              ${product.price.toFixed(2)}
+            </span>
+          </div>
+          {product.description && (
+            <p className="t-body-medium mt-1 line-clamp-2 text-[var(--md-sys-color-on-surface-variant)]">
+              {product.description}
+            </p>
+          )}
+
+          {(product.tags?.length ?? 0) > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {product.tags?.map((tag) => (
+                <TagChip key={tag}>{tag}</TagChip>
+              ))}
+            </div>
+          )}
+
+          {modifierCount > 0 && (
+            <p className="t-body-small mt-3 inline-flex items-center gap-1 text-[var(--md-sys-color-on-surface-variant)]">
+              <Icon name="tune" size={16} />
+              {modifierCount} grupo(s) de modificadores
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3 border-t border-[var(--md-sys-color-outline-variant)] py-2 pl-4 pr-2">
+        <Switch id={switchId} checked={product.isActive} onChange={(checked) => onToggle(product.id, checked)} />
+        <label htmlFor={switchId} className="t-label-large min-w-0 flex-1 cursor-pointer text-[var(--md-sys-color-on-surface-variant)]">
+          {product.isActive ? 'Disponible' : 'No disponible'}
+        </label>
+        <IconButton icon="edit" label={`Editar ${product.name}`} onClick={() => onEdit(product)} />
+        <IconButton
+          icon="delete"
+          label={`Eliminar ${product.name}`}
+          className="text-[var(--md-sys-color-error)]"
+          onClick={() => onDelete(product)}
+        />
+      </div>
+    </Card>
   );
 }

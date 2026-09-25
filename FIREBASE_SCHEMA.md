@@ -32,7 +32,15 @@ order_items
 users
 integrations
 audit_log
+kds_pins        ← server-only: PIN hasheado por estación (KDS)
+staff_pins      ← server-only: PIN hasheado por mesero (waiter_web)
 ```
+
+`kds_pins/{stationId}` y `staff_pins/{userId}` los escriben y leen solo Cloud Functions
+(`setStationPin`/`kdsLogin`, `setWaiterPin`/`waiterLogin`). Forma común:
+`{ orgId, salt, pinHash, failedAttempts, lockLevel, lockedUntil, updatedAt }` más
+`branchId, stationId, operatorUid` (kds_pins) o `userId` (staff_pins). PIN de 6 dígitos,
+pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos fallidos.
 
 ---
 
@@ -69,6 +77,7 @@ audit_log
   taxPercent?: number           // override del org si es diferente
   tipOptions?: number[]
   isActive: boolean
+  showProductImagesToWaiters?: boolean  // app del mesero muestra fotos de productos (default false)
   businessHours: {
     monday?: { open: string, close: string }   // "08:00", "22:00"
     tuesday?: { open: string, close: string }
@@ -116,6 +125,7 @@ audit_log
   categoryId: string
   name: string
   description?: string
+  waiterNote?: string           // observaciones solo para el mesero (letra chica bajo el nombre)
   imageUrl?: string
   price: number
   isActive: boolean
@@ -257,7 +267,7 @@ ModifierOption {
   branchIds: string[]           // sucursales con acceso
   email: string
   displayName: string
-  role: "admin" | "manager" | "operator"
+  role: "admin" | "manager" | "operator" | "waiter"   // waiter: solo waiter_web (toma pedidos y cobra)
   stationId?: string            // solo para operadores de cocina/bar
   isActive: boolean
   createdAt: Timestamp

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Icon } from '@/components/ui/icon';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -6,21 +7,17 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--color-surface)] px-4">
-      {/* Ambient brand glow */}
-      <div className="pointer-events-none absolute -top-32 -right-24 h-96 w-96 rounded-full bg-orange-600/20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-orange-400/10 blur-3xl" />
-
-      <div className="relative w-full max-w-md">
+    <div className="flex min-h-dvh items-center justify-center bg-[var(--md-sys-color-surface-container)] px-4 py-8">
+      <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-orange-600 text-3xl text-[var(--color-on-primary)] shadow-[var(--shadow-e2)]">
-            🍽️
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">RestaurantOS</h1>
-          <p className="mt-1 text-sm text-gray-500">Panel de administración</p>
+          <span className="mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)]">
+            <Icon name="restaurant" filled size={32} />
+          </span>
+          <h1 className="t-headline-medium text-[var(--md-sys-color-on-surface)]">RestaurantOS</h1>
+          <p className="t-body-medium mt-1 text-[var(--md-sys-color-on-surface-variant)]">Panel de administración</p>
         </div>
 
-        <div className="m3-card p-8">{children}</div>
+        <div className="rounded-[28px] bg-[var(--md-sys-color-surface)] p-6 [--field-bg:var(--md-sys-color-surface)] sm:p-8">{children}</div>
       </div>
     </div>
   );

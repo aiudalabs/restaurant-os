@@ -3,7 +3,7 @@ import { LoginScreen } from './screens/LoginScreen';
 import { BoardScreen } from './screens/BoardScreen';
 
 export function App() {
-  const { session, loading, error, stationId, loginWithPin, loginWithEmail, logout } = useKdsAuth();
+  const { session, loading, error, stationId, stationInfo, loginWithPin, loginWithEmail, logout } = useKdsAuth();
 
   if (loading) {
     return (
@@ -17,6 +17,7 @@ export function App() {
     return (
       <LoginScreen
         stationId={stationId}
+        stationInfo={stationInfo}
         error={error}
         onPin={loginWithPin}
         onEmail={loginWithEmail}

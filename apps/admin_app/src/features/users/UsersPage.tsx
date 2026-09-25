@@ -1,16 +1,42 @@
 import { useState } from 'react';
-import { Plus, Power, X, Shield, User, Wrench, Pencil, Trash2 } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button, IconButton } from '@/components/ui/button';
+import { Input, Select } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Dialog } from '@/components/ui/dialog';
+import { Card, EmptyState, PageHeader, StatusChip, Switch, type StatusTone } from '@/components/ui/m3';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { useBranchContext } from '@/hooks/use-branch-context';
 import { useUsers } from '@/hooks/use-users';
 import { useStations } from '@/hooks/use-stations';
 import type { AppUser, UserRole } from '@/types/user';
+import { setWaiterPin } from '@/services/user.service';
+import { buildWaiterDeviceUrl } from '@/lib/config';
+
+const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
+  { value: 'operator', label: 'Operador' },
+  { value: 'waiter', label: 'Mesero' },
+  { value: 'manager', label: 'Manager' },
+  { value: 'admin', label: 'Admin' },
+];
+
+const ROLE_CONFIG: Record<UserRole, { label: string; icon: string; tone: StatusTone }> = {
+  admin: { label: 'Admin', icon: 'shield_person', tone: 'info' },
+  manager: { label: 'Manager', icon: 'manage_accounts', tone: 'success' },
+  operator: { label: 'Operador', icon: 'skillet', tone: 'neutral' },
+  waiter: { label: 'Mesero', icon: 'room_service', tone: 'neutral' },
+};
+
+function ErrorBanner({ children }: { children: string }) {
+  return (
+    <p className="t-body-medium rounded-lg bg-[var(--md-sys-color-error-container)] px-3 py-2 text-[var(--md-sys-color-on-error-container)]">
+      {children}
+    </p>
+  );
+}
 
 // ─── Edit User Dialog (doc fields only: name / role / station) ───
 
@@ -35,7 +61,12 @@ function EditUserDialog({
     setBusy(true);
     setError('');
     try {
-      await onSave(user.id, { displayName: displayName.trim(), role, stationId });
+      // Only operators are bound to a KDS station; waiters/managers/admins never are.
+      await onSave(user.id, {
+        displayName: displayName.trim(),
+        role,
+        stationId: role === 'operator' ? stationId : '',
+      });
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar.');
@@ -43,61 +74,62 @@ function EditUserDialog({
     }
   };
 
-  const selectCls =
-    'flex h-12 w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 text-[15px] text-[var(--color-on-surface)] focus:outline-none focus:border-orange-600';
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card w-full max-w-md rounded-[1.75rem] p-6">
-        <div className="flex items-center justify-between pb-4">
-          <h2 className="text-lg font-bold text-gray-900">Editar usuario</h2>
-          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="space-y-4">
-          <Input
-            id="edit-name"
-            label="Nombre completo"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-          />
-          <p className="text-xs text-gray-500">
-            Email: <span className="font-mono">{user.email}</span> (no editable)
-          </p>
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[var(--color-on-surface-variant)]">Rol</label>
-            <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} className={selectCls}>
-              <option value="operator">Operador</option>
-              <option value="manager">Manager</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-              Estación (solo operadores)
-            </label>
-            <select value={stationId} onChange={(e) => setStationId(e.target.value)} className={selectCls}>
-              <option value="">Sin estación asignada</option>
-              {stations.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-        </div>
-        <div className="mt-6 flex justify-end gap-2">
+    <Dialog
+      title="Editar usuario"
+      onClose={onClose}
+      footer={
+        <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
             Cancelar
           </Button>
           <Button onClick={save} disabled={busy}>
             {busy ? 'Guardando…' : 'Guardar'}
           </Button>
-        </div>
+        </>
+      }
+    >
+      <div className="space-y-6 pt-2">
+        <Input
+          id="edit-name"
+          label="Nombre completo"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+        />
+        <Input
+          id="edit-email"
+          label="Email"
+          value={user.email}
+          readOnly
+          disabled
+          supporting="El email no se puede editar."
+        />
+        <Select id="edit-role" label="Rol" value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
+          {ROLE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </Select>
+        {role === 'operator' && (
+          <Select
+            id="edit-station"
+            label="Estación"
+            value={stationId}
+            onChange={(e) => setStationId(e.target.value)}
+            supporting="El operador entra al KDS de esta estación."
+          >
+            <option value="">Sin estación asignada</option>
+            {stations.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </Select>
+        )}
+        {error && <ErrorBanner>{error}</ErrorBanner>}
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -105,17 +137,11 @@ const USER_FORM_SCHEMA = z.object({
   email: z.string().email('Email invalido'),
   password: z.string().min(6, 'Minimo 6 caracteres'),
   displayName: z.string().min(1, 'Nombre requerido'),
-  role: z.enum(['admin', 'manager', 'operator']),
+  role: z.enum(['admin', 'manager', 'operator', 'waiter']),
   stationId: z.string().optional(),
 });
 
 type UserFormValues = z.infer<typeof USER_FORM_SCHEMA>;
-
-const ROLE_CONFIG: Record<UserRole, { label: string; icon: typeof Shield; color: string }> = {
-  admin: { label: 'Admin', icon: Shield, color: 'text-red-600 bg-red-50' },
-  manager: { label: 'Manager', icon: User, color: 'text-blue-600 bg-blue-50' },
-  operator: { label: 'Operador', icon: Wrench, color: 'text-green-600 bg-green-50' },
-};
 
 // ─── User Form Dialog ───
 
@@ -154,6 +180,8 @@ function UserFormDialog({ orgId, branchIds, stations, onSave, onClose }: UserFor
     },
   });
 
+  const role = useWatch({ control, name: 'role' });
+
   const onSubmit = async (values: UserFormValues) => {
     setServerError(null);
     try {
@@ -164,7 +192,7 @@ function UserFormDialog({ orgId, branchIds, stations, onSave, onClose }: UserFor
         orgId,
         branchIds,
         role: values.role,
-        stationId: values.stationId || undefined,
+        stationId: values.role === 'operator' ? values.stationId || undefined : undefined,
       });
       onClose();
     } catch (err) {
@@ -174,90 +202,244 @@ function UserFormDialog({ orgId, branchIds, stations, onSave, onClose }: UserFor
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card p-6 rounded-[1.75rem] w-full max-w-md">
-        <div className="flex items-center justify-between pb-4">
-          <h2 className="text-lg font-bold text-gray-900">Nuevo usuario</h2>
-          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <Dialog
+      title="Nuevo usuario"
+      onClose={onClose}
+      onSubmit={handleSubmit(onSubmit)}
+      footer={
+        <>
+          <Button variant="ghost" type="button" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Creando…' : 'Crear usuario'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-6 pt-2">
+        <Input
+          id="displayName"
+          label="Nombre completo"
+          placeholder="Ej: Juan Perez"
+          error={errors.displayName?.message}
+          isRequired
+          {...register('displayName')}
+        />
+        <Input
+          id="email"
+          label="Email"
+          type="email"
+          placeholder="usuario@restaurante.com"
+          error={errors.email?.message}
+          isRequired
+          {...register('email')}
+        />
+        <Input
+          id="password"
+          label="Contraseña"
+          type="password"
+          placeholder="Mínimo 6 caracteres"
+          error={errors.password?.message}
+          isRequired
+          {...register('password')}
+        />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input
-            id="displayName"
-            label="Nombre completo"
-            placeholder="Ej: Juan Perez"
-            error={errors.displayName?.message}
-            {...register('displayName')}
-          />
-          <Input
-            id="email"
-            label="Email"
-            type="email"
-            placeholder="usuario@restaurante.com"
-            error={errors.email?.message}
-            {...register('email')}
-          />
-          <Input
-            id="password"
-            label="Contrasena"
-            type="password"
-            placeholder="Minimo 6 caracteres"
-            error={errors.password?.message}
-            {...register('password')}
-          />
+        <Select id="role" label="Rol" {...register('role')}>
+          {ROLE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </Select>
 
-          <div className="space-y-1.5">
-            <label htmlFor="role" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-              Rol
-            </label>
-            <select
-              id="role"
-              className="flex h-12 w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 text-[15px] text-[var(--color-on-surface)] focus:outline-none focus:border-orange-600 focus:bg-[var(--color-surface-container)]"
-              {...register('role')}
-            >
-              <option value="operator">Operador</option>
-              <option value="manager">Manager</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
+        {role === 'operator' && (
+          <Select
+            id="stationId"
+            label="Estación"
+            supporting="El operador entra al KDS de esta estación."
+            {...register('stationId')}
+          >
+            <option value="">Sin estación asignada</option>
+            {stations.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </Select>
+        )}
 
-          <div className="space-y-1.5">
-            <label htmlFor="stationId" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-              Estacion (solo operadores)
-            </label>
-            <select
-              id="stationId"
-              className="flex h-12 w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 text-[15px] text-[var(--color-on-surface)] focus:outline-none focus:border-orange-600 focus:bg-[var(--color-surface-container)]"
-              {...register('stationId')}
-            >
-              <option value="">Sin estacion asignada</option>
-              {stations.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {serverError && (
-            <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
-              {serverError}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="tonal" type="button" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creando...' : 'Crear usuario'}
-            </Button>
-          </div>
-        </form>
+        {serverError && <ErrorBanner>{serverError}</ErrorBanner>}
       </div>
-    </div>
+    </Dialog>
+  );
+}
+
+// ─── Row ───
+
+function RoleChip({ role }: { role: UserRole }) {
+  // Fallback keeps an unknown role from crashing the list.
+  const roleConfig = ROLE_CONFIG[role] ?? ROLE_CONFIG.operator;
+  return (
+    <StatusChip tone={roleConfig.tone} icon={roleConfig.icon}>
+      {roleConfig.label}
+    </StatusChip>
+  );
+}
+
+// ─── Waiter PIN dialog ───
+
+function WaiterPinDialog({ user, branchId, onClose }: { user: AppUser; branchId: string; onClose: () => void }) {
+  const [pin, setPin] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+  const deviceUrl = buildWaiterDeviceUrl(branchId);
+
+  const save = async () => {
+    if (!/^\d{6}$/.test(pin)) {
+      setError('El PIN debe ser de 6 dígitos.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await setWaiterPin(user.id, pin);
+      setSaved(true);
+      setPin('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar el PIN.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(deviceUrl);
+      setCopied(true);
+    } catch {
+      setError('No se pudo copiar. Selecciona el link y cópialo a mano.');
+    }
+  };
+
+  return (
+    <Dialog
+      title={`PIN de ${user.displayName}`}
+      onClose={onClose}
+      className="sm:max-w-lg"
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            {saved ? 'Listo' : 'Cancelar'}
+          </Button>
+          <Button type="button" onClick={save} disabled={saving || pin.length !== 6}>
+            {saving ? 'Guardando…' : 'Guardar PIN'}
+          </Button>
+        </>
+      }
+    >
+      <p className="t-body-medium mb-6 text-[var(--md-sys-color-on-surface-variant)]">
+        {user.displayName} entra a la app del mesero tocando su nombre y escribiendo este PIN. Se guarda cifrado; tras 5
+        intentos fallidos su acceso se bloquea (5 min, luego 30 min, luego 24 h).
+      </p>
+      <Input
+        id="waiter-pin"
+        label="PIN (6 dígitos)"
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        value={pin}
+        error={error || undefined}
+        supporting={saved ? `PIN guardado. Díselo a ${user.displayName}.` : undefined}
+        onChange={(e) => {
+          setPin(e.target.value.replace(/\D/g, '').slice(0, 6));
+          setSaved(false);
+          setError('');
+        }}
+        placeholder="Ej: 482913"
+      />
+
+      <div className="mt-6 rounded-xl bg-[var(--md-sys-color-surface-container-highest)] p-4">
+        <p className="t-label-medium text-[var(--md-sys-color-on-surface-variant)]">
+          Link para configurar el celular o la tablet del mesero
+        </p>
+        <div className="mt-2 flex items-center gap-2">
+          <code className="t-body-small min-w-0 flex-1 truncate text-[var(--md-sys-color-on-surface)]">{deviceUrl}</code>
+          <Button type="button" variant="ghost" icon={copied ? 'check' : 'content_copy'} onClick={copy}>
+            {copied ? 'Copiado' : 'Copiar'}
+          </Button>
+        </div>
+        <p className="t-body-small mt-1 text-[var(--md-sys-color-on-surface-variant)]">
+          Ábrelo una vez en cada dispositivo; después solo piden nombre y PIN.
+        </p>
+      </div>
+    </Dialog>
+  );
+}
+
+function UserRow({
+  user,
+  stationName,
+  canDelete,
+  onEdit,
+  onToggle,
+  onDelete,
+  onPin,
+}: {
+  user: AppUser;
+  stationName: string | null;
+  canDelete: boolean;
+  onEdit: () => void;
+  onToggle: (isActive: boolean) => void;
+  onDelete: () => void;
+  onPin: () => void;
+}) {
+  const initial = (user.displayName || user.email || '?').trim().charAt(0).toUpperCase();
+  const switchId = `user-active-${user.id}`;
+
+  return (
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+      <div className={cn('flex min-w-0 flex-1 basis-64 items-center gap-4', !user.isActive && 'opacity-60')}>
+        <span className="t-title-medium grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)]">
+          {initial}
+        </span>
+        <div className="min-w-0">
+          <p className="t-title-medium truncate text-[var(--md-sys-color-on-surface)]">{user.displayName}</p>
+          <p className="t-body-medium truncate text-[var(--md-sys-color-on-surface-variant)]">{user.email}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 max-md:pl-14">
+        <RoleChip role={user.role} />
+        {/* Stations are per branch: an operator of another branch shows no station chip. */}
+        {user.role === 'operator' && (stationName || !user.stationId) && (
+          <StatusChip tone="outline" icon="soup_kitchen">
+            {stationName ?? 'Sin estación'}
+          </StatusChip>
+        )}
+      </div>
+
+      <div className="ml-auto flex items-center gap-1">
+        <label htmlFor={switchId} className="t-label-large mr-2 cursor-pointer text-[var(--md-sys-color-on-surface-variant)]">
+          {user.isActive ? 'Activo' : 'Inactivo'}
+        </label>
+        <Switch id={switchId} checked={user.isActive} onChange={onToggle} />
+        {user.role === 'waiter' && (
+          <IconButton icon="password" label={`PIN de ${user.displayName}`} onClick={onPin} className="ml-2" />
+        )}
+        <IconButton icon="edit" label="Editar usuario" onClick={onEdit} className={user.role === 'waiter' ? undefined : 'ml-2'} />
+        {canDelete && (
+          <IconButton
+            icon="delete"
+            label="Eliminar usuario"
+            onClick={onDelete}
+            className="text-[var(--md-sys-color-error)]"
+          />
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -266,138 +448,69 @@ function UserFormDialog({ orgId, branchIds, stations, onSave, onClose }: UserFor
 export default function UsersPage() {
   const { appUser } = useAuth();
   const orgId = appUser?.orgId ?? '';
-  const branchIds = appUser?.branchIds ?? [];
-  const branchId = branchIds[0] ?? '';
+  // Use the branch selected in the panel, not appUser.branchIds: appUser is read once
+  // at login and goes stale when branches are created/deleted mid-session, which
+  // assigned new staff to a deleted branch.
+  const { selectedBranchId: branchId } = useBranchContext();
+  const branchIds = branchId ? [branchId] : [];
 
   const { users, loading, toggleUser, createOperatorUser, updateUser, deleteUser } = useUsers(orgId);
   const { stations } = useStations(orgId, branchId);
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState<AppUser | null>(null);
   const [confirmUser, setConfirmUser] = useState<AppUser | null>(null);
+  const [pinUser, setPinUser] = useState<AppUser | null>(null);
   const stationOptions = stations.map((s) => ({ id: s.id, name: s.name }));
+  const stationName = (id?: string) => stations.find((s) => s.id === id)?.name ?? null;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--md-sys-color-primary)] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-end">
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="mr-1.5 h-4 w-4" />
-          Nuevo usuario
-        </Button>
-      </div>
+    <div>
+      <PageHeader
+        subtitle="Quién entra al panel, a la app del mesero y al KDS."
+        actions={
+          <Button icon="person_add" onClick={() => setShowForm(true)} disabled={!branchId} className="max-sm:w-full">
+            Nuevo usuario
+          </Button>
+        }
+      />
 
       {users.length === 0 ? (
-        <div className="m3-card p-5 py-12 text-center">
-          <p className="text-sm text-gray-500">No hay usuarios registrados.</p>
-          <Button variant="ghost" size="sm" className="mt-2" onClick={() => setShowForm(true)}>
-            <Plus className="mr-1 h-4 w-4" />
-            Crear el primero
-          </Button>
-        </div>
+        <Card>
+          <EmptyState
+            icon="group"
+            title="No hay usuarios registrados."
+            action={
+              <Button variant="tonal" icon="person_add" onClick={() => setShowForm(true)} disabled={!branchId}>
+                Crear el primero
+              </Button>
+            }
+          />
+        </Card>
       ) : (
-        <div className="m3-card overflow-hidden">
-          <table className="min-w-full divide-y divide-[var(--color-outline-variant)]">
-            <thead className="bg-[var(--color-surface-container-high)]">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                  Nombre
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                  Email
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                  Rol
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                  Estado
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-outline-variant)]">
-              {users.map((user) => {
-                const roleConfig = ROLE_CONFIG[user.role];
-                const RoleIcon = roleConfig.icon;
-                return (
-                  <tr key={user.id} className={cn(!user.isActive && 'opacity-50')}>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {user.displayName}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{user.email}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                          roleConfig.color,
-                        )}
-                      >
-                        <RoleIcon className="h-3 w-3" />
-                        {roleConfig.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                          user.isActive
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-500',
-                        )}
-                      >
-                        {user.isActive ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => setEditUser(user)}
-                        >
-                          <Pencil className="mr-1 h-3.5 w-3.5" />
-                          Editar
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={cn(
-                            'h-7 text-xs',
-                            user.isActive ? 'text-gray-500' : 'text-green-600',
-                          )}
-                          onClick={() => toggleUser(user.id, !user.isActive)}
-                        >
-                          <Power className="mr-1 h-3.5 w-3.5" />
-                          {user.isActive ? 'Desactivar' : 'Activar'}
-                        </Button>
-                        {user.id !== appUser?.id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs text-red-600"
-                            onClick={() => setConfirmUser(user)}
-                          >
-                            <Trash2 className="mr-1 h-3.5 w-3.5" />
-                            Eliminar
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Card>
+          <ul className="divide-y divide-[var(--md-sys-color-outline-variant)]">
+            {users.map((user) => (
+              <UserRow
+                key={user.id}
+                user={user}
+                stationName={stationName(user.stationId)}
+                canDelete={user.id !== appUser?.id}
+                onEdit={() => setEditUser(user)}
+                onToggle={(isActive) => toggleUser(user.id, isActive)}
+                onDelete={() => setConfirmUser(user)}
+                onPin={() => setPinUser(user)}
+              />
+            ))}
+          </ul>
+        </Card>
       )}
 
       {showForm && (
@@ -418,6 +531,8 @@ export default function UsersPage() {
           onClose={() => setEditUser(null)}
         />
       )}
+
+      {pinUser && <WaiterPinDialog user={pinUser} branchId={branchId} onClose={() => setPinUser(null)} />}
 
       {confirmUser && (
         <ConfirmDialog

@@ -44,15 +44,26 @@ async function loadSession(uid: string): Promise<Session | null> {
   const u = userSnap.data();
   const stationId: string = u.stationId ?? '';
   let stationName = 'Estación';
+  let branchName = '';
   if (stationId) {
     try {
       const st = await getDoc(doc(db, 'stations', stationId));
-      if (st.exists()) stationName = st.data().name ?? 'Estación';
-    } catch {
-      /* keep default */
+      if (st.exists()) {
+        stationName = st.data().name ?? 'Estación';
+        const br = await getDoc(doc(db, 'branches', st.data().branchId));
+        branchName = br.data()?.name ?? '';
+      }
+    } catch (e) {
+      console.error('[kds] station/branch name lookup failed', e);
     }
   }
-  return { uid, orgId: u.orgId ?? '', stationId, stationName, displayName: u.displayName ?? '' };
+  return { uid, orgId: u.orgId ?? '', stationId, stationName, branchName, displayName: u.displayName ?? '' };
+}
+
+export interface StationInfo {
+  stationName: string;
+  branchName: string;
+  missing: boolean; // the station was deleted — the device must be set up again
 }
 
 interface AuthState {
@@ -63,6 +74,7 @@ interface AuthState {
 }
 
 export function useKdsAuth() {
+  const [stationInfo, setStationInfo] = useState<StationInfo | null>(null);
   const [state, setState] = useState<AuthState>(() => ({
     session: null,
     loading: true,
@@ -70,12 +82,32 @@ export function useKdsAuth() {
     stationId: stationFromUrl() || getSavedStation(),
   }));
 
+  // Show which restaurant/station this device is set up for on the PIN screen.
+  useEffect(() => {
+    if (!state.stationId) {
+      setStationInfo(null);
+      return;
+    }
+    httpsCallable<{ stationId: string }, { stationName: string; branchName: string }>(functions, 'kdsStationInfo')({
+      stationId: state.stationId,
+    })
+      .then((r) => setStationInfo({ ...r.data, missing: false }))
+      .catch((e: { code?: string }) =>
+        setStationInfo(e.code === 'functions/not-found' ? { stationName: '', branchName: '', missing: true } : null),
+      );
+  }, [state.stationId]);
+
   useEffect(() => {
     return onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setState((s) => ({ ...s, session: null, loading: false }));
         return;
       }
+      // RTDB only serves a station's tickets to tokens carrying its stationId
+      // claim. Accounts that got the claim after this token was minted need a
+      // refresh (PIN logins always carry it).
+      const token = await user.getIdTokenResult();
+      if (!token.claims.stationId) await user.getIdToken(true);
       const session = await loadSession(user.uid);
       if (!session?.stationId) {
         setState((s) => ({ ...s, session: null, loading: false, error: 'Cuenta sin estación asignada.' }));
@@ -114,5 +146,5 @@ export function useKdsAuth() {
     setState((s) => ({ ...s, stationId: '' }));
   };
 
-  return { ...state, loginWithPin, loginWithEmail, logout, clearStation };
+  return { ...state, stationInfo, loginWithPin, loginWithEmail, logout, clearStation };
 }

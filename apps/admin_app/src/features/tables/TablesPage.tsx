@@ -1,21 +1,14 @@
 import { useState, useRef, useCallback } from 'react';
-import {
-  Plus,
-  QrCode,
-  Pencil,
-  Trash2,
-  Power,
-  X,
-  Copy,
-  Check,
-  Download,
-} from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { Button, IconButton } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Icon } from '@/components/ui/icon';
+import { Card, EmptyState, ExtendedFab, PageHeader, StatusChip } from '@/components/ui/m3';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
@@ -74,52 +67,36 @@ function QrPreviewDialog({ table, orgId, onClose }: QrPreviewDialogProps) {
   }, [table.number]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card rounded-[1.75rem] shadow-[var(--shadow-e3)] w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">
-            QR - Mesa {table.number}
-          </h2>
-          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
-            <X className="h-5 w-5" />
-          </button>
+    <Dialog
+      title={`QR - Mesa ${table.number}`}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="tonal" icon={copied ? 'check' : 'content_copy'} onClick={handleCopy}>
+            {copied ? 'Copiado' : 'Copiar URL'}
+          </Button>
+          <Button icon="download" onClick={handleDownload}>
+            Descargar PNG
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col items-center gap-4">
+        {/* The QR stays black on white in both themes so any phone can scan it. */}
+        <div
+          ref={qrRef}
+          className="flex items-center justify-center rounded-xl border border-[var(--md-sys-color-outline-variant)] bg-white p-4"
+        >
+          <QRCodeSVG value={qrUrl} size={192} level="H" />
         </div>
-
-        <div className="flex flex-col items-center gap-4">
-          <div
-            ref={qrRef}
-            className="flex items-center justify-center rounded-2xl bg-white p-4 shadow-[var(--shadow-e1)]"
-          >
-            <QRCodeSVG value={qrUrl} size={192} level="H" />
-          </div>
-          <p className="text-xs text-gray-500 text-center">
-            Mesa {table.number} — escanea para abrir el menu
-          </p>
-          <div className="w-full rounded-xl bg-[var(--color-surface-container-high)] p-3 text-xs text-gray-700 break-all font-mono">
-            {qrUrl}
-          </div>
-          <div className="w-full flex gap-2">
-            <Button size="sm" variant="tonal" onClick={handleCopy} className="flex-1">
-              {copied ? (
-                <>
-                  <Check className="mr-1.5 h-4 w-4 text-green-600" />
-                  Copiado
-                </>
-              ) : (
-                <>
-                  <Copy className="mr-1.5 h-4 w-4" />
-                  Copiar URL
-                </>
-              )}
-            </Button>
-            <Button size="sm" onClick={handleDownload} className="flex-1">
-              <Download className="mr-1.5 h-4 w-4" />
-              Descargar PNG
-            </Button>
-          </div>
+        <p className="t-body-small text-center text-[var(--md-sys-color-on-surface-variant)]">
+          Mesa {table.number} — escanea para abrir el menu
+        </p>
+        <div className="t-body-small w-full break-all rounded-lg bg-[var(--md-sys-color-surface-container-highest)] p-3 font-mono text-[var(--md-sys-color-on-surface)]">
+          {qrUrl}
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -186,51 +163,110 @@ function TableFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="m3-card rounded-[1.75rem] shadow-[var(--shadow-e3)] w-full max-w-md">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-bold text-gray-900">
-            {isEditing ? 'Editar mesa' : 'Nueva mesa'}
-          </h2>
-          <button onClick={onClose} className="m3-state rounded-full p-2 text-gray-600">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          <Input
-            id="number"
-            label="Numero de mesa"
-            placeholder="Ej: 7, T-3, VIP-1"
-            error={errors.number?.message}
-            {...register('number')}
-          />
-          <Input
-            id="zone"
-            label="Zona (opcional)"
-            placeholder="Ej: Terraza, Salon principal"
-            {...register('zone')}
-          />
-          <Input
-            id="capacity"
-            label="Capacidad"
-            type="number"
-            min={1}
-            error={errors.capacity?.message}
-            {...register('capacity', { valueAsNumber: true })}
-          />
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <Button variant="tonal" type="button" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear mesa'}
-            </Button>
-          </div>
-        </form>
+    <Dialog
+      title={isEditing ? 'Editar mesa' : 'Nueva mesa'}
+      onClose={onClose}
+      onSubmit={handleSubmit(onSubmit)}
+      footer={
+        <>
+          <Button variant="ghost" type="button" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear mesa'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-6 pt-3">
+        <Input
+          id="number"
+          label="Numero de mesa"
+          placeholder="Ej: 7, T-3, VIP-1"
+          isRequired
+          error={errors.number?.message}
+          {...register('number')}
+        />
+        <Input
+          id="zone"
+          label="Zona (opcional)"
+          placeholder="Ej: Terraza, Salon principal"
+          {...register('zone')}
+        />
+        <Input
+          id="capacity"
+          label="Capacidad"
+          type="number"
+          min={1}
+          isRequired
+          error={errors.capacity?.message}
+          {...register('capacity', { valueAsNumber: true })}
+        />
       </div>
-    </div>
+    </Dialog>
+  );
+}
+
+// ─── Table Card ───
+
+interface TableCardProps {
+  table: Table;
+  onQr: () => void;
+  onEdit: () => void;
+  onToggle: () => void;
+  onDelete: () => void;
+}
+
+function TableCard({ table, onQr, onEdit, onToggle, onDelete }: TableCardProps) {
+  const occupied = Boolean(table.currentOrderId);
+
+  return (
+    <Card className="flex flex-col p-4">
+      <div className={cn('flex-1', !table.isActive && 'opacity-60')}>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="t-title-large text-[var(--md-sys-color-on-surface)]">#{table.number}</h3>
+          <div className="flex flex-wrap justify-end gap-1">
+            {!table.isActive && <StatusChip tone="outline">Inactiva</StatusChip>}
+            <StatusChip tone={occupied ? 'info' : 'success'}>{occupied ? 'Ocupada' : 'Libre'}</StatusChip>
+          </div>
+        </div>
+        <div className="mt-2 space-y-1 text-[var(--md-sys-color-on-surface-variant)]">
+          {table.zone && (
+            <p className="t-body-medium flex items-center gap-2">
+              <Icon name="location_on" size={18} />
+              {table.zone}
+            </p>
+          )}
+          <p className="t-body-medium flex items-center gap-2">
+            <Icon name="group" size={18} />
+            Capacidad: {table.capacity}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center gap-1 border-t border-[var(--md-sys-color-outline-variant)] pt-3">
+        <Button variant="tonal" size="sm" icon="qr_code_2" onClick={onQr}>
+          QR
+        </Button>
+        <div className="ml-auto flex items-center">
+          <IconButton icon="edit" label={`Editar mesa ${table.number}`} onClick={onEdit} />
+          <IconButton
+            icon="power_settings_new"
+            label={`${table.isActive ? 'Desactivar' : 'Activar'} mesa ${table.number}`}
+            className={table.isActive ? undefined : 'text-[var(--md-sys-color-primary)]'}
+            onClick={onToggle}
+          />
+          {!occupied && (
+            <IconButton
+              icon="delete"
+              label={`Eliminar mesa ${table.number}`}
+              className="text-[var(--md-sys-color-error)]"
+              onClick={onDelete}
+            />
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -247,6 +283,7 @@ export default function TablesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
   const [qrTable, setQrTable] = useState<Table | null>(null);
+  const [deletingTable, setDeletingTable] = useState<Table | null>(null);
 
   const handleAdd = () => {
     setEditingTable(null);
@@ -265,112 +302,64 @@ export default function TablesPage() {
 
   if (!branchId) {
     return (
-      <div className="rounded-[1.75rem] border-2 border-dashed border-gray-200 py-12 text-center">
-        <p className="text-sm text-gray-500">No hay sucursal asignada a tu usuario.</p>
-      </div>
+      <Card>
+        <EmptyState icon="storefront" title="No hay sucursal asignada a tu usuario." />
+      </Card>
     );
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-600 border-t-transparent" />
+        <div
+          role="status"
+          aria-label="Cargando"
+          className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--md-sys-color-primary)] border-t-transparent"
+        />
       </div>
     );
   }
 
+  const occupiedCount = tables.filter((t) => t.currentOrderId).length;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-end">
-        <Button onClick={handleAdd}>
-          <Plus className="mr-1.5 h-4 w-4" />
-          Nueva mesa
-        </Button>
-      </div>
-
+    // Bottom padding keeps the last row clear of the extended FAB.
+    <div className="pb-24">
       {tables.length === 0 ? (
-        <div className="rounded-[1.75rem] border-2 border-dashed border-gray-200 py-12 text-center">
-          <p className="text-sm text-gray-500">No hay mesas creadas.</p>
-          <Button variant="ghost" size="sm" className="mt-2" onClick={handleAdd}>
-            <Plus className="mr-1 h-4 w-4" />
-            Crear la primera
-          </Button>
-        </div>
+        <Card>
+          <EmptyState
+            icon="table_restaurant"
+            title="No hay mesas creadas."
+            action={
+              <Button variant="tonal" icon="add" onClick={handleAdd}>
+                Crear la primera
+              </Button>
+            }
+          />
+        </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {tables.map((table) => (
-            <div
-              key={table.id}
-              className={cn(
-                'm3-card p-5 transition-shadow hover:shadow-[var(--shadow-e2)]',
-                !table.isActive && 'opacity-50',
-              )}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-lg font-bold text-gray-900">#{table.number}</span>
-                <span
-                  className={cn(
-                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                    table.currentOrderId
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-green-100 text-green-700',
-                  )}
-                >
-                  {table.currentOrderId ? 'Ocupada' : 'Libre'}
-                </span>
-              </div>
-
-              {table.zone && (
-                <p className="text-sm text-gray-500">{table.zone}</p>
-              )}
-              <p className="text-sm text-gray-500">Capacidad: {table.capacity}</p>
-
-              <div className="mt-3 flex items-center gap-1 border-t border-gray-200 pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => setQrTable(table)}
-                >
-                  <QrCode className="mr-1 h-3.5 w-3.5" />
-                  QR
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => handleEdit(table)}
-                >
-                  <Pencil className="mr-1 h-3.5 w-3.5" />
-                  Editar
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    'h-7 text-xs',
-                    table.isActive ? 'text-gray-500' : 'text-green-600',
-                  )}
-                  onClick={() => toggleTable(table.id, !table.isActive)}
-                >
-                  <Power className="mr-1 h-3.5 w-3.5" />
-                  {table.isActive ? 'Desactivar' : 'Activar'}
-                </Button>
-                {!table.currentOrderId && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-red-500 hover:text-red-700"
-                    onClick={() => handleDelete(table)}
-                  >
-                    <Trash2 className="mr-1 h-3.5 w-3.5" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <>
+          <PageHeader
+            subtitle={`${tables.length} ${tables.length === 1 ? 'mesa' : 'mesas'} · ${occupiedCount} ${occupiedCount === 1 ? 'ocupada' : 'ocupadas'}`}
+          />
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {tables.map((table) => (
+              <TableCard
+                key={table.id}
+                table={table}
+                onQr={() => setQrTable(table)}
+                onEdit={() => handleEdit(table)}
+                onToggle={() => toggleTable(table.id, !table.isActive)}
+                onDelete={() => setDeletingTable(table)}
+              />
+            ))}
+          </div>
+        </>
       )}
+
+      <ExtendedFab icon="add" onClick={handleAdd}>
+        Nueva mesa
+      </ExtendedFab>
 
       {showForm && (
         <TableFormDialog
@@ -388,6 +377,15 @@ export default function TablesPage() {
           table={qrTable}
           orgId={orgId}
           onClose={() => setQrTable(null)}
+        />
+      )}
+
+      {deletingTable && (
+        <ConfirmDialog
+          title={`Eliminar mesa ${deletingTable.number}`}
+          message="La mesa y su QR dejarán de funcionar. Esta acción no se puede deshacer."
+          onConfirm={() => handleDelete(deletingTable)}
+          onClose={() => setDeletingTable(null)}
         />
       )}
     </div>

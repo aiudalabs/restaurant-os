@@ -8,27 +8,99 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { FileDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import { Card, EmptyState, FilterChip } from '@/components/ui/m3';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { getOrderReports, type OrderReportData } from '@/services/report.service';
+import { downloadCsv, ordersCsv, summaryCsv } from './report-csv';
+
+const STATUS_LABELS: Record<string, string> = {
+  pending_payment: 'Esperando pago',
+  payment_failed: 'Pago rechazado',
+  paid: 'Pagado',
+  pending: 'Pendiente',
+  confirmed: 'Confirmado',
+  in_preparation: 'En preparación',
+  ready: 'Listo',
+  delivered: 'Entregado',
+  cancelled: 'Cancelado',
+  closed: 'Cerrado',
+};
+
+const AXIS_TICK = { fontSize: 12, fill: 'var(--md-sys-color-on-surface-variant)' };
+
+/** yyyy-mm-dd in local time (what <input type="date"> expects). */
+function toDateInput(d: Date) {
+  const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+  const dd = d.getDate().toString().padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+function daysAgo(n: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d;
+}
+
+interface RangePreset {
+  id: string;
+  label: string;
+  range: () => { start: string; end: string };
+}
+
+// Shortcuts that fill the date fields; the custom range stays editable.
+const PRESETS: RangePreset[] = [
+  { id: 'today', label: 'Hoy', range: () => ({ start: toDateInput(new Date()), end: toDateInput(new Date()) }) },
+  { id: '7d', label: 'Últimos 7 días', range: () => ({ start: toDateInput(daysAgo(7)), end: toDateInput(new Date()) }) },
+  { id: '30d', label: 'Últimos 30 días', range: () => ({ start: toDateInput(daysAgo(30)), end: toDateInput(new Date()) }) },
+  {
+    id: 'month',
+    label: 'Este mes',
+    range: () => {
+      const now = new Date();
+      return { start: toDateInput(new Date(now.getFullYear(), now.getMonth(), 1)), end: toDateInput(now) };
+    },
+  },
+];
+
+function SummaryCard({ label, value, tone = 'default' }: { label: string; value: string; tone?: 'default' | 'error' }) {
+  return (
+    <Card variant="filled" className="p-4">
+      <p
+        className={
+          tone === 'error'
+            ? 't-headline-medium text-[var(--md-sys-color-error)]'
+            : 't-headline-medium text-[var(--md-sys-color-on-surface)]'
+        }
+      >
+        {value}
+      </p>
+      <p className="t-label-large mt-1 text-[var(--md-sys-color-on-surface-variant)]">{label}</p>
+    </Card>
+  );
+}
 
 export default function ReportsPage() {
   const { appUser } = useAuth();
   const orgId = appUser?.orgId ?? '';
   const { selectedBranchId: branchId } = useBranchContext();
 
-  const today = new Date();
-  const weekAgo = new Date(today);
-  weekAgo.setDate(weekAgo.getDate() - 7);
-
-  const [startDate, setStartDate] = useState(weekAgo.toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(today.toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(() => toDateInput(daysAgo(7)));
+  const [endDate, setEndDate] = useState(() => toDateInput(new Date()));
   const [report, setReport] = useState<OrderReportData | null>(null);
+  // Range the current report was generated for (the date fields may change afterwards).
+  const [reportRange, setReportRange] = useState<{ start: string; end: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const selectPreset = (preset: RangePreset) => {
+    const { start, end } = preset.range();
+    setStartDate(start);
+    setEndDate(end);
+  };
 
   const handleGenerateReport = async () => {
     if (!orgId || !branchId) return;
@@ -42,6 +114,7 @@ export default function ReportsPage() {
         endDate: new Date(endDate + 'T23:59:59').toISOString(),
       });
       setReport(data);
+      setReportRange({ start: startDate, end: endDate });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al generar reporte';
       setError(message);
@@ -51,10 +124,24 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Date range selector */}
-      <div className="m3-card p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+      <Card className="space-y-5 p-4 sm:p-6">
+        <div className="flex gap-2 overflow-x-auto" role="group" aria-label="Rangos rápidos">
+          {PRESETS.map((preset) => {
+            const { start, end } = preset.range();
+            return (
+              <FilterChip
+                key={preset.id}
+                selected={start === startDate && end === endDate}
+                onClick={() => selectPreset(preset)}
+              >
+                {preset.label}
+              </FilterChip>
+            );
+          })}
+        </div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <Input
             id="startDate"
             label="Fecha inicio"
@@ -69,130 +156,139 @@ export default function ReportsPage() {
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
-          <Button onClick={handleGenerateReport} disabled={loading}>
+          <Button onClick={handleGenerateReport} disabled={loading} className="sm:mt-2 max-sm:w-full">
             {loading ? (
               <>
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                <Icon name="progress_activity" size={18} className="animate-spin" />
                 Generando...
               </>
             ) : (
               <>
-                <FileDown className="mr-1.5 h-4 w-4" />
+                <Icon name="query_stats" size={18} />
                 Generar reporte
               </>
             )}
           </Button>
         </div>
-      </div>
+      </Card>
 
       {error && (
-        <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">
+        <div
+          role="alert"
+          className="t-body-medium flex items-start gap-3 rounded-xl bg-[var(--md-sys-color-error-container)] p-4 text-[var(--md-sys-color-on-error-container)]"
+        >
+          <Icon name="error" size={20} />
           {error}
         </div>
       )}
 
       {!report && !loading && !error && (
-        <div className="m3-card p-5 py-12 text-center">
-          <p className="text-sm text-gray-500">
-            Selecciona un rango de fechas y genera el reporte.
-          </p>
-        </div>
+        <Card>
+          <EmptyState
+            icon="bar_chart"
+            title="Sin reporte todavía"
+            body="Selecciona un rango de fechas y genera el reporte."
+          />
+        </Card>
       )}
 
       {report && (
-        <div className="space-y-6">
-          {/* Summary Cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="m3-card p-5">
-              <p className="text-3xl font-extrabold tracking-tight text-gray-900">{report.totalOrders}</p>
-              <p className="mt-1 text-sm text-gray-500">Total pedidos</p>
-            </div>
-            <div className="m3-card p-5">
-              <p className="text-3xl font-extrabold tracking-tight text-gray-900">
-                ${report.totalRevenue.toFixed(2)}
+        <div className="space-y-4">
+          {reportRange && (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="t-body-medium text-[var(--md-sys-color-on-surface-variant)]">
+                {reportRange.start} a {reportRange.end} · {report.orders.length} pedidos
               </p>
-              <p className="mt-1 text-sm text-gray-500">Ingresos totales</p>
-            </div>
-            <div className="m3-card p-5">
-              <p className="text-3xl font-extrabold tracking-tight text-gray-900">
-                ${report.averageTicket.toFixed(2)}
-              </p>
-              <p className="mt-1 text-sm text-gray-500">Ticket promedio</p>
-            </div>
-            <div className="m3-card p-5">
-              <p className="text-3xl font-extrabold tracking-tight text-red-600">{report.cancelledOrders}</p>
-              <p className="mt-1 text-sm text-gray-500">Pedidos cancelados</p>
-            </div>
-          </div>
-
-          {/* Daily Revenue Chart */}
-          {report.dailyRevenue.length > 0 && (
-            <div className="m3-card p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">
-                Ingresos por dia
-              </h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={report.dailyRevenue}>
-                  <CartesianGrid strokeDasharray="4 4" stroke="var(--color-outline-variant)" vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12, fill: 'var(--color-on-surface-variant)' }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: 'var(--color-on-surface-variant)' }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    cursor={{ fill: 'var(--color-primary)', opacity: 0.08 }}
-                    contentStyle={{
-                      borderRadius: 16,
-                      border: '1px solid var(--color-outline-variant)',
-                      background: 'var(--color-white)',
-                      color: 'var(--color-on-surface)',
-                      boxShadow: 'var(--shadow-e2)',
-                    }}
-                    formatter={(value: number) => [`$${value.toFixed(2)}`, 'Ingresos']}
-                  />
-                  <Bar dataKey="revenue" fill="var(--color-primary)" radius={[8, 8, 0, 0]} maxBarSize={38} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outlined"
+                  icon="download"
+                  disabled={report.orders.length === 0}
+                  onClick={() =>
+                    downloadCsv(`pedidos_${reportRange.start}_a_${reportRange.end}.csv`, ordersCsv(report, STATUS_LABELS))
+                  }
+                >
+                  Exportar pedidos
+                </Button>
+                <Button
+                  variant="tonal"
+                  icon="download"
+                  onClick={() =>
+                    downloadCsv(
+                      `resumen_${reportRange.start}_a_${reportRange.end}.csv`,
+                      summaryCsv(report, reportRange, STATUS_LABELS),
+                    )
+                  }
+                >
+                  Exportar resumen
+                </Button>
+              </div>
             </div>
           )}
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 min-[1200px]:grid-cols-4">
+            <SummaryCard label="Total pedidos" value={report.totalOrders.toString()} />
+            <SummaryCard label="Ingresos cobrados" value={`$${report.totalRevenue.toFixed(2)}`} />
+            <SummaryCard label="Ticket promedio" value={`$${report.averageTicket.toFixed(2)}`} />
+            <SummaryCard label="Pedidos cancelados" value={report.cancelledOrders.toString()} tone="error" />
+          </div>
 
-          {/* Top Products */}
+          {/* Daily revenue chart */}
+          {report.dailyRevenue.length > 0 && (
+            <Card className="p-4 sm:p-6">
+              <h2 className="t-title-large mb-4 text-[var(--md-sys-color-on-surface)]">Ingresos por día</h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={report.dailyRevenue} margin={{ left: -18, right: 8, top: 8 }}>
+                  <CartesianGrid strokeDasharray="4 4" stroke="var(--md-sys-color-outline-variant)" vertical={false} />
+                  <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} />
+                  <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    cursor={{ fill: 'var(--md-sys-color-primary)', opacity: 0.08 }}
+                    contentStyle={{
+                      borderRadius: 12,
+                      border: 'none',
+                      background: 'var(--md-sys-color-surface-container)',
+                      color: 'var(--md-sys-color-on-surface)',
+                    }}
+                    labelStyle={{ color: 'var(--md-sys-color-on-surface-variant)' }}
+                    itemStyle={{ color: 'var(--md-sys-color-on-surface)' }}
+                    formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Ingresos']}
+                  />
+                  <Bar dataKey="revenue" fill="var(--md-sys-color-primary)" radius={[8, 8, 0, 0]} maxBarSize={38} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          )}
+
+          {/* Top products */}
           {report.topProducts.length > 0 && (
-            <div className="m3-card p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">
-                Productos mas vendidos
-              </h2>
-              <div className="overflow-hidden rounded-2xl">
-                <table className="min-w-full divide-y divide-[var(--color-outline-variant)]">
-                  <thead className="bg-[var(--color-surface-container-high)]">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+            <Card className="p-4 sm:p-6">
+              <h2 className="t-title-large mb-4 text-[var(--md-sys-color-on-surface)]">Productos más vendidos</h2>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-[var(--md-sys-color-outline-variant)]">
+                      <th scope="col" className="t-label-large px-4 py-3 text-left text-[var(--md-sys-color-on-surface-variant)]">
                         Producto
                       </th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <th scope="col" className="t-label-large px-4 py-3 text-right text-[var(--md-sys-color-on-surface-variant)]">
                         Cantidad
                       </th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                      <th scope="col" className="t-label-large px-4 py-3 text-right text-[var(--md-sys-color-on-surface-variant)]">
                         Ingresos
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--color-outline-variant)]">
+                  <tbody className="divide-y divide-[var(--md-sys-color-outline-variant)]">
                     {report.topProducts.map((product, i) => (
                       <tr key={i}>
-                        <td className="px-4 py-2 text-sm font-medium text-gray-900">
+                        <td className="t-body-medium px-4 py-3 text-[var(--md-sys-color-on-surface)]">
                           {product.productName}
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-500">
+                        <td className="t-body-medium px-4 py-3 text-right tabular-nums text-[var(--md-sys-color-on-surface-variant)]">
                           {product.quantity}
                         </td>
-                        <td className="px-4 py-2 text-sm font-semibold text-gray-700">
+                        <td className="t-title-small px-4 py-3 text-right tabular-nums text-[var(--md-sys-color-on-surface)]">
                           ${product.revenue.toFixed(2)}
                         </td>
                       </tr>
@@ -200,27 +296,27 @@ export default function ReportsPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Card>
           )}
 
-          {/* Orders by Status */}
+          {/* Orders by status */}
           {Object.keys(report.ordersByStatus).length > 0 && (
-            <div className="m3-card p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">
-                Pedidos por estado
-              </h2>
+            <Card className="p-4 sm:p-6">
+              <h2 className="t-title-large mb-4 text-[var(--md-sys-color-on-surface)]">Pedidos por estado</h2>
               <div className="flex flex-wrap gap-3">
                 {Object.entries(report.ordersByStatus).map(([status, count]) => (
                   <div
                     key={status}
-                    className="rounded-2xl bg-[var(--color-surface-container-high)] px-4 py-2 text-center"
+                    className="min-w-28 rounded-xl bg-[var(--md-sys-color-surface-container-high)] px-4 py-3"
                   >
-                    <p className="text-xs text-gray-500 capitalize">{status.replace('_', ' ')}</p>
-                    <p className="text-lg font-bold text-gray-900">{count}</p>
+                    <p className="t-label-medium text-[var(--md-sys-color-on-surface-variant)]">
+                      {STATUS_LABELS[status] ?? status.replace('_', ' ')}
+                    </p>
+                    <p className="t-title-large text-[var(--md-sys-color-on-surface)]">{count}</p>
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
         </div>
       )}

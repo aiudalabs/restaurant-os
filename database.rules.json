@@ -4,8 +4,8 @@
     ".write": false,
     "order_items": {
       "$stationId": {
-        ".read": "auth != null",
-        ".write": "auth != null"
+        ".read": "auth != null && auth.token.stationId === $stationId",
+        ".write": "auth != null && auth.token.stationId === $stationId"
       }
     }
   }
