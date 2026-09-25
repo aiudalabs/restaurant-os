@@ -16,6 +16,7 @@ export interface Branch {
   name: string;
   menuId: string;
   taxPercent: number; // fraction, e.g. 0.07
+  showProductImages: boolean; // admin toggle, off by default
 }
 
 export interface Category {
@@ -29,6 +30,9 @@ export interface Product {
   categoryId: string;
   name: string;
   description?: string;
+  /** Admin note for waiters, shown small under the name. */
+  waiterNote: string;
+  imageUrl: string;
   price: number;
   sortOrder: number;
 }

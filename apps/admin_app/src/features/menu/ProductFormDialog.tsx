@@ -30,6 +30,7 @@ const modifierGroupSchema = z.object({
 const productSchema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
   description: z.string().optional(),
+  waiterNote: z.string().optional(),
   price: z.preprocess(
     (val) => (val === '' || val === undefined ? undefined : Number(val)),
     z.number({ required_error: 'Precio requerido', invalid_type_error: 'Precio debe ser un número' }).min(0, 'Precio debe ser >= 0'),
@@ -79,6 +80,7 @@ export default function ProductFormDialog({
     defaultValues: {
       name: '',
       description: '',
+      waiterNote: '',
       price: undefined as unknown as number,
       tags: '',
       preparationMinutes: undefined,
@@ -112,6 +114,7 @@ export default function ProductFormDialog({
       reset({
         name: product.name,
         description: product.description ?? '',
+        waiterNote: product.waiterNote ?? '',
         price: product.price,
         tags: (product.tags ?? []).join(', '),
         preparationMinutes: product.preparationMinutes,
@@ -141,6 +144,8 @@ export default function ProductFormDialog({
       modifierGroups: values.modifierGroups as ModifierGroup[],
     };
     if (values.description) productData.description = values.description;
+    // Always written so clearing the field removes the note.
+    productData.waiterNote = (values.waiterNote ?? '').trim();
     if (values.preparationMinutes != null) productData.preparationMinutes = values.preparationMinutes;
     if (values.imageUrl) productData.imageUrl = values.imageUrl;
 
@@ -200,6 +205,19 @@ export default function ProductFormDialog({
             placeholder="Descripción opcional del producto"
             {...register('description')}
           />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="waiterNote" className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
+            Observaciones para el mesero
+          </label>
+          <input
+            id="waiterNote"
+            className="flex h-12 w-full rounded-xl border border-transparent bg-[var(--color-surface-container-high)] px-4 text-[15px] text-[var(--color-on-surface)] placeholder:text-[var(--color-on-surface-variant)]/60 transition-colors focus:outline-none focus:border-orange-600 focus:bg-[var(--color-surface-container)]"
+            placeholder="Ej: Se le puede agregar pollo"
+            {...register('waiterNote')}
+          />
+          <p className="text-xs text-gray-500">Solo la ve el mesero, en letra chica bajo el nombre. El cliente no la ve.</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

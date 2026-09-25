@@ -26,6 +26,7 @@ interface BranchFormState {
   menuId: string;
   taxPercent: string; // percent as typed, e.g. "7"
   isActive: boolean;
+  showProductImagesToWaiters: boolean;
 }
 
 const EMPTY: BranchFormState = {
@@ -35,6 +36,7 @@ const EMPTY: BranchFormState = {
   menuId: '',
   taxPercent: '7',
   isActive: true,
+  showProductImagesToWaiters: false,
 };
 
 function CredRow({ label, value }: { label: string; value: string }) {
@@ -76,6 +78,7 @@ function BranchDialog({
           menuId: branch.menuId ?? '',
           taxPercent: branch.taxPercent != null ? String(Math.round(branch.taxPercent * 100)) : '7',
           isActive: branch.isActive ?? true,
+          showProductImagesToWaiters: branch.showProductImagesToWaiters ?? false,
         }
       : // A new branch with no menu can't take orders: preselect it when the org has only one.
         { ...EMPTY, menuId: menus.length === 1 ? menus[0].id : '' },
@@ -103,7 +106,7 @@ function BranchDialog({
     };
     try {
       if (branch) {
-        await updateBranch(branch.id, payload);
+        await updateBranch(branch.id, { ...payload, showProductImagesToWaiters: form.showProductImagesToWaiters });
         onClose();
       } else {
         // Server-side: creates the branch + its stations (Cocina/Bar) + one
@@ -238,6 +241,19 @@ function BranchDialog({
           />
           Sucursal activa
         </label>
+
+        {/* Edit only: new branches are created by provisionBranch and start with photos off. */}
+        {branch && (
+          <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+            <input
+              type="checkbox"
+              checked={form.showProductImagesToWaiters}
+              onChange={(e) => set('showProductImagesToWaiters', e.target.checked)}
+              className="h-5 w-5 accent-orange-600"
+            />
+            Mostrar fotos de los productos en la app del mesero
+          </label>
+        )}
 
         {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
       </div>

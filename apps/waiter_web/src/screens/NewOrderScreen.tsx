@@ -180,9 +180,20 @@ export function NewOrderScreen({ branch }: Props) {
             const qty = qtyByProduct.get(p.id) ?? 0;
             return (
               <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-line bg-panel p-3">
-                <button onClick={() => add(p)} className="min-w-0 flex-1 text-left">
-                  <p className="font-bold leading-tight">{p.name}</p>
-                  <p className="text-sm text-muted">{money(p.price)}</p>
+                <button onClick={() => add(p)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                  {branch.showProductImages && p.imageUrl && (
+                    <img
+                      src={p.imageUrl}
+                      alt=""
+                      loading="lazy"
+                      className="h-14 w-14 shrink-0 rounded-xl bg-line object-cover"
+                    />
+                  )}
+                  <span className="min-w-0">
+                    <span className="block font-bold leading-tight">{p.name}</span>
+                    {p.waiterNote && <span className="mt-0.5 block text-xs leading-snug text-muted">{p.waiterNote}</span>}
+                    <span className="block text-sm text-muted">{money(p.price)}</span>
+                  </span>
                 </button>
                 {qty > 0 && (
                   <>

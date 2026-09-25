@@ -77,6 +77,7 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
   taxPercent?: number           // override del org si es diferente
   tipOptions?: number[]
   isActive: boolean
+  showProductImagesToWaiters?: boolean  // app del mesero muestra fotos de productos (default false)
   businessHours: {
     monday?: { open: string, close: string }   // "08:00", "22:00"
     tuesday?: { open: string, close: string }
@@ -124,6 +125,7 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
   categoryId: string
   name: string
   description?: string
+  waiterNote?: string           // observaciones solo para el mesero (letra chica bajo el nombre)
   imageUrl?: string
   price: number
   isActive: boolean

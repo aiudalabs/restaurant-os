@@ -35,6 +35,7 @@ export async function loadBranch(branchId: string): Promise<Branch> {
     name: d.name ?? 'Sucursal',
     menuId: d.menuId ?? '',
     taxPercent: typeof d.taxPercent === 'number' ? d.taxPercent : 0,
+    showProductImages: d.showProductImagesToWaiters === true,
   };
 }
 
@@ -65,6 +66,8 @@ export async function loadMenu(menuId: string): Promise<MenuData> {
         categoryId: p.categoryId ?? '',
         name: p.name ?? '',
         description: p.description ?? '',
+        waiterNote: typeof p.waiterNote === 'string' ? p.waiterNote.trim() : '',
+        imageUrl: typeof p.imageUrl === 'string' ? p.imageUrl : '',
         price: typeof p.price === 'number' ? p.price : 0,
         sortOrder: p.sortOrder ?? 0,
       };
