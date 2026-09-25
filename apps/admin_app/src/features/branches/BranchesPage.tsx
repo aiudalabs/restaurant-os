@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { httpsCallable } from 'firebase/functions';
+import { QRCodeSVG } from 'qrcode.react';
 import { Button, IconButton } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -10,7 +11,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useMenus } from '@/hooks/use-menu';
 import { functions } from '@/lib/firebase';
-import { CUSTOMER_APP_URL } from '@/lib/config';
+import { CUSTOMER_APP_URL, buildWaiterDeviceUrl } from '@/lib/config';
 import type { Branch } from '@/types/branch';
 import type { Menu } from '@/types/menu';
 
@@ -263,19 +264,65 @@ function BranchDialog({
   );
 }
 
+/** Copies text to the clipboard and flags `copied` for a moment (button feedback). */
+function useCopy() {
+  const [copied, setCopied] = useState(false);
+  const copy = (text: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  };
+  return { copied, copy };
+}
+
+/** Link + QR that set up a waiter's phone/tablet for this branch (?branch=…). */
+function WaiterLinkDialog({ branch, onClose }: { branch: Branch; onClose: () => void }) {
+  const { copied, copy } = useCopy();
+  const link = buildWaiterDeviceUrl(branch.id);
+  return (
+    <Dialog
+      title={`App del mesero · ${branch.name}`}
+      onClose={onClose}
+      footer={
+        <Button variant="tonal" icon={copied ? 'check' : 'content_copy'} onClick={() => copy(link)}>
+          {copied ? 'Copiado' : 'Copiar link'}
+        </Button>
+      }
+    >
+      <div className="flex flex-col items-center gap-4">
+        {/* Black on white in both themes so any phone can scan it. */}
+        <div className="flex items-center justify-center rounded-xl border border-[var(--md-sys-color-outline-variant)] bg-white p-4">
+          <QRCodeSVG value={link} size={192} level="M" />
+        </div>
+        <p className="t-body-medium text-center text-[var(--md-sys-color-on-surface-variant)]">
+          Escanéalo o abre el link una vez en cada celular o tablet de los meseros. Después cada mesero solo toca
+          su nombre y escribe su PIN (se pone en «Usuarios»).
+        </p>
+        <div className="t-body-small w-full break-all rounded-lg bg-[var(--md-sys-color-surface-container-highest)] p-3 font-mono text-[var(--md-sys-color-on-surface)]">
+          {link}
+        </div>
+      </div>
+    </Dialog>
+  );
+}
+
 function BranchCard({
   branch,
   menuName,
   onEdit,
   onDelete,
+  onWaiterLink,
 }: {
   branch: Branch;
   menuName: string | null;
   onEdit: () => void;
   onDelete: () => void;
+  onWaiterLink: () => void;
 }) {
+  const { copied, copy } = useCopy();
+  const waiterLink = buildWaiterDeviceUrl(branch.id);
   return (
-    <Card className="flex flex-col p-4">
+    <Card className="flex min-w-0 flex-col p-4">
       <div className="flex items-start gap-3">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]">
           <Icon name="storefront" />
@@ -313,6 +360,19 @@ function BranchCard({
             {CUSTOMER_APP_URL.replace(/^https?:\/\//, '')}/?branch={branch.id.slice(0, 6)}…
           </span>
         </div>
+        <div className="flex items-center gap-3 text-[var(--md-sys-color-on-surface-variant)]">
+          <Icon name="smartphone" size={20} className="shrink-0" />
+          <span className="t-body-small min-w-0 truncate font-mono">{waiterLink.replace(/^https?:\/\//, '')}</span>
+        </div>
+      </div>
+
+      <div className="-mx-1 mt-3 flex flex-wrap items-center gap-2">
+        <Button variant="tonal" size="sm" icon="qr_code_2" onClick={onWaiterLink}>
+          App del mesero
+        </Button>
+        <Button variant="ghost" size="sm" icon={copied ? 'check' : 'content_copy'} onClick={() => copy(waiterLink)}>
+          {copied ? 'Copiado' : 'Copiar link'}
+        </Button>
       </div>
     </Card>
   );
@@ -325,6 +385,7 @@ export default function BranchesPage() {
   const { menus } = useMenus(orgId);
   const [dialog, setDialog] = useState<{ branch: Branch | null } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Branch | null>(null);
+  const [waiterLinkBranch, setWaiterLinkBranch] = useState<Branch | null>(null);
 
   const menuName = useMemo(() => {
     const map = new Map(menus.map((m) => [m.id, m.name]));
@@ -368,6 +429,7 @@ export default function BranchesPage() {
               menuName={menuName(b.menuId)}
               onEdit={() => setDialog({ branch: b })}
               onDelete={() => setConfirmDelete(b)}
+              onWaiterLink={() => setWaiterLinkBranch(b)}
             />
           ))}
         </div>
@@ -380,6 +442,8 @@ export default function BranchesPage() {
           onClose={() => setDialog(null)}
         />
       )}
+
+      {waiterLinkBranch && <WaiterLinkDialog branch={waiterLinkBranch} onClose={() => setWaiterLinkBranch(null)} />}
 
       {confirmDelete && (
         <ConfirmDialog
