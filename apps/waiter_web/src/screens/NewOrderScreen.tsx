@@ -135,38 +135,37 @@ export function NewOrderScreen({ branch }: Props) {
   return (
     <div className="flex min-h-full lg:h-full">
       <div className="flex min-w-0 flex-1 flex-col lg:overflow-y-auto">
-        <header className="sticky top-0 z-10 space-y-3 border-b border-line bg-panel/95 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
-          <div className="flex items-center gap-3">
-            <button onClick={leave} className="rounded-full border border-line px-3 py-2 text-sm font-medium text-muted">
-              ← Pedidos
+        <header className="top-bar">
+          <div className="-ml-1 flex h-16 items-center gap-1">
+            <button onClick={leave} className="icon-btn h-12 w-12 text-muted active:bg-bg" aria-label="Volver a pedidos">
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
             </button>
-            <p className="text-lg font-extrabold">Nuevo pedido</p>
+            <p className="text-[22px] font-extrabold leading-7">Nuevo pedido</p>
           </div>
           <input
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
             placeholder="Nombre del cliente"
             autoCapitalize="words"
-            className="w-full rounded-xl border border-line bg-bg px-4 py-3 text-base font-semibold outline-none focus:border-brand"
+            className="field font-semibold"
           />
           {menu && menu.categories.length > 0 && (
-            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+            <div className="scroll-row -mx-4 flex gap-2 overflow-x-auto px-4 pb-4 pt-4 md:-mx-6 md:px-6">
               {menu.categories.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setCategoryId(c.id)}
-                  className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold ${
-                    c.id === categoryId ? 'bg-ink text-white' : 'border border-line bg-panel text-muted'
-                  }`}
+                  className={`chip ${c.id === categoryId ? 'bg-ink text-white' : 'border border-line bg-panel text-muted'}`}
                 >
                   {c.name}
                 </button>
               ))}
             </div>
           )}
+          {!(menu && menu.categories.length > 0) && <div className="h-4" />}
         </header>
 
-        <main className="grid flex-1 content-start gap-2 px-4 pb-32 pt-3 md:grid-cols-2 lg:pb-6 xl:grid-cols-3">
+        <main className="grid flex-1 content-start gap-2 px-4 pb-32 pt-4 md:grid-cols-2 md:px-6 lg:pb-6 xl:grid-cols-3">
           {menuError && <p className="col-span-full rounded-xl bg-red-50 p-3 text-sm text-brand">{menuError}</p>}
           {!menu && !menuError && (
             <div className="col-span-full">
@@ -179,14 +178,14 @@ export function NewOrderScreen({ branch }: Props) {
           {visible.map((p) => {
             const qty = qtyByProduct.get(p.id) ?? 0;
             return (
-              <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-line bg-panel p-3">
-                <button onClick={() => add(p)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+              <div key={p.id} className="card flex min-h-[72px] items-center gap-2 py-2 pr-2">
+                <button onClick={() => add(p)} className="flex min-w-0 flex-1 items-center gap-4 self-stretch text-left">
                   {branch.showProductImages && p.imageUrl && (
                     <img
                       src={p.imageUrl}
                       alt=""
                       loading="lazy"
-                      className="h-14 w-14 shrink-0 rounded-xl bg-line object-cover"
+                      className="h-14 w-14 shrink-0 rounded-lg bg-line object-cover"
                     />
                   )}
                   <span className="min-w-0">
@@ -199,7 +198,7 @@ export function NewOrderScreen({ branch }: Props) {
                   <>
                     <button
                       onClick={() => removeOne(p.id)}
-                      className="h-10 w-10 rounded-full border border-line text-xl font-bold"
+                      className="icon-btn border border-line active:bg-bg"
                       aria-label={`Quitar ${p.name}`}
                     >
                       −
@@ -209,7 +208,7 @@ export function NewOrderScreen({ branch }: Props) {
                 )}
                 <button
                   onClick={() => add(p)}
-                  className="h-10 w-10 rounded-full bg-brand text-xl font-bold text-white active:bg-brandDark"
+                  className="icon-btn bg-brand text-white active:bg-brandDark"
                   aria-label={`Agregar ${p.name}`}
                 >
                   +
@@ -221,10 +220,7 @@ export function NewOrderScreen({ branch }: Props) {
 
         {itemCount > 0 && (
           <div className="fixed inset-x-0 bottom-0 bg-gradient-to-t from-bg via-bg to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6 lg:hidden">
-            <button
-              onClick={openReview}
-              className="flex w-full items-center justify-between rounded-2xl bg-brand px-5 py-4 text-lg font-bold text-white shadow-lg active:bg-brandDark"
-            >
+            <button onClick={openReview} className="fab-extended justify-between">
               <span>Revisar ({itemCount})</span>
               <span className="tabular-nums">{money(total)}</span>
             </button>
@@ -243,9 +239,10 @@ export function NewOrderScreen({ branch }: Props) {
           onClick={closeReview}
         >
           <div
-            className="flex max-h-[90vh] w-full max-w-md flex-col rounded-t-3xl bg-panel pb-[max(1rem,env(safe-area-inset-bottom))]"
+            className="sheet flex max-h-[90vh] w-full max-w-md flex-col pb-[max(1rem,env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="sheet-handle shrink-0" aria-hidden="true" />
             <CartPanel {...cartProps} onClose={closeReview} />
           </div>
         </div>

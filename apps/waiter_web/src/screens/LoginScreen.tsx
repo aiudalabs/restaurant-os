@@ -58,7 +58,7 @@ export function LoginScreen({ error, deviceBranch, roster, onLogin, onPin, onRes
                 <li key={w.uid}>
                   <button
                     onClick={() => setWaiter(w)}
-                    className="flex w-full flex-col items-center gap-2 rounded-2xl border border-line bg-panel p-4 active:bg-bg"
+                    className="card flex w-full flex-col items-center gap-2 active:bg-bg"
                   >
                     <span className="grid h-14 w-14 place-items-center rounded-full bg-brand text-2xl font-extrabold text-white">
                       {w.displayName.charAt(0).toUpperCase()}
@@ -73,11 +73,11 @@ export function LoginScreen({ error, deviceBranch, roster, onLogin, onPin, onRes
       )}
 
       <div className="mt-8 flex flex-col items-center gap-2 text-sm">
-        <button onClick={() => setUseEmail(true)} className="py-2 text-muted underline">
+        <button onClick={() => setUseEmail(true)} className="btn btn-text">
           Entrar con email
         </button>
         {roster?.missing && (
-          <button onClick={onResetDevice} className="py-2 text-muted underline">
+          <button onClick={onResetDevice} className="btn btn-text">
             Olvidar esta sucursal
           </button>
         )}
@@ -148,7 +148,7 @@ function PinPad({
         <span />
       </div>
 
-      <button onClick={onBack} className="mx-auto mt-8 block py-2 text-sm text-muted underline">
+      <button onClick={onBack} className="btn btn-text mx-auto mt-8 flex">
         No soy {waiter.displayName}
       </button>
     </Shell>
@@ -174,7 +174,7 @@ function Key({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className={`h-16 w-16 rounded-2xl text-2xl font-bold active:scale-95 disabled:opacity-50 ${
+      className={`h-16 w-16 rounded-2xl text-2xl font-bold active:scale-95 disabled:opacity-40 ${
         muted ? 'text-muted' : 'border border-line bg-panel'
       }`}
     >
@@ -219,7 +219,7 @@ function EmailLogin({
           aria-label="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-xl border border-line bg-panel px-4 py-3.5 text-base outline-none focus:border-brand"
+          className="field"
         />
         <input
           type="password"
@@ -228,18 +228,18 @@ function EmailLogin({
           aria-label="Contraseña"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-xl border border-line bg-panel px-4 py-3.5 text-base outline-none focus:border-brand"
+          className="field"
         />
         {error && <p className="text-center text-sm font-medium text-brand">{error}</p>}
         <button
           type="submit"
           disabled={busy || !email || !password}
-          className="w-full rounded-xl bg-brand py-3.5 text-base font-bold text-white active:bg-brandDark disabled:opacity-50"
+          className="btn btn-lg btn-filled w-full"
         >
           {busy ? 'Entrando…' : 'Entrar'}
         </button>
         {onBack ? (
-          <button type="button" onClick={onBack} className="block w-full py-2 text-center text-sm text-muted underline">
+          <button type="button" onClick={onBack} className="btn btn-text w-full">
             Volver a entrar con PIN
           </button>
         ) : (
@@ -266,5 +266,5 @@ function Shell({ children }: { children: ReactNode }) {
 }
 
 function Notice({ children }: { children: ReactNode }) {
-  return <p className="rounded-2xl border border-line bg-panel p-4 text-center text-sm text-muted">{children}</p>;
+  return <p className="card text-center text-sm text-muted">{children}</p>;
 }

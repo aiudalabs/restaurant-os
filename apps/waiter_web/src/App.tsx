@@ -87,7 +87,7 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
     return (
       <div className="flex min-h-full flex-col items-center justify-center gap-6 p-6 text-center">
         <p className="max-w-sm font-medium text-brand">{error}</p>
-        <button onClick={onLogout} className="rounded-xl border border-line px-5 py-3 font-semibold text-muted">
+        <button onClick={onLogout} className="btn btn-outlined">
           Salir
         </button>
       </div>
