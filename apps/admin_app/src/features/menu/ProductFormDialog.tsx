@@ -30,6 +30,7 @@ const modifierGroupSchema = z.object({
 const productSchema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
   description: z.string().optional(),
+  waiterNote: z.string().optional(),
   price: z.preprocess(
     (val) => (val === '' || val === undefined ? undefined : Number(val)),
     // Empty number inputs arrive as NaN (valueAsNumber) → treat like a missing price.
@@ -85,6 +86,7 @@ export default function ProductFormDialog({
     defaultValues: {
       name: '',
       description: '',
+      waiterNote: '',
       price: undefined,
       tags: '',
       preparationMinutes: undefined,
@@ -118,6 +120,7 @@ export default function ProductFormDialog({
       reset({
         name: product.name,
         description: product.description ?? '',
+        waiterNote: product.waiterNote ?? '',
         price: product.price,
         tags: (product.tags ?? []).join(', '),
         preparationMinutes: product.preparationMinutes,
@@ -145,6 +148,8 @@ export default function ProductFormDialog({
       modifierGroups: values.modifierGroups as ModifierGroup[],
     };
     if (values.description) fields.description = values.description;
+    // Always written so clearing the field removes the note.
+    fields.waiterNote = (values.waiterNote ?? '').trim();
     if (values.preparationMinutes != null) fields.preparationMinutes = values.preparationMinutes;
     if (values.imageUrl) fields.imageUrl = values.imageUrl;
 
@@ -198,6 +203,14 @@ export default function ProductFormDialog({
           rows={2}
           placeholder="Descripción opcional del producto"
           {...register('description')}
+        />
+
+        <Input
+          id="waiterNote"
+          label="Observaciones para el mesero"
+          placeholder="Ej: Se le puede agregar pollo"
+          supporting="Solo la ve el mesero, en letra chica bajo el nombre. El cliente no la ve."
+          {...register('waiterNote')}
         />
 
         <div className="grid gap-5 sm:grid-cols-2">

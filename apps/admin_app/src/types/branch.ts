@@ -15,6 +15,8 @@ export interface Branch {
   taxPercent?: number;
   tipOptions?: number[];
   isActive: boolean;
+  /** Waiter app shows product photos (default off). */
+  showProductImagesToWaiters?: boolean;
   businessHours: {
     monday?: BusinessHoursEntry;
     tuesday?: BusinessHoursEntry;

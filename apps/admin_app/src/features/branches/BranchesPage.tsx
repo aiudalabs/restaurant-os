@@ -27,6 +27,7 @@ interface BranchFormState {
   menuId: string;
   taxPercent: string; // percent as typed, e.g. "7"
   isActive: boolean;
+  showProductImagesToWaiters: boolean;
 }
 
 const EMPTY: BranchFormState = {
@@ -36,6 +37,7 @@ const EMPTY: BranchFormState = {
   menuId: '',
   taxPercent: '7',
   isActive: true,
+  showProductImagesToWaiters: false,
 };
 
 function CredRow({ label, value }: { label: string; value: string }) {
@@ -75,6 +77,7 @@ function BranchDialog({
           menuId: branch.menuId ?? '',
           taxPercent: branch.taxPercent != null ? String(Math.round(branch.taxPercent * 100)) : '7',
           isActive: branch.isActive ?? true,
+          showProductImagesToWaiters: branch.showProductImagesToWaiters ?? false,
         }
       : // A new branch with no menu can't take orders: preselect it when the org has only one.
         { ...EMPTY, menuId: menus.length === 1 ? menus[0].id : '' },
@@ -102,7 +105,7 @@ function BranchDialog({
     };
     try {
       if (branch) {
-        await updateBranch(branch.id, payload);
+        await updateBranch(branch.id, { ...payload, showProductImagesToWaiters: form.showProductImagesToWaiters });
         onClose();
       } else {
         // Server-side: creates the branch + its stations (Cocina/Bar) + one
@@ -232,6 +235,23 @@ function BranchDialog({
           </label>
           <Switch id="branch-active" checked={form.isActive} onChange={(v) => set('isActive', v)} />
         </div>
+
+        {/* Edit only: new branches are created by provisionBranch and start with photos off. */}
+        {branch && (
+          <div className="flex items-center justify-between gap-4">
+            <label htmlFor="branch-photos" className="cursor-pointer">
+              <span className="t-body-large block text-[var(--md-sys-color-on-surface)]">Fotos en la app del mesero</span>
+              <span className="t-body-medium block text-[var(--md-sys-color-on-surface-variant)]">
+                Muestra la foto de cada producto al tomar el pedido.
+              </span>
+            </label>
+            <Switch
+              id="branch-photos"
+              checked={form.showProductImagesToWaiters}
+              onChange={(v) => set('showProductImagesToWaiters', v)}
+            />
+          </div>
+        )}
 
         {error && (
           <p className="t-body-medium rounded-lg bg-[var(--md-sys-color-error-container)] px-3 py-2 text-[var(--md-sys-color-on-error-container)]">
