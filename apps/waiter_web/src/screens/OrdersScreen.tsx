@@ -42,10 +42,10 @@ export function OrdersScreen({ session, branch, branches, onChangeBranch, draft,
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-10 border-b border-line bg-panel/95 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
-        <div className="flex items-center justify-between gap-3">
+      <header className="top-bar">
+        <div className="flex min-h-16 items-center justify-between gap-3 py-2">
           <div className="min-w-0">
-            <p className="truncate text-lg font-extrabold">Pedidos activos</p>
+            <p className="truncate text-[22px] font-extrabold leading-7">Pedidos activos</p>
             {branches.length > 1 ? (
               <select
                 value={branch.id}
@@ -68,19 +68,19 @@ export function OrdersScreen({ session, branch, branches, onChangeBranch, draft,
             <button
               onClick={onNewOrder}
               disabled={!branch.menuId}
-              className="hidden rounded-xl bg-brand px-5 py-3 font-bold text-white active:bg-brandDark disabled:opacity-50 md:block"
+              className="btn btn-filled hidden md:inline-flex"
             >
               {newOrderLabel}
             </button>
-            <button onClick={onLogout} className="rounded-full border border-line px-3 py-2 text-sm font-medium text-muted">
+            <button onClick={onLogout} className="btn btn-outlined">
               Salir
             </button>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 px-4 pb-28 pt-4 md:pb-6">
-        {error && <p className="mb-3 rounded-xl bg-red-50 p-3 text-sm text-brand">{error}</p>}
+      <main className="flex-1 px-4 pb-28 pt-4 md:px-6 md:pb-6">
+        {error && <p className="mb-4 rounded-xl bg-red-50 p-4 text-sm text-brand">{error}</p>}
         {!orders && !error && <Spinner full />}
         {orders?.length === 0 && (
           <div className="py-16 text-center text-muted">
@@ -90,7 +90,7 @@ export function OrdersScreen({ session, branch, branches, onChangeBranch, draft,
           </div>
         )}
         {/* Oldest first: phone = vertical list; larger/touch screens = grid, left→right. */}
-        <div className="grid items-start gap-3 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+        <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {orders?.map((o) => <OrderCard key={o.id} order={o} orgId={session.orgId} now={now} />)}
         </div>
       </main>
@@ -99,7 +99,7 @@ export function OrdersScreen({ session, branch, branches, onChangeBranch, draft,
         <button
           onClick={onNewOrder}
           disabled={!branch.menuId}
-          className="w-full rounded-2xl bg-brand py-4 text-lg font-bold text-white shadow-lg active:bg-brandDark disabled:opacity-50"
+          className="fab-extended"
         >
           {newOrderLabel}
         </button>

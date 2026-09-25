@@ -19,25 +19,26 @@ export function PaymentSheet({ customerName, total, busy, onPick, onClose }: Pro
   return (
     <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-t-3xl bg-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-3xl sm:pb-5"
+        className="sheet w-full max-w-md px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:rounded-[28px] sm:pb-6 sm:pt-6"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="sheet-handle sm:hidden" aria-hidden="true" />
         <p className="text-center text-sm text-muted">Cobrar a {customerName}</p>
-        <p className="mb-5 text-center text-3xl font-extrabold tabular-nums">{money(total)}</p>
+        <p className="mb-6 text-center text-3xl font-extrabold tabular-nums">{money(total)}</p>
         <div className="grid grid-cols-3 gap-3">
           {METHODS.map((m) => (
             <button
               key={m.id}
               onClick={() => onPick(m.id)}
               disabled={busy}
-              className="flex flex-col items-center gap-1 rounded-2xl border border-line py-4 font-bold active:bg-bg disabled:opacity-50"
+              className="flex min-h-[88px] flex-col items-center justify-center gap-1 rounded-xl border border-line font-bold active:bg-bg disabled:opacity-40"
             >
               <span className="text-2xl">{m.icon}</span>
               {m.label}
             </button>
           ))}
         </div>
-        <button onClick={onClose} className="mt-4 w-full py-3 font-medium text-muted">
+        <button onClick={onClose} className="btn btn-text mt-4 w-full">
           Cancelar
         </button>
       </div>

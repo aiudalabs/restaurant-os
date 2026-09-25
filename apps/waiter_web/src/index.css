@@ -17,3 +17,51 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Material 3 dimensions (sizes/shapes only; colors stay the app's own).
+   Chips 32dp · buttons 40dp (56dp large) · text fields 56dp, 4dp corners ·
+   cards 12dp · FAB 56dp, 16dp · sheets/dialogs 28dp · 8dp spacing grid. */
+@layer components {
+  .btn {
+    @apply inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold disabled:opacity-40;
+  }
+  .btn-lg {
+    @apply h-14 px-8 text-base font-bold;
+  }
+  .btn-filled {
+    @apply bg-brand text-white active:bg-brandDark;
+  }
+  .btn-outlined {
+    @apply border border-line text-ink active:bg-bg;
+  }
+  .btn-text {
+    @apply px-3 text-muted active:bg-bg;
+  }
+  .fab-extended {
+    @apply flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-brand px-5 text-base font-bold text-white shadow-lg active:bg-brandDark disabled:opacity-40;
+  }
+  .icon-btn {
+    @apply grid h-10 w-10 shrink-0 place-items-center rounded-full text-xl font-bold disabled:opacity-40;
+  }
+  .chip {
+    @apply inline-flex h-8 shrink-0 items-center rounded-lg px-4 text-sm font-medium;
+  }
+  .field {
+    @apply h-14 w-full rounded border border-line bg-panel px-4 text-base outline-none focus:border-brand focus:ring-1 focus:ring-brand;
+  }
+  .card {
+    @apply rounded-xl border border-line bg-panel p-4;
+  }
+  .sheet {
+    @apply rounded-t-[28px] bg-panel;
+  }
+  .sheet-handle {
+    @apply mx-auto mb-2 mt-4 h-1 w-8 rounded-full bg-muted/40;
+  }
+  .top-bar {
+    @apply sticky top-0 z-10 border-b border-line bg-panel/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur md:px-6;
+  }
+  .scroll-row {
+    scrollbar-width: thin;
+  }
+}

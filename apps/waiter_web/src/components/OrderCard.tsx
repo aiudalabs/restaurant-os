@@ -55,7 +55,7 @@ export function OrderCard({ order, orgId, now }: Props) {
     });
 
   return (
-    <article className={`rounded-2xl border bg-panel p-4 shadow-sm ${ready ? 'border-emerald-300' : 'border-line'}`}>
+    <article className={`card ${ready ? 'border-emerald-300' : ''}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-lg font-extrabold">{order.customerName}</p>
@@ -85,13 +85,13 @@ export function OrderCard({ order, orgId, now }: Props) {
         ))}
       </ul>
 
-      <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
+      <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
         <p className="text-lg font-extrabold tabular-nums">{money(order.total)}</p>
         {!paid && (
           <button
             onClick={() => setPaying(true)}
             disabled={busy}
-            className="rounded-xl bg-brand px-5 py-2.5 font-bold text-white active:bg-brandDark disabled:opacity-50"
+            className="btn btn-filled"
           >
             Cobrar
           </button>
@@ -100,7 +100,7 @@ export function OrderCard({ order, orgId, now }: Props) {
           <button
             onClick={() => run(() => closeOrder(order.id))}
             disabled={busy}
-            className="rounded-xl bg-emerald-600 px-5 py-2.5 font-bold text-white active:bg-emerald-700 disabled:opacity-50"
+            className="btn bg-emerald-600 text-white active:bg-emerald-700"
           >
             Entregado ✓
           </button>

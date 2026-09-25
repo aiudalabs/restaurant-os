@@ -48,11 +48,11 @@ export function CartPanel({
 
   return (
     <>
-      <div className="space-y-2 border-b border-line px-5 py-4">
+      <div className="space-y-4 border-b border-line px-6 py-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-lg font-extrabold">Tu pedido</p>
+          <p className="text-[22px] font-extrabold leading-7">Tu pedido</p>
           {onClose && (
-            <button onClick={onClose} className="rounded-full border border-line px-3 py-1.5 text-sm font-semibold text-muted">
+            <button onClick={onClose} className="btn btn-outlined">
               Seguir agregando
             </button>
           )}
@@ -71,13 +71,11 @@ export function CartPanel({
           placeholder="Nombre del cliente"
           autoCapitalize="words"
           enterKeyHint="done"
-          className={`w-full rounded-xl border bg-bg px-4 py-3 text-base font-semibold outline-none focus:border-brand ${
-            missingName ? 'border-brand' : 'border-line'
-          }`}
+          className={`field font-semibold ${missingName ? 'border-brand ring-1 ring-brand' : ''}`}
         />
         {missingName && <p className="text-sm font-medium text-brand">Escribe el nombre del cliente para enviarlo.</p>}
       </div>
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
         {lines.length === 0 && <p className="py-10 text-center text-sm text-muted">Toca un producto para agregarlo.</p>}
         {lines.map((l) => (
           <div key={l.key} className="space-y-2">
@@ -85,7 +83,7 @@ export function CartPanel({
               <p className="min-w-0 flex-1 font-semibold">{l.productName}</p>
               <button
                 onClick={() => onUpdateLine(l.key, { quantity: l.quantity - 1 })}
-                className="h-10 w-10 rounded-full border border-line text-lg font-bold"
+                className="icon-btn border border-line active:bg-bg"
                 aria-label={`Quitar ${l.productName}`}
               >
                 −
@@ -93,7 +91,7 @@ export function CartPanel({
               <span className="w-5 text-center font-bold tabular-nums">{l.quantity}</span>
               <button
                 onClick={() => onUpdateLine(l.key, { quantity: l.quantity + 1 })}
-                className="h-10 w-10 rounded-full border border-line text-lg font-bold"
+                className="icon-btn border border-line active:bg-bg"
                 aria-label={`Agregar ${l.productName}`}
               >
                 +
@@ -103,12 +101,12 @@ export function CartPanel({
               value={l.note}
               onChange={(e) => onUpdateLine(l.key, { note: e.target.value })}
               placeholder="Nota para cocina (ej. sin cebolla)"
-              className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm outline-none focus:border-brand"
+              className="field h-10 px-3 text-sm"
             />
           </div>
         ))}
       </div>
-      <div className="space-y-2 border-t border-line px-5 pt-4">
+      <div className="space-y-2 border-t border-line px-6 pt-4">
         <div className="flex justify-between text-sm text-muted">
           <span>Subtotal</span>
           <span className="tabular-nums">{money(subtotal)}</span>
@@ -127,7 +125,7 @@ export function CartPanel({
         <button
           onClick={trySend}
           disabled={sending || lines.length === 0}
-          className="w-full rounded-2xl bg-brand py-4 text-lg font-bold text-white active:bg-brandDark disabled:opacity-50"
+          className="btn btn-lg btn-filled mt-2 w-full"
         >
           {sending ? 'Enviando…' : 'Enviar a cocina'}
         </button>
@@ -136,7 +134,7 @@ export function CartPanel({
             onClick={() => (confirmDiscard ? onDiscard() : setConfirmDiscard(true))}
             onBlur={() => setConfirmDiscard(false)}
             disabled={sending}
-            className={`w-full py-2 text-sm font-medium ${confirmDiscard ? 'font-bold text-brand' : 'text-muted'}`}
+            className={`btn btn-text w-full ${confirmDiscard ? 'font-bold text-brand' : ''}`}
           >
             {confirmDiscard ? 'Toca otra vez para descartar el pedido' : 'Descartar pedido'}
           </button>
