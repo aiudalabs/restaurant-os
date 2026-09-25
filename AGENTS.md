@@ -15,27 +15,23 @@ Describe **el estado real del repo** y cómo trabajar en él sin romper nada.
 
 ## 0. Estado actual (2026-09-24) — léelo antes de tocar nada
 
-**Dos líneas de trabajo vivas, ambas en GitHub:**
+**Una sola línea: `main`.** El 2026-09-24 se unificaron las dos ramas vivas (`feat/waiter-pin-login`, que era
+producción con el admin naranja, y `feat/issue-41-admin-m3-green`) en `main`. El admin que queda es el
+**Material Design 3 «verde albahaca»** (issue #41), con todas las funciones del anterior.
 
-| Rama | Qué es | Dónde está desplegada |
-|---|---|---|
-| `feat/waiter-pin-login` | **Producción.** Admin con la interfaz anterior (naranja) + todo el backend actual | admin → restaurant-os-68c79.web.app, mesero, functions, reglas |
-| `feat/issue-41-admin-m3-green` | Admin rediseñado en **Material Design 3 «verde albahaca»** (issue #41) + el mismo backend | admin → preview `restaurant-os-68c79--m3-verde-887xu7pd.web.app` (expira 2026-10-07) |
-
-- Todo lo compartido es **idéntico** en las dos ramas: `functions/`, reglas (Firestore, RTDB, Storage),
-  índices, `apps/fastapi_bff`, `waiter_web`, `kitchen_web`, `customer_web`. Solo difieren `apps/admin_app`
-  y la documentación. Si cambias algo compartido, **aplícalo en las dos** (cherry-pick) o se desalinean.
-- ⚠️ `firebase deploy` compila **la rama que tengas abierta**. Admin de producción → desde
-  `feat/waiter-pin-login`; preview verde → desde `feat/issue-41-admin-m3-green`. Revisa `git branch --show-current`.
-- `main` está ~50–60 commits detrás y no refleja nada de esto. Siguiente paso acordado: cuando el admin verde
-  se apruebe, unificar todo en `main` con una PR y desplegar siempre desde ahí.
+- ⚠️ `firebase deploy` compila **la rama que tengas abierta**: despliega siempre desde `main` actualizado
+  (`git checkout main && git pull`). Las ramas `feat/*` anteriores ya están contenidas en `main`; no las revivas.
+- El admin verde aún **no está en producción** hasta el próximo `deploy --only hosting:admin` desde `main`
+  (producción sigue sirviendo el naranja hasta entonces). Preview viejo: `restaurant-os-68c79--m3-verde-887xu7pd.web.app` (expira 2026-10-07).
 - Organizaciones en producción: «Noel's AiudaLabs» (`trQxt6JRMIoM7yIPSTeq`, sucursal «Noel's Papitas», donde
-  se probó el flujo mesero → KDS), «Pick & Eat» (`yN4NWwXOCjmh0ydwwRIu`: fotos del menú ya en Storage, CSV en
-  `~/Desktop/Pereda/`, su sucursal aún sin estaciones), «Pereda's Pizzas» y «Urban Kitchen».
+  se probó el flujo mesero → KDS), «Pick & Eat» (`yN4NWwXOCjmh0ydwwRIu`: menú nuevo del 2026-09-24 con precios
+  PROVISIONALES, estaciones Cocina/Bar ruteadas, observaciones para el mesero en 4 productos), «Pereda's Pizzas» y «Urban Kitchen».
 
-**Pendiente de desplegar (verificado contra producción el 2026-09-24):**
-- **BFF** (Cloud Run, última revisión del 2026-07-12): falta el CORS para los previews del admin → el Asistente IA
-  del admin verde da «Failed to fetch». También lleva `sentToStationAt`/notas en el espejo de pagos QR.
+**Pendiente de desplegar desde `main` (verificado contra producción el 2026-09-24):**
+- **Hosting `admin`** (pasa producción al admin verde) y **`waiter`** (fotos opcionales por sucursal,
+  observaciones para el mesero, medidas Material 3).
+- **BFF** (Cloud Run, última revisión del 2026-07-12): falta el CORS para los canales de preview del admin → en un preview
+  el Asistente IA da «Failed to fetch» (en el dominio de producción sí funciona). También lleva `sentToStationAt`/notas en el espejo de pagos QR.
 - **KDS web** (`hosting:kds`, último deploy 2026-09-22): falta la fila FIFO (más viejo a la derecha), el nombre
   de la sucursal en la cabecera y el orden estable por `sentToStationAt`.
 
@@ -64,7 +60,7 @@ todo desde un panel web. Self-onboarding desde una landing con planes.
 
 | Ruta | Stack | Estado | Deploy |
 |---|---|---|---|
-| `apps/admin_app` | React 19 + TS + Vite + Tailwind 4 + TanStack Router/Query | **Activa** — panel dueños/managers. Dos versiones (ver §0): anterior en producción, M3 verde en preview | Hosting `admin` → restaurant-os-68c79.web.app |
+| `apps/admin_app` | React 19 + TS + Vite + Tailwind 4 + TanStack Router/Query | **Activa** — panel dueños/managers, Material Design 3 «verde albahaca» (issue #41) | Hosting `admin` → restaurant-os-68c79.web.app |
 | `apps/customer_web` | React 18 + TS + Vite + Tailwind 3 + react-router-dom | **Activa** — pedido por QR con número de retiro; reemplaza a `client_app` | Hosting `customer` → restaurant-os-pedir.web.app |
 | `apps/kitchen_web` | React 18 + TS + Vite + Tailwind 3 | **Activa** — KDS web: PIN de estación (el link `?station=` configura la tablet), fila FIFO con el ticket más viejo a la derecha | Hosting `kds` → restaurant-os-cocina.web.app |
 | `apps/waiter_web` | React 18 + TS + Vite + Tailwind 3 | **Activa** — mesero sin mesas: pedido por nombre del cliente → KDS; cobro manual (efectivo/tarjeta/Yappy). Login: el link `?branch=` configura el dispositivo, el mesero toca su nombre + PIN personal. Borrador del pedido en el dispositivo (`lib/draft`), botón atrás dentro de la app (`lib/nav`). Responsive (grilla en PC táctil) | Hosting `waiter` → restaurant-os-mesero.web.app |
@@ -222,7 +218,7 @@ No hay CI. Verifica a mano lo que tocaste:
 | Tocaste | Mínimo |
 |---|---|
 | Una web app | `npm run build` sin errores (+ `npm run lint` en admin) |
-| `admin_app` tipos | Rama M3: el build es `tsc -b && vite build` (tipos limpios; mantenlos así). Rama de producción: `vite build` sin tsc (11 errores de tipos previos); usa `npx tsc -p tsconfig.app.json --noEmit` para no sumar errores |
+| `admin_app` tipos | El build es `tsc -b && vite build`: los tipos están limpios, mantenlos así (un error de tipos rompe el deploy) |
 | `functions/` | `npm run build` (tsc) |
 | BFF | Importa sin error (`python3.12 -c "import app.main"`) y prueba el endpoint. `tests/test_auth.py` y `test_catalog_sync.py` necesitan Odoo corriendo + credenciales Firebase; si no están, dilo en vez de reportar "tests OK" |
 | Reglas / routing | Probar el flujo anónimo real: QR → menú → orden → aparece en KDS |
@@ -268,10 +264,8 @@ Llamadas a Identity Toolkit necesitan el header `x-goog-user-project: restaurant
   commit `tipo(scope): …` + `Closes #N` — detalle en `CLAUDE.md`. Nunca commitear a `main`.
 - Scopes de `CLAUDE.md`: `client`, `waiter`, `kitchen`, `admin`, `core`, `firebase`, `bff`, `docs`.
   El historial también usa `customer`, `kds`, `landing` para las apps web nuevas.
-- **⚠️ `main` no tiene el código actual** (ver §0). Las PRs #35–#40 (customer web, pagos, M3 naranja,
-  multi-tenancy P0–P3) se **cerraron sin mergear**; ese trabajo sigue apilado en las ramas `feat/*` y está
-  contenido en las dos ramas activas. No ramifiques desde `main` ni asumas que "Closes #N" cerró un issue.
-- Issue #41 (admin M3 verde) abierto, en progreso en `feat/issue-41-admin-m3-green`.
+- `main` tiene todo el código actual desde la unificación del 2026-09-24 (ver §0): ramifica desde `main`.
+  Las PRs #35–#40 se cerraron sin mergear en su día; su trabajo entró a `main` con la unificación.
 - Issues abiertos del plan original (#25–#30) son épicas de sprint antiguas; el mapa vigente de
   prioridades está en `docs/ROADMAP.md` + decisiones recientes, no en esos issues.
 
