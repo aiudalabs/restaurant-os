@@ -80,6 +80,8 @@ Replica la configuración de producción:
 | 6 | Registra la app web y obtiene su config pública |
 | 7 | Crea los 5 sitios de Hosting (`<proyecto>`, `-pedir`, `-cocina`, `-mesero`, `-inicio`) |
 | 8 | Da a la cuenta `firebase-adminsdk-…` los mismos roles que tiene el BFF en producción |
+| 8b | Crea los agentes de Pub/Sub y Eventarc y da los permisos de Cloud Build (functions de 2.ª generación) |
+| 8c | Da a las cuentas con las que corren las functions (`@appspot`, `-compute`) los roles que tienen en producción |
 | 9 | Escribe `apps/*/.env.<proyecto>`, `apps/*/.env.development`, `.firebaserc` y `deploy/env/dev.env` |
 
 Otros detalles:
@@ -99,7 +101,7 @@ Luego entra a la **landing de dev** y regístrate como un restaurante nuevo. Ese
 
 ### Problemas del primer deploy en un proyecto nuevo
 
-Estos problemas salieron al crear dev (2026-09-29). Los tres primeros ya los resuelve el bootstrap (paso 8b); el cuarto hay que revisarlo tras el primer deploy.
+Estos problemas salieron al crear dev (2026-09-29). Los cuatro primeros ya los resuelve el bootstrap (pasos 8b y 8c); los dos últimos se revisan tras el primer deploy.
 
 | Síntoma | Causa | Arreglo |
 |---|---|---|
