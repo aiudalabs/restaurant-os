@@ -106,6 +106,7 @@ Estos problemas salieron al crear dev (2026-09-29). Los tres primeros ya los res
 | `We failed to modify the IAM policy for the project` | El agente de servicio de Pub/Sub aún no existe | 8b: crea los agentes de Pub/Sub y Eventarc y da los roles que pide la CLI |
 | `Build failed: Access to bucket gcf-sources-… denied` | La cuenta Compute por defecto (la que usa Cloud Build) ya no tiene acceso en proyectos nuevos | 8b: `roles/cloudbuild.builds.builder` a `<número>-compute@developer.gserviceaccount.com` |
 | `Permission denied while using the Eventarc Service Agent` | Los permisos del agente tardan en propagarse | 8b: `roles/eventarc.serviceAgent`; si persiste, espera unos minutos y reintenta |
+| Functions responden pero fallan con `PERMISSION_DENIED` en Firestore (p. ej. crear la organización) | Los proyectos nuevos no dan roles a las cuentas con las que corren las functions | 8c: los mismos roles que en producción para `<proyecto>@appspot` y `<número>-compute` |
 | Functions desplegadas pero **403** (manifest, login, PIN…) | Si el primer intento falló, los deploys siguientes no hacen públicas las functions HTTP | Ver el comando de abajo |
 | `could not set up cleanup policy` | Falta la política de limpieza de imágenes (necesita un deploy exitoso previo) | `npx -y firebase-tools@15.30.2 functions:artifacts:setpolicy --project <alias> --days 1 --force` |
 
