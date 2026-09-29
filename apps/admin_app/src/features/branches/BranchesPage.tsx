@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useMenus } from '@/hooks/use-menu';
 import { functions } from '@/lib/firebase';
-import { CUSTOMER_APP_URL, buildWaiterDeviceUrl } from '@/lib/config';
+import { buildCustomerOrderUrl, buildWaiterDeviceUrl } from '@/lib/config';
 import type { Branch } from '@/types/branch';
 import type { Menu } from '@/types/menu';
 
@@ -29,6 +29,8 @@ interface BranchFormState {
   taxPercent: string; // percent as typed, e.g. "7"
   isActive: boolean;
   showProductImagesToWaiters: boolean;
+  yappyHandle: string;
+  allowPayAtPickup: boolean;
 }
 
 const EMPTY: BranchFormState = {
@@ -39,6 +41,8 @@ const EMPTY: BranchFormState = {
   taxPercent: '7',
   isActive: true,
   showProductImagesToWaiters: false,
+  yappyHandle: '',
+  allowPayAtPickup: false,
 };
 
 function CredRow({ label, value }: { label: string; value: string }) {
@@ -79,6 +83,8 @@ function BranchDialog({
           taxPercent: branch.taxPercent != null ? String(Math.round(branch.taxPercent * 100)) : '7',
           isActive: branch.isActive ?? true,
           showProductImagesToWaiters: branch.showProductImagesToWaiters ?? false,
+          yappyHandle: branch.yappyHandle ?? '',
+          allowPayAtPickup: branch.allowPayAtPickup ?? false,
         }
       : // A new branch with no menu can't take orders: preselect it when the org has only one.
         { ...EMPTY, menuId: menus.length === 1 ? menus[0].id : '' },
@@ -106,7 +112,12 @@ function BranchDialog({
     };
     try {
       if (branch) {
-        await updateBranch(branch.id, { ...payload, showProductImagesToWaiters: form.showProductImagesToWaiters });
+        await updateBranch(branch.id, {
+          ...payload,
+          showProductImagesToWaiters: form.showProductImagesToWaiters,
+          yappyHandle: form.yappyHandle.trim(),
+          allowPayAtPickup: form.allowPayAtPickup,
+        });
         onClose();
       } else {
         // Server-side: creates the branch + its stations (Cocina/Bar) + one
@@ -254,6 +265,29 @@ function BranchDialog({
           </div>
         )}
 
+        {/* Pickup orders from the link: how customers pay (edit only, like the photos switch). */}
+        {branch && (
+          <>
+            <Input
+              id="branch-yappy"
+              label="Yappy para cobrar pedidos por link"
+              value={form.yappyHandle}
+              onChange={(e) => set('yappyHandle', e.target.value)}
+              placeholder="Ej: @MiRestaurante o 6000-0000"
+              supporting="Quien pide por el link te paga por Yappy aquí y tú confirmas el pago en la app del mesero. Déjalo vacío para no ofrecer Yappy."
+            />
+            <div className="flex items-center justify-between gap-4">
+              <label htmlFor="branch-pickup-pay" className="cursor-pointer">
+                <span className="t-body-large block text-[var(--md-sys-color-on-surface)]">Permitir pagar al retirar</span>
+                <span className="t-body-medium block text-[var(--md-sys-color-on-surface-variant)]">
+                  El pedido va directo a cocina y se cobra en el mostrador.
+                </span>
+              </label>
+              <Switch id="branch-pickup-pay" checked={form.allowPayAtPickup} onChange={(v) => set('allowPayAtPickup', v)} />
+            </div>
+          </>
+        )}
+
         {error && (
           <p className="t-body-medium rounded-lg bg-[var(--md-sys-color-error-container)] px-3 py-2 text-[var(--md-sys-color-on-error-container)]">
             {error}
@@ -275,13 +309,30 @@ function useCopy() {
   return { copied, copy };
 }
 
-/** Link + QR that set up a waiter's phone/tablet for this branch (?branch=…). */
-function WaiterLinkDialog({ branch, onClose }: { branch: Branch; onClose: () => void }) {
+interface BranchLink {
+  title: string;
+  link: string;
+  help: string;
+}
+
+const waiterLinkOf = (branch: Branch): BranchLink => ({
+  title: `App del mesero · ${branch.name}`,
+  link: buildWaiterDeviceUrl(branch.id),
+  help: 'Escanéalo o abre el link una vez en cada celular o tablet de los meseros. Después cada mesero solo toca su nombre y escribe su PIN (se pone en «Usuarios»).',
+});
+
+const orderLinkOf = (branch: Branch): BranchLink => ({
+  title: `Pedidos para retirar · ${branch.name}`,
+  link: buildCustomerOrderUrl(branch.orgId, branch.id),
+  help: 'Compártelo por WhatsApp o imprime el QR (lobby, ascensor, oficinas). El cliente pide, paga (Yappy o al retirar, según la sucursal) y baja cuando su pedido está listo.',
+});
+
+/** Link + QR of a branch: the waiter device setup or the customers' pickup ordering. */
+function LinkDialog({ title, link, help, onClose }: BranchLink & { onClose: () => void }) {
   const { copied, copy } = useCopy();
-  const link = buildWaiterDeviceUrl(branch.id);
   return (
     <Dialog
-      title={`App del mesero · ${branch.name}`}
+      title={title}
       onClose={onClose}
       footer={
         <Button variant="tonal" icon={copied ? 'check' : 'content_copy'} onClick={() => copy(link)}>
@@ -294,10 +345,7 @@ function WaiterLinkDialog({ branch, onClose }: { branch: Branch; onClose: () => 
         <div className="flex items-center justify-center rounded-xl border border-[var(--md-sys-color-outline-variant)] bg-white p-4">
           <QRCodeSVG value={link} size={192} level="M" />
         </div>
-        <p className="t-body-medium text-center text-[var(--md-sys-color-on-surface-variant)]">
-          Escanéalo o abre el link una vez en cada celular o tablet de los meseros. Después cada mesero solo toca
-          su nombre y escribe su PIN (se pone en «Usuarios»).
-        </p>
+        <p className="t-body-medium text-center text-[var(--md-sys-color-on-surface-variant)]">{help}</p>
         <div className="t-body-small w-full break-all rounded-lg bg-[var(--md-sys-color-surface-container-highest)] p-3 font-mono text-[var(--md-sys-color-on-surface)]">
           {link}
         </div>
@@ -306,21 +354,47 @@ function WaiterLinkDialog({ branch, onClose }: { branch: Branch; onClose: () => 
   );
 }
 
+/** One shareable link of the branch: label + short URL, QR and copy actions. */
+function LinkRow({
+  icon,
+  label,
+  link,
+  onShow,
+}: {
+  icon: string;
+  label: string;
+  link: BranchLink;
+  onShow: (link: BranchLink) => void;
+}) {
+  const { copied, copy } = useCopy();
+  return (
+    <div className="flex items-center gap-3 text-[var(--md-sys-color-on-surface-variant)]">
+      <Icon name={icon} size={20} className="shrink-0" />
+      <span className="min-w-0 flex-1">
+        <span className="t-body-medium block text-[var(--md-sys-color-on-surface)]">{label}</span>
+        <span className="t-body-small block truncate font-mono">{link.link.replace(/^https?:\/\//, '')}</span>
+      </span>
+      <span className="-mr-2 flex shrink-0 items-center">
+        <IconButton icon="qr_code_2" label={`QR · ${label}`} onClick={() => onShow(link)} />
+        <IconButton icon={copied ? 'check' : 'content_copy'} label={`Copiar link · ${label}`} onClick={() => copy(link.link)} />
+      </span>
+    </div>
+  );
+}
+
 function BranchCard({
   branch,
   menuName,
   onEdit,
   onDelete,
-  onWaiterLink,
+  onShowLink,
 }: {
   branch: Branch;
   menuName: string | null;
   onEdit: () => void;
   onDelete: () => void;
-  onWaiterLink: () => void;
+  onShowLink: (link: BranchLink) => void;
 }) {
-  const { copied, copy } = useCopy();
-  const waiterLink = buildWaiterDeviceUrl(branch.id);
   return (
     <Card className="flex min-w-0 flex-col p-4">
       <div className="flex items-start gap-3">
@@ -354,25 +428,8 @@ function BranchCard({
             <span className="t-body-medium text-[var(--md-sys-color-error)]">Sin menú asignado</span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-[var(--md-sys-color-on-surface-variant)]">
-          <Icon name="qr_code_2" size={20} className="shrink-0" />
-          <span className="t-body-small min-w-0 truncate font-mono">
-            {CUSTOMER_APP_URL.replace(/^https?:\/\//, '')}/?branch={branch.id.slice(0, 6)}…
-          </span>
-        </div>
-        <div className="flex items-center gap-3 text-[var(--md-sys-color-on-surface-variant)]">
-          <Icon name="smartphone" size={20} className="shrink-0" />
-          <span className="t-body-small min-w-0 truncate font-mono">{waiterLink.replace(/^https?:\/\//, '')}</span>
-        </div>
-      </div>
-
-      <div className="-mx-1 mt-3 flex flex-wrap items-center gap-2">
-        <Button variant="tonal" size="sm" icon="qr_code_2" onClick={onWaiterLink}>
-          App del mesero
-        </Button>
-        <Button variant="ghost" size="sm" icon={copied ? 'check' : 'content_copy'} onClick={() => copy(waiterLink)}>
-          {copied ? 'Copiado' : 'Copiar link'}
-        </Button>
+        <LinkRow icon="shopping_bag" label="Pedidos para retirar" link={orderLinkOf(branch)} onShow={onShowLink} />
+        <LinkRow icon="smartphone" label="App del mesero" link={waiterLinkOf(branch)} onShow={onShowLink} />
       </div>
     </Card>
   );
@@ -385,7 +442,7 @@ export default function BranchesPage() {
   const { menus } = useMenus(orgId);
   const [dialog, setDialog] = useState<{ branch: Branch | null } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Branch | null>(null);
-  const [waiterLinkBranch, setWaiterLinkBranch] = useState<Branch | null>(null);
+  const [shownLink, setShownLink] = useState<BranchLink | null>(null);
 
   const menuName = useMemo(() => {
     const map = new Map(menus.map((m) => [m.id, m.name]));
@@ -429,7 +486,7 @@ export default function BranchesPage() {
               menuName={menuName(b.menuId)}
               onEdit={() => setDialog({ branch: b })}
               onDelete={() => setConfirmDelete(b)}
-              onWaiterLink={() => setWaiterLinkBranch(b)}
+              onShowLink={setShownLink}
             />
           ))}
         </div>
@@ -443,7 +500,7 @@ export default function BranchesPage() {
         />
       )}
 
-      {waiterLinkBranch && <WaiterLinkDialog branch={waiterLinkBranch} onClose={() => setWaiterLinkBranch(null)} />}
+      {shownLink && <LinkDialog {...shownLink} onClose={() => setShownLink(null)} />}
 
       {confirmDelete && (
         <ConfirmDialog

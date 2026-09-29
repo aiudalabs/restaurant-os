@@ -11,7 +11,8 @@ import {
   writeBatch,
   type DocumentData,
 } from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { httpsCallable } from 'firebase/functions';
+import { auth, db, functions } from './firebase';
 import { paths } from './paths';
 import type {
   Branch,
@@ -142,12 +143,13 @@ export async function createOrder(branch: Branch, customerName: string, lines: C
   return orderRef.id;
 }
 
-const ACTIVE_STATUSES = ['pending', 'confirmed', 'in_preparation', 'ready'];
+const ACTIVE_STATUSES = ['pending_payment', 'pending', 'confirmed', 'in_preparation', 'ready'];
 
 function mapOrder(id: string, d: DocumentData): Order {
   return {
     id,
     customerName: d.customerName ?? d.tableNumber ?? 'Cliente',
+    pickupCode: d.pickupCode ?? '',
     status: d.status ?? 'pending',
     total: typeof d.total === 'number' ? d.total : 0,
     itemCount: d.itemCount ?? 0,
@@ -255,6 +257,17 @@ export async function markItemsReady(itemIds: string[]): Promise<void> {
     });
   }
   await batch.commit();
+}
+
+/**
+ * Manual Yappy: the waiter checked their own Yappy app. received=true pays the
+ * order and sends it to the kitchen; false cancels it (the transfer never came).
+ */
+export async function confirmManualPayment(orderId: string, received: boolean): Promise<void> {
+  await httpsCallable<{ orderId: string; received: boolean }, { status: string }>(
+    functions,
+    'confirmManualPayment',
+  )({ orderId, received });
 }
 
 /** Paid + ready + handed to the customer → the order is done. */

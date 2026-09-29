@@ -65,6 +65,8 @@ export function TrackingScreen() {
   const awaitingPayment = order.status === 'pending_payment';
   const paymentFailed = order.status === 'payment_failed';
   const paymentPending = awaitingPayment || paymentFailed;
+  // Manual Yappy: staff confirm the transfer in their own Yappy app.
+  const yappy = order.paymentMethod === 'yappy';
 
   const startNewOrder = () => {
     clearActiveOrder();
@@ -101,15 +103,19 @@ export function TrackingScreen() {
         <div className="font-display text-6xl font-bold tracking-tight">{order.pickupCode}</div>
         <p className="mt-2 text-sm text-white/80">
           {paymentPending
-            ? 'Reservado — se envía a cocina al pagar'
+            ? yappy
+              ? 'Reservado — lo preparamos al confirmar tu Yappy'
+              : 'Reservado — se envía a cocina al pagar'
             : order.customerName && order.customerName !== 'Cliente'
               ? `A nombre de ${order.customerName}`
               : 'Guarda este número para retirar'}
         </p>
       </div>
 
+      {awaitingPayment && yappy && <YappySteps order={order} />}
+
       {/* Payment gate — order is held until paid */}
-      {paymentPending && (
+      {paymentPending && !yappy && (
         <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
           <p className="text-center text-sm font-semibold text-ink">
             {paymentFailed ? 'Tu pago fue rechazado' : 'Falta completar el pago'}
@@ -134,7 +140,9 @@ export function TrackingScreen() {
       )}
       {cancelled && (
         <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-600">
-          Este pedido fue cancelado. Consulta con el personal.
+          {yappy
+            ? 'Pedido cancelado: no nos llegó tu Yappy. Si pagaste, muéstrale el comprobante al personal.'
+            : 'Este pedido fue cancelado. Consulta con el personal.'}
         </div>
       )}
 
@@ -214,4 +222,43 @@ function ItemBadge({ status }: { status: OrderItemDoc['status'] }) {
   };
   const { label, cls } = map[status] ?? map.queued;
   return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>;
+}
+
+/** Manual Yappy instructions; the screen updates by itself once staff confirm. */
+function YappySteps({ order }: { order: OrderDoc }) {
+  const [copied, setCopied] = useState('');
+  const copy = (key: string, text: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopied(key);
+    window.setTimeout(() => setCopied(''), 2000);
+  };
+  return (
+    <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+      <p className="text-center text-sm font-semibold text-ink">Paga con Yappy para que lo preparemos</p>
+      <ol className="mt-3 space-y-3 text-sm">
+        <li className="flex items-center gap-3">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand/10 text-xs font-bold text-brand">1</span>
+          <span className="min-w-0 flex-1">
+            Envía <b>{money(order.total)}</b> a <b className="break-all">{order.payTo}</b>
+          </span>
+          <button onClick={() => copy('to', order.payTo)} className="rounded-lg border border-black/10 px-2.5 py-1.5 text-xs font-semibold">
+            {copied === 'to' ? 'Copiado' : 'Copiar'}
+          </button>
+        </li>
+        <li className="flex items-center gap-3">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand/10 text-xs font-bold text-brand">2</span>
+          <span className="min-w-0 flex-1">
+            En el mensaje escribe <b className="tabular-nums">{order.pickupCode}</b>
+          </span>
+          <button onClick={() => copy('code', order.pickupCode)} className="rounded-lg border border-black/10 px-2.5 py-1.5 text-xs font-semibold">
+            {copied === 'code' ? 'Copiado' : 'Copiar'}
+          </button>
+        </li>
+        <li className="flex items-center gap-3">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand/10 text-xs font-bold text-brand">3</span>
+          <span className="min-w-0 flex-1 text-hint">Te avisamos aquí cuando confirmemos tu pago. Puedes dejar esta página abierta.</span>
+        </li>
+      </ol>
+    </div>
+  );
 }

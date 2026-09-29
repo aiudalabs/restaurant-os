@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { closeOrder, markItemsReady, recordPayment, watchOrderItems } from '../lib/api';
+import { closeOrder, confirmManualPayment, markItemsReady, recordPayment, watchOrderItems } from '../lib/api';
 import { money } from '../lib/format';
 import { PaymentSheet } from './PaymentSheet';
 import type { Order, OrderItem, OrderStatus, PaymentMethod } from '../types';
 
 const KITCHEN_LABEL: Record<OrderStatus, { text: string; cls: string }> = {
+  pending_payment: { text: 'Esperando pago', cls: 'bg-violet-50 text-violet-700' },
   pending: { text: 'Enviando…', cls: 'bg-gray-100 text-gray-600' },
   confirmed: { text: 'En cocina', cls: 'bg-blue-50 text-blue-700' },
   in_preparation: { text: 'Preparando', cls: 'bg-amber-50 text-amber-700' },
@@ -27,6 +28,7 @@ export function OrderCard({ order, orgId, now }: Props) {
   const [paying, setPaying] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [confirmReject, setConfirmReject] = useState(false);
 
   useEffect(() => watchOrderItems(orgId, order.id, setItems), [orgId, order.id]);
 
@@ -34,7 +36,9 @@ export function OrderCard({ order, orgId, now }: Props) {
   const ready = order.status === 'ready';
   // Counter mode: items no active station prepares stay unrouted ('') once
   // onOrderCreated has run (order leaves 'pending'); the waiter marks them ready.
-  const routingDone = order.status !== 'pending';
+  const routingDone = order.status !== 'pending' && order.status !== 'pending_payment';
+  // Manual Yappy: nothing is prepared until someone confirms the transfer arrived.
+  const yappyPending = order.status === 'pending_payment' && order.paymentMethod === 'yappy';
   const isCounter = (it: OrderItem) => routingDone && it.stationId === '';
   const counterPending = items.filter((it) => isCounter(it) && it.status !== 'done' && it.status !== 'cancelled');
   const hasCounter = items.some(isCounter);
@@ -52,13 +56,16 @@ export function OrderCard({ order, orgId, now }: Props) {
       await fn();
     } catch (e) {
       console.error('[waiter] order update failed', e);
-      setError('No se pudo guardar. Intenta de nuevo.');
+      // Callable errors carry a message meant for the waiter (e.g. KDS mirror retry).
+      const callable = e instanceof Error && 'code' in e && String((e as { code: unknown }).code).startsWith('functions/');
+      setError(callable ? (e as Error).message : 'No se pudo guardar. Intenta de nuevo.');
     } finally {
       setBusy(false);
     }
   };
 
   const markReady = (ids: string[]) => run(() => markItemsReady(ids));
+  const reviewYappy = (received: boolean) => run(() => confirmManualPayment(order.id, received));
 
   const pay = (method: PaymentMethod) =>
     run(async () => {
@@ -80,7 +87,11 @@ export function OrderCard({ order, orgId, now }: Props) {
               paid ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-brand'
             }`}
           >
-            {paid ? `Cobrado · ${order.paymentMethod ? METHOD_LABEL[order.paymentMethod] : ''}` : 'Por cobrar'}
+            {paid
+              ? `Cobrado · ${order.paymentMethod ? METHOD_LABEL[order.paymentMethod] : ''}`
+              : yappyPending
+                ? 'Yappy por confirmar'
+                : 'Por cobrar'}
           </span>
         </div>
       </div>
@@ -98,6 +109,36 @@ export function OrderCard({ order, orgId, now }: Props) {
         ))}
       </ul>
 
+      {yappyPending && (
+        <div className="mt-4 rounded-xl bg-violet-50 p-3 text-sm text-violet-900">
+          Revisa tu Yappy: <b className="tabular-nums">{money(order.total)}</b>
+          {order.pickupCode && (
+            <>
+              {' '}con el código <b className="tabular-nums">{order.pickupCode}</b>
+            </>
+          )}
+          . Si llegó, toca «Pago recibido» y el pedido va a cocina.
+        </div>
+      )}
+
+      {yappyPending ? (
+        <div className="mt-4 flex items-center justify-between gap-2 border-t border-line pt-4">
+          <p className="text-lg font-extrabold tabular-nums">{money(order.total)}</p>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button
+              onClick={() => (confirmReject ? reviewYappy(false) : setConfirmReject(true))}
+              onBlur={() => setConfirmReject(false)}
+              disabled={busy}
+              className={`btn btn-text ${confirmReject ? 'font-bold text-brand' : ''}`}
+            >
+              {confirmReject ? 'Toca otra vez: cancelar' : 'No llegó'}
+            </button>
+            <button onClick={() => reviewYappy(true)} disabled={busy} className="btn btn-filled">
+              Pago recibido
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
         <p className="text-lg font-extrabold tabular-nums">{money(order.total)}</p>
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -106,7 +147,8 @@ export function OrderCard({ order, orgId, now }: Props) {
             Todo listo
           </button>
         )}
-        {!paid && (
+        {order.status === 'pending_payment' && <p className="text-sm text-muted">Pago en línea en curso…</p>}
+        {!paid && order.status !== 'pending_payment' && (
           <button
             onClick={() => setPaying(true)}
             disabled={busy}
@@ -127,6 +169,7 @@ export function OrderCard({ order, orgId, now }: Props) {
         {paid && !ready && counterPending.length === 0 && <p className="text-sm text-muted">Esperando cocina…</p>}
         </div>
       </div>
+      )}
       {error && <p className="mt-2 text-sm text-brand">{error}</p>}
 
       {paying && (

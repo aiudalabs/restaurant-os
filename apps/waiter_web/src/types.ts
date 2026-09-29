@@ -50,6 +50,7 @@ export interface CartLine {
 // OrderStatus in FIREBASE_SCHEMA.md. Kitchen drives it via onOrderCreated /
 // onOrderItemUpdated; the waiter only sets 'closed' after delivering.
 export type OrderStatus =
+  | 'pending_payment' // customer order waiting for its payment (manual Yappy / online)
   | 'pending'
   | 'confirmed'
   | 'in_preparation'
@@ -63,6 +64,8 @@ export type PaymentMethod = 'cash' | 'card' | 'yappy';
 export interface Order {
   id: string;
   customerName: string;
+  /** Number the customer gives at pickup (and types in the Yappy message). '' for waiter orders. */
+  pickupCode: string;
   status: OrderStatus;
   total: number;
   itemCount: number;

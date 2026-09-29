@@ -1,19 +1,26 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createOrder, loadTaxPercent } from '../lib/api';
-import { paymentsEnabled } from '../lib/config';
+import { createOrder, loadCheckoutConfig } from '../lib/api';
 import { initPayment } from '../lib/payments';
 import { money } from '../lib/format';
 import { saveActiveOrder } from '../lib/session';
 import { useCart } from '../store/cart';
 import { useSession } from '../store/session';
+import type { CheckoutConfig, PayMethod } from '../types';
+
+const METHOD_TEXT: Record<PayMethod, { label: string; hint: string }> = {
+  yappy: { label: 'Yappy', hint: 'Pagas ahora por Yappy y lo preparamos al confirmar tu pago.' },
+  card: { label: 'Tarjeta', hint: 'Pago seguro con PagueloFácil. Va a cocina al confirmarse el pago.' },
+  pickup: { label: 'Al retirar', hint: 'Pagas en el mostrador cuando bajes por tu pedido.' },
+};
 
 export function CartScreen() {
   const navigate = useNavigate();
   const cart = useCart();
   const { session } = useSession();
   const [notes, setNotes] = useState('');
-  const [taxPercent, setTaxPercent] = useState(0);
+  const [config, setConfig] = useState<CheckoutConfig>({ taxPercent: 0, methods: ['pickup'], yappyHandle: '' });
+  const [method, setMethod] = useState<PayMethod>('pickup');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -22,13 +29,17 @@ export function CartScreen() {
       navigate('/', { replace: true });
       return;
     }
-    loadTaxPercent(session.branchId)
-      .then(setTaxPercent)
-      .catch(() => setTaxPercent(0));
+    loadCheckoutConfig(session.branchId)
+      .then((c) => {
+        setConfig(c);
+        setMethod(c.methods[0]);
+      })
+      .catch((e) => console.error('[customer] checkout config failed', e));
   }, [session, navigate]);
 
   if (!session) return null;
 
+  const { taxPercent } = config;
   const taxAmount = cart.subtotal * taxPercent;
   const total = cart.subtotal + taxAmount;
 
@@ -48,7 +59,8 @@ export function CartScreen() {
         lines: cart.lines,
         notes,
         taxPercent,
-        requirePayment: paymentsEnabled,
+        payment: method,
+        yappyHandle: config.yappyHandle,
       });
       saveActiveOrder({
         orderId,
@@ -61,7 +73,7 @@ export function CartScreen() {
       });
       cart.clear();
 
-      if (paymentsEnabled) {
+      if (method === 'card') {
         // Redirect to PagueloFácil's hosted page. The BFF confirms the payment
         // and only then releases the order to the kitchen. If we can't reach the
         // gateway, land on tracking — the order is 'pending_payment' and the
@@ -91,10 +103,10 @@ export function CartScreen() {
         <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-brand border-t-transparent" />
         <div>
           <p className="font-display text-xl font-semibold">
-            {paymentsEnabled ? 'Te llevamos al pago seguro…' : 'Enviando tu pedido…'}
+            {method === 'card' ? 'Te llevamos al pago seguro…' : 'Enviando tu pedido…'}
           </p>
           <p className="mt-2 text-sm text-hint">
-            {paymentsEnabled
+            {method === 'card'
               ? '🔒 Pago protegido por PagueloFácil. No cierres esta ventana.'
               : 'Un momento, por favor.'}
           </p>
@@ -182,6 +194,27 @@ export function CartScreen() {
               <span>{money(total)}</span>
             </div>
 
+            {config.methods.length > 1 && (
+              <div className="mt-3" role="radiogroup" aria-label="Cómo pagas">
+                <p className="mb-1.5 text-xs font-medium text-hint">¿Cómo pagas?</p>
+                <div className="flex gap-2">
+                  {config.methods.map((m) => (
+                    <button
+                      key={m}
+                      role="radio"
+                      aria-checked={method === m}
+                      onClick={() => setMethod(m)}
+                      className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold ${
+                        method === m ? 'border-brand bg-brand/5 text-brand' : 'border-black/10 text-ink'
+                      }`}
+                    >
+                      {METHOD_TEXT[m].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {error && <p className="mt-2 text-center text-sm text-brand">{error}</p>}
 
             <button
@@ -190,17 +223,15 @@ export function CartScreen() {
               className="mt-3 w-full rounded-2xl bg-brand py-4 text-base font-semibold text-white shadow-lg shadow-brand/25 active:scale-[0.99] disabled:opacity-60"
             >
               {submitting
-                ? paymentsEnabled
+                ? method === 'card'
                   ? 'Redirigiendo al pago…'
                   : 'Enviando…'
-                : paymentsEnabled
-                  ? `Pagar ${money(total)}`
-                  : 'Confirmar pedido'}
+                : method === 'pickup'
+                  ? 'Confirmar pedido'
+                  : `Pagar ${money(total)}${method === 'yappy' ? ' con Yappy' : ''}`}
             </button>
             <p className="mt-2 text-center text-xs text-hint">
-              {paymentsEnabled
-                ? 'Pago seguro con PagueloFácil. Tu pedido va a cocina solo cuando el pago se confirma.'
-                : 'Pagas al retirar. Te daremos tu número de pedido.'}
+              {METHOD_TEXT[method].hint}
             </p>
           </div>
         </>

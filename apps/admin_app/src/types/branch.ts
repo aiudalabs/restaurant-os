@@ -17,6 +17,10 @@ export interface Branch {
   isActive: boolean;
   /** Waiter app shows product photos (default off). */
   showProductImagesToWaiters?: boolean;
+  /** Yappy number/handle customers pay to when ordering from the link (manual Yappy). */
+  yappyHandle?: string;
+  /** Customers ordering from the link may choose to pay at pickup. */
+  allowPayAtPickup?: boolean;
   businessHours: {
     monday?: BusinessHoursEntry;
     tuesday?: BusinessHoursEntry;

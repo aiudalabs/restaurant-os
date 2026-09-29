@@ -13,10 +13,13 @@ import { httpsCallable } from 'firebase/functions';
 import { auth, db, ensureAnonAuth, functions } from './firebase';
 import { paths } from './paths';
 import { generatePickupCode } from './pickup';
+import { paymentsEnabled } from './config';
 import type {
   Branch,
   CartLine,
   Category,
+  CheckoutConfig,
+  PayMethod,
   OrderDoc,
   OrderItemDoc,
   Product,
@@ -75,15 +78,27 @@ export async function loadMenu(branchId: string): Promise<MenuData> {
 }
 
 /**
- * Resolves the tax rate for checkout from the branch. We intentionally do NOT
- * read the organization doc from the client — it holds Odoo credentials and is
- * locked to staff by security rules.
+ * Tax rate and payment options for checkout, from the branch. We intentionally
+ * do NOT read the organization doc from the client — it holds Odoo credentials
+ * and is locked to staff by security rules.
+ *
+ * Payment options: Yappy when the branch set a handle, card when PagueloFácil is
+ * enabled for this build, and pay-at-pickup when the branch allows it — or when
+ * nothing else is configured (the original behavior).
  */
-export async function loadTaxPercent(branchId: string): Promise<number> {
+export async function loadCheckoutConfig(branchId: string): Promise<CheckoutConfig> {
   await ensureAnonAuth();
-  const branchSnap = await getDoc(doc(db, paths.branches, branchId));
-  const branchTax = branchSnap.data()?.taxPercent;
-  return typeof branchTax === 'number' ? branchTax : 0;
+  const data = (await getDoc(doc(db, paths.branches, branchId))).data() ?? {};
+  const yappyHandle = typeof data.yappyHandle === 'string' ? data.yappyHandle.trim() : '';
+  const methods: PayMethod[] = [];
+  if (yappyHandle) methods.push('yappy');
+  if (paymentsEnabled) methods.push('card');
+  if (data.allowPayAtPickup === true || methods.length === 0) methods.push('pickup');
+  return {
+    taxPercent: typeof data.taxPercent === 'number' ? data.taxPercent : 0,
+    methods,
+    yappyHandle,
+  };
 }
 
 export interface CreateOrderInput {
@@ -92,10 +107,12 @@ export interface CreateOrderInput {
   lines: CartLine[];
   notes: string;
   taxPercent: number;
-  // When true the order is created as 'pending_payment' and is NOT routed to the
-  // kitchen until the BFF confirms payment. When false (demo / pay-at-counter)
-  // it goes straight to the KDS via onOrderCreated.
-  requirePayment: boolean;
+  // 'yappy' / 'card': the order is created as 'pending_payment' and is NOT sent to
+  // the kitchen until the payment is confirmed (staff for Yappy, the BFF for card).
+  // 'pickup': it goes straight to the KDS via onOrderCreated.
+  payment: PayMethod;
+  /** Yappy handle to pay to (stored on the order so tracking can show it). */
+  yappyHandle: string;
 }
 
 export interface CreatedOrder {
@@ -112,7 +129,8 @@ export interface CreatedOrder {
  */
 export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder> {
   await ensureAnonAuth();
-  const { branch, customerName, lines, notes, taxPercent, requirePayment } = input;
+  const { branch, customerName, lines, notes, taxPercent, payment, yappyHandle } = input;
+  const requirePayment = payment !== 'pickup';
   const uid = auth.currentUser?.uid ?? '';
 
   const pickupCode = generatePickupCode();
@@ -142,7 +160,10 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
     total,
     notes,
     itemCount,
-    payment: { method: null, status: requirePayment ? 'pending' : null },
+    payment:
+      payment === 'yappy'
+        ? { method: 'yappy', status: 'pending', payTo: yappyHandle }
+        : { method: null, status: requirePayment ? 'pending' : null },
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -184,6 +205,8 @@ function mapOrder(id: string, data: Record<string, unknown>): OrderDoc {
     total: (data.total as number) ?? 0,
     itemCount: (data.itemCount as number) ?? 0,
     branchId: (data.branchId as string) ?? '',
+    paymentMethod: ((data.payment as { method?: string } | undefined)?.method as string) ?? null,
+    payTo: ((data.payment as { payTo?: string } | undefined)?.payTo as string) ?? '',
   };
 }
 
