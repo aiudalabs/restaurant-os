@@ -97,7 +97,29 @@ scripts/deploy.sh dev bff            # el BFF en Cloud Run
 
 Luego entra a la **landing de dev** y regístrate como un restaurante nuevo. Ese flujo crea la organización, el admin y la primera sucursal. **Dev empieza sin datos**, y no se copian datos de clientes reales.
 
-Si el primer deploy de functions falla por permisos de APIs recién habilitadas (Cloud Build, Eventarc), espera unos minutos y reintenta.
+### Problemas del primer deploy en un proyecto nuevo
+
+Estos problemas salieron al crear dev (2026-09-29). Los tres primeros ya los resuelve el bootstrap (paso 8b); el cuarto hay que revisarlo tras el primer deploy.
+
+| Síntoma | Causa | Arreglo |
+|---|---|---|
+| `We failed to modify the IAM policy for the project` | El agente de servicio de Pub/Sub aún no existe | 8b: crea los agentes de Pub/Sub y Eventarc y da los roles que pide la CLI |
+| `Build failed: Access to bucket gcf-sources-… denied` | La cuenta Compute por defecto (la que usa Cloud Build) ya no tiene acceso en proyectos nuevos | 8b: `roles/cloudbuild.builds.builder` a `<número>-compute@developer.gserviceaccount.com` |
+| `Permission denied while using the Eventarc Service Agent` | Los permisos del agente tardan en propagarse | 8b: `roles/eventarc.serviceAgent`; si persiste, espera unos minutos y reintenta |
+| Functions desplegadas pero **403** (manifest, login, PIN…) | Si el primer intento falló, los deploys siguientes no hacen públicas las functions HTTP | Ver el comando de abajo |
+| `could not set up cleanup policy` | Falta la política de limpieza de imágenes (necesita un deploy exitoso previo) | `npx -y firebase-tools@15.30.2 functions:artifacts:setpolicy --project <alias> --days 1 --force` |
+
+Hacer públicas las functions HTTP, como están en producción (las callables validan la autenticación en su código):
+
+```bash
+P=<proyecto>
+for name in $(gcloud functions list --project $P --format="value(name)" | xargs -n1 basename); do
+  [ -n "$(gcloud functions describe $name --region us-central1 --project $P --format='value(httpsTrigger.url)')" ] &&
+    gcloud functions add-iam-policy-binding $name --region us-central1 --project $P --member=allUsers --role=roles/cloudfunctions.invoker
+done
+```
+
+Si una function **nueva** se despliega por primera vez con éxito, la CLI ya la hace pública sola; esto solo hace falta tras un primer deploy fallido.
 
 ---
 

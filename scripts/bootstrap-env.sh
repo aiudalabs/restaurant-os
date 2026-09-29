@@ -144,6 +144,28 @@ for role in "${BFF_ROLES[@]}"; do
 done
 ok "$SA con ${#BFF_ROLES[@]} roles"
 
+# ── 8b. Service agents for 2nd-gen functions (onOrderItemUpdated: Eventarc/Pub/Sub) ──
+# In a brand-new project `firebase deploy` fails with "We failed to modify the IAM
+# policy" because the Pub/Sub service agent does not exist yet. Create the agents
+# and grant the roles the CLI asks for.
+step "8b. Agentes de servicio para functions de 2.ª generación"
+run gcloud beta services identity create --service=pubsub.googleapis.com --project "$PROJECT" >/dev/null
+run gcloud beta services identity create --service=eventarc.googleapis.com --project "$PROJECT" >/dev/null
+run gcloud projects add-iam-policy-binding "$PROJECT" --condition=None --quiet \
+  --member="serviceAccount:service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com" \
+  --role=roles/iam.serviceAccountTokenCreator >/dev/null
+run gcloud projects add-iam-policy-binding "$PROJECT" --condition=None --quiet \
+  --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role=roles/run.invoker >/dev/null
+run gcloud projects add-iam-policy-binding "$PROJECT" --condition=None --quiet \
+  --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role=roles/eventarc.eventReceiver >/dev/null
+run gcloud projects add-iam-policy-binding "$PROJECT" --condition=None --quiet \
+  --member="serviceAccount:service-$PROJECT_NUMBER@gcp-sa-eventarc.iam.gserviceaccount.com" --role=roles/eventarc.serviceAgent >/dev/null
+# New projects no longer give the Compute default SA (used by Cloud Build for functions)
+# access to the sources bucket: "Build failed: Access to bucket gcf-sources-… denied".
+run gcloud projects add-iam-policy-binding "$PROJECT" --condition=None --quiet \
+  --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role=roles/cloudbuild.builds.builder >/dev/null
+ok "Pub/Sub, Eventarc y Cloud Build listos"
+
 # ── 9. Config files for this environment ────────────────────────────────────
 step "9. Archivos de configuración"
 BFF_URL="https://$BFF_SERVICE-$PROJECT_NUMBER.$REGION.run.app"   # Cloud Run deterministic URL
@@ -156,5 +178,6 @@ SITE_KDS="$SITE_KDS" SITE_WAITER="$SITE_WAITER" SITE_LANDING="$SITE_LANDING" \
 step "Listo. Siguientes pasos (docs/ENVIRONMENTS.md §3):"
 echo "  1. Revisa y commitea los archivos generados (git status)."
 echo "  2. scripts/deploy.sh $ALIAS all      # reglas, functions y los 5 sitios"
+echo "     luego, una vez: $FIREBASE functions:artifacts:setpolicy --project $ALIAS --days 1 --force"
 echo "  3. scripts/deploy.sh $ALIAS bff      # el BFF"
 echo "  4. Regístrate en la landing de $ALIAS para crear la primera organización."

@@ -43,11 +43,13 @@ fi
 
 step "Desplegando el BFF ($SERVICE) a $ENV_NAME ($GCP_PROJECT, $REGION)"
 printf '  variables: %s\n' "$(printf '%s\n' "$VARS" | sed 's/=.*//' | paste -sd ' ' -)"
+# --port 8000: apps/fastapi_bff/Dockerfile runs uvicorn on 8000 (Cloud Run's default is 8080).
 run gcloud run deploy "$SERVICE" \
   --source apps/fastapi_bff \
   --project "$GCP_PROJECT" \
   --region "$REGION" \
   --service-account "$SERVICE_ACCOUNT" \
+  --port 8000 \
   --allow-unauthenticated \
   --update-env-vars "$UPDATE"
 

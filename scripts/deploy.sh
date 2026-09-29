@@ -37,6 +37,6 @@ if [ "$ENV_NAME" = "prod" ]; then
     firebase.json .firebaserc scripts
 fi
 
-step "Desplegando «$ONLY» a $ENV_NAME ($PROJECT)"
+step "Desplegando «${ONLY}» a $ENV_NAME ($PROJECT)"
 run $FIREBASE deploy --project "$ENV_NAME" --only "$ONLY"
 ok "Listo: $ENV_NAME ($PROJECT)"
