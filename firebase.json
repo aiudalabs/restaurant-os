@@ -23,7 +23,7 @@
       "public": "apps/landing/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [{ "source": "**", "destination": "/index.html" }],
-      "predeploy": "npm --prefix apps/landing run build",
+      "predeploy": "npm --prefix apps/landing run build -- --mode $GCLOUD_PROJECT",
       "headers": [
         {
           "source": "/assets/**",
@@ -40,7 +40,7 @@
       "public": "apps/admin_app/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [{"source": "**", "destination": "/index.html"}],
-      "predeploy": "npm --prefix apps/admin_app run build",
+      "predeploy": "npm --prefix apps/admin_app run build -- --mode $GCLOUD_PROJECT",
       "headers": [
         {
           "source": "/assets/**",
@@ -60,7 +60,7 @@
         {"source": "/manifest.webmanifest", "function": {"functionId": "customerManifest", "region": "us-central1"}},
         {"source": "**", "destination": "/index.html"}
       ],
-      "predeploy": "npm --prefix apps/customer_web run build",
+      "predeploy": "npm --prefix apps/customer_web run build -- --mode $GCLOUD_PROJECT",
       "headers": [
         {
           "source": "/assets/**",
@@ -77,7 +77,7 @@
       "public": "apps/kitchen_web/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [{"source": "**", "destination": "/index.html"}],
-      "predeploy": "npm --prefix apps/kitchen_web run build",
+      "predeploy": "npm --prefix apps/kitchen_web run build -- --mode $GCLOUD_PROJECT",
       "headers": [
         {
           "source": "/assets/**",
@@ -94,7 +94,7 @@
       "public": "apps/waiter_web/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [{"source": "**", "destination": "/index.html"}],
-      "predeploy": "npm --prefix apps/waiter_web run build",
+      "predeploy": "npm --prefix apps/waiter_web run build -- --mode $GCLOUD_PROJECT",
       "headers": [
         {
           "source": "/assets/**",

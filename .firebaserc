@@ -1,15 +1,25 @@
 {
   "projects": {
-    "default": "restaurant-os-68c79"
+    "prod": "restaurant-os-68c79"
   },
   "targets": {
     "restaurant-os-68c79": {
       "hosting": {
-        "admin": ["restaurant-os-68c79"],
-        "customer": ["restaurant-os-pedir"],
-        "kds": ["restaurant-os-cocina"],
-        "landing": ["restaurant-os-inicio"],
-        "waiter": ["restaurant-os-mesero"]
+        "admin": [
+          "restaurant-os-68c79"
+        ],
+        "customer": [
+          "restaurant-os-pedir"
+        ],
+        "kds": [
+          "restaurant-os-cocina"
+        ],
+        "landing": [
+          "restaurant-os-inicio"
+        ],
+        "waiter": [
+          "restaurant-os-mesero"
+        ]
       }
     }
   }

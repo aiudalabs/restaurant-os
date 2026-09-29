@@ -1,7 +1,7 @@
 // Where the paid signup continues. The landing hands off to the admin's
 // register flow with the chosen plan; account creation happens on the admin
 // domain so the session lands the owner straight in the dashboard.
-export const ADMIN_URL = 'https://restaurant-os-68c79.web.app';
+export const ADMIN_URL: string = (import.meta.env.VITE_ADMIN_URL as string).replace(/\/$/, '');
 
 export interface Plan {
   id: 'starter' | 'growth' | 'chain';

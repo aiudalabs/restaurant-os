@@ -16,6 +16,7 @@ Usage:
   python3 tools/reset_user_password.py --role operator --password newpass123 --dry-run
 """
 
+import os
 import argparse
 import json
 import subprocess
@@ -23,7 +24,9 @@ import sys
 import urllib.error
 import urllib.request
 
-PROJECT_ID = "restaurant-os-68c79"
+PROJECT_ID = os.environ.get("ROS_PROJECT") or sys.exit(
+    "Define ROS_PROJECT: restaurant-os-68c79 (prod) o restaurant-os-dev (dev). Ver docs/ENVIRONMENTS.md"
+)
 FIRESTORE_BASE = (
     f"https://firestore.googleapis.com/v1/projects/{PROJECT_ID}"
     f"/databases/(default)/documents"

@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { KDS_APP_URL } from '@/lib/config';
 import { httpsCallable } from 'firebase/functions';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,7 +19,7 @@ import { useCategories } from '@/hooks/use-menu';
 import type { Category } from '@/types/menu';
 import type { Station } from '@/types/station';
 
-const KDS_URL = 'https://restaurant-os-cocina.web.app';
+const KDS_URL = KDS_APP_URL;
 
 const kdsLinkFor = (stationId: string) => `${KDS_URL}/?station=${stationId}`;
 
