@@ -84,7 +84,15 @@ export function useAuthProvider(): AuthContextValue {
     setState((s) => ({ ...s, loading: true, error: null }));
     registering.current = true;
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        // A previous attempt may have created the account and then failed to
+        // create the organization. Sign in and retry: createOrganization
+        // refuses accounts that already belong to an org, so this is safe.
+        if ((err as { code?: string }).code !== 'auth/email-already-in-use') throw err;
+        await signIn(email, password);
+      }
       const call = httpsCallable(functions, 'createOrganization');
       await call({ orgName, ownerName, plan });
       // Reload so auth picks up the newly-created owner doc → dashboard.

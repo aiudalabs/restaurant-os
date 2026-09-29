@@ -166,6 +166,22 @@ run gcloud projects add-iam-policy-binding "$PROJECT" --condition=None --quiet \
   --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role=roles/cloudbuild.builds.builder >/dev/null
 ok "Pub/Sub, Eventarc y Cloud Build listos"
 
+# ── 8c. Runtime accounts of the functions: same roles as production ─────────
+# New projects no longer grant roles to default service accounts, so functions
+# failed with PERMISSION_DENIED on Firestore (createOrganization). Prod has:
+#   <project>@appspot  (1st gen) datastore.user, firebase.admin, serviceUsageConsumer
+#   <number>-compute    (2nd gen) datastore.user, logging.logWriter (+ the ones in 8b)
+step "8c. Cuentas con las que corren las functions"
+for role in roles/datastore.user roles/firebase.admin roles/serviceusage.serviceUsageConsumer; do
+  run gcloud projects add-iam-policy-binding "$PROJECT" --condition=None --quiet \
+    --member="serviceAccount:$PROJECT@appspot.gserviceaccount.com" --role="$role" >/dev/null
+done
+for role in roles/datastore.user roles/logging.logWriter; do
+  run gcloud projects add-iam-policy-binding "$PROJECT" --condition=None --quiet \
+    --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role="$role" >/dev/null
+done
+ok "appspot (1.ª gen) y compute (2.ª gen) con los roles de producción"
+
 # ── 9. Config files for this environment ────────────────────────────────────
 step "9. Archivos de configuración"
 BFF_URL="https://$BFF_SERVICE-$PROJECT_NUMBER.$REGION.run.app"   # Cloud Run deterministic URL
