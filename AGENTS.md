@@ -19,8 +19,11 @@ Describe **el estado real del repo** y cómo trabajar en él sin romper nada.
 producción con el admin naranja, y `feat/issue-41-admin-m3-green`) en `main`. El admin que queda es el
 **Material Design 3 «verde albahaca»** (issue #41), con todas las funciones del anterior.
 
-- ⚠️ `firebase deploy` compila **la rama que tengas abierta**: despliega siempre desde `main` actualizado
-  (`git checkout main && git pull`). Las ramas `feat/*` anteriores ya están contenidas en `main`; no las revivas.
+- **Dos ambientes:** `prod` = `restaurant-os-68c79` (clientes reales) y `dev` = `restaurant-os-dev`. Guía completa:
+  **`docs/ENVIRONMENTS.md`**. Despliega con `scripts/deploy.sh <dev|prod> [qué]`: producción solo desde `main` limpio
+  y con confirmación. Cada app se construye para su proyecto sola (`vite build --mode $GCLOUD_PROJECT` →
+  `apps/<app>/.env.<projectId>`); un `npm run build` sin `--mode` falla a propósito. Las ramas `feat/*` anteriores
+  ya están contenidas en `main`; no las revivas.
 - El admin verde aún **no está en producción** hasta el próximo `deploy --only hosting:admin` desde `main`
   (producción sigue sirviendo el naranja hasta entonces). Preview viejo: `restaurant-os-68c79--m3-verde-887xu7pd.web.app` (expira 2026-10-07).
 - Organizaciones en producción: «Noel's AiudaLabs» (`trQxt6JRMIoM7yIPSTeq`, sucursal «Noel's Papitas», donde
@@ -111,20 +114,18 @@ melos run analyze
 melos run test      # o `melos run test:core`
 ```
 
-**Deploy** (desde la raíz; cada target de hosting corre su `npm run build` como predeploy).
-Usa **`npx -y firebase-tools@15.30.2`**: la CLI global instalada (14.12.1) no puede desplegar reglas de
-RTDB (bug: envía `{dryRun}` en vez del archivo → "Expected 'rules' property").
+**Deploy** — ver **`docs/ENVIRONMENTS.md`** (ambientes, bootstrap de uno nuevo, rollback, secretos).
+Los scripts usan **`npx -y firebase-tools@15.30.2`**: la CLI global instalada (14.12.1) no puede desplegar reglas
+de RTDB (bug: envía `{dryRun}` en vez del archivo → "Expected 'rules' property").
 ```bash
-FB="npx -y firebase-tools@15.30.2"
-$FB deploy --only hosting:admin      # también: hosting:customer, hosting:kds, hosting:waiter, hosting:landing
-$FB deploy --only functions:<nombre>,functions:<otro>   # nombra las funciones: nunca "todas" a ciegas
-$FB deploy --only firestore:rules,firestore:indexes,database,storage
-$FB hosting:channel:deploy m3-verde --only admin --expires 14d   # preview del admin (autoriza el dominio en Auth)
-# BFF (Cloud Run, se desplegó con --source; conserva variables de entorno; .gcloudignore excluye secretos)
-cd apps/fastapi_bff && gcloud run deploy restaurantos-bff --source . --region us-central1 --project restaurant-os-68c79
+scripts/deploy.sh dev web                                   # los 5 sitios a dev (desde cualquier rama)
+scripts/deploy.sh dev "hosting:waiter,functions:x"          # lista --only a dev
+scripts/deploy.sh prod "hosting:admin,functions:x"          # producción: main limpio + escribir «prod»
+scripts/deploy.sh prod bff                                  # BFF (deploy/env/prod.env + prod.secrets.env)
+DRY_RUN=1 scripts/deploy.sh prod all                        # muestra el comando sin ejecutarlo
 ```
-Al desplegar índices, la CLI ofrece **borrar** índices que existen en producción y no están en
-`firestore.indexes.json` (hay varios creados a mano): responde **No**.
+En producción nombra lo que cambió en vez de `all`. Al desplegar índices, si la CLI ofrece **borrar** índices
+que no están en `firestore.indexes.json`, responde **No** (el archivo ya refleja producción al 2026-09-29).
 
 Deploy = acción visible para clientes reales. **Confirma con el usuario antes de desplegar.**
 

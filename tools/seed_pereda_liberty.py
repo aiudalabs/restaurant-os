@@ -6,9 +6,12 @@ Idempotent-ish: adds products/tables and fixes station routing. Uses gcloud toke
   python3 tools/seed_pereda_liberty.py           # dry-run
   python3 tools/seed_pereda_liberty.py --yes      # apply
 """
+import os
 import json, subprocess, sys, urllib.request, urllib.error
 
-PROJECT = "restaurant-os-68c79"
+PROJECT = os.environ.get("ROS_PROJECT") or sys.exit(
+    "Define ROS_PROJECT: restaurant-os-68c79 (prod) o restaurant-os-dev (dev). Ver docs/ENVIRONMENTS.md"
+)
 ORG = "demo-org"
 BRANCH = "26qBYnIxdHuUYSNN7uHx"
 MENU = "EgjMYwhJ0M6CXLNhH2uT"
@@ -16,7 +19,7 @@ COCINA = "PqhATLGDIzCAgUXRxsON"
 BAR = "u2rKvZHRPu8LhGN0J4HB"
 PIZZA_CAT = "SHdzrTT9vALtUOWDebfR"       # existing
 BEBIDAS_CAT = "gFKfRc5DPglQ38GTKSJW"     # existing
-CUSTOMER = "https://restaurant-os-pedir.web.app"
+CUSTOMER = os.environ.get("ROS_CUSTOMER_URL", "https://restaurant-os-pedir.web.app")
 FS = f"https://firestore.googleapis.com/v1/projects/{PROJECT}/databases/(default)/documents"
 
 # New categories to create (Pizza + Bebidas already exist).

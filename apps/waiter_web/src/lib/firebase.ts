@@ -3,14 +3,14 @@ import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
 
-// Public Firebase web config for restaurant-os-68c79 (governed by security rules).
+// Public Firebase web config of the environment: apps/<app>/.env.<projectId> (docs/ENVIRONMENTS.md).
 const firebaseConfig = {
-  apiKey: 'AIzaSyCBCwt3GmpxVcGWH58CULtWRh-4snbJ1IY',
-  authDomain: 'restaurant-os-68c79.firebaseapp.com',
-  projectId: 'restaurant-os-68c79',
-  storageBucket: 'restaurant-os-68c79.firebasestorage.app',
-  messagingSenderId: '839468636765',
-  appId: '1:839468636765:web:6f029569314405bfb70bb4',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 export const app = initializeApp(firebaseConfig);

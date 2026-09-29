@@ -9,12 +9,16 @@ Usage:
   python3 tools/debug_kds_routing.py
 """
 
+import sys
+import os
 import json
 import subprocess
 import urllib.request
 import urllib.error
 
-PROJECT_ID = "restaurant-os-68c79"
+PROJECT_ID = os.environ.get("ROS_PROJECT") or sys.exit(
+    "Define ROS_PROJECT: restaurant-os-68c79 (prod) o restaurant-os-dev (dev). Ver docs/ENVIRONMENTS.md"
+)
 BASE_URL = f"https://firestore.googleapis.com/v1/projects/{PROJECT_ID}/databases/(default)/documents"
 
 

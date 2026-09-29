@@ -13,6 +13,7 @@ Usage:
   python3 tools/seed_pizzas_beers.py --yes    # apply
 """
 
+import os
 import json
 import subprocess
 import sys
@@ -20,7 +21,9 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timezone
 
-PROJECT_ID   = "restaurant-os-68c79"
+PROJECT_ID = os.environ.get("ROS_PROJECT") or sys.exit(
+    "Define ROS_PROJECT: restaurant-os-68c79 (prod) o restaurant-os-dev (dev). Ver docs/ENVIRONMENTS.md"
+)
 ORG_ID       = "demo-org"
 BRANCH_ID    = "demo-branch"
 MENU_ID      = "oGd13kHc3YA0Q1Bmn3Zr"   # Boda Lucas

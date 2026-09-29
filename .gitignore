@@ -15,3 +15,7 @@ tools/reports/
 __pycache__/
 *.py[cod]
 serviceAccountKey.json
+
+# Secretos del BFF por ambiente (docs/ENVIRONMENTS.md)
+deploy/env/*.secrets.env
+!deploy/env/example.secrets.env
