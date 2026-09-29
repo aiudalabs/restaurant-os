@@ -83,6 +83,12 @@ export const onOrderItemUpdated = onDocumentUpdated(
         const orderSnap = await orderRef.get();
         const orderData = orderSnap.data();
 
+        // A late item tap must not reopen an order that was already handed over.
+        if (["closed", "cancelled", "delivered"].includes(orderData?.status as string)) {
+          functions.logger.info(`Order ${orderId} already ${orderData?.status}, not reopening as "ready"`);
+          return;
+        }
+
         await orderRef.update({
           status: "ready",
           updatedAt: now,

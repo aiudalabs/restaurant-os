@@ -108,7 +108,19 @@ service cloud.firestore {
                   || resource.data.createdByUid == uid();
       allow update: if belongsToMyOrg(resource.data.orgId)
                     && (isManager()
-                        || userDoc().stationId == resource.data.stationId);
+                        || userDoc().stationId == resource.data.stationId
+                        || counterUpdate());
+    }
+
+    // Counter mode (issue #45): an item whose category has no active station is
+    // left unrouted by onOrderCreated; the waiter prepares it and marks it
+    // in_progress/done. Only unrouted items, only status fields.
+    function counterUpdate() {
+      return myRole() == 'waiter'
+        && resource.data.get('stationId', '') == ''
+        && request.resource.data.status in ['in_progress', 'done']
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'startedAt', 'completedAt', 'updatedAt']);
     }
 
     // ─── Users ──────────────────────────────────────────────────────

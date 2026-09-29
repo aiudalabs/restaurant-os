@@ -201,6 +201,7 @@ export function watchOrderItems(
       onData(
         snap.docs.map((d) => ({
           id: d.id,
+          stationId: d.data().stationId ?? '',
           productName: d.data().productName ?? '',
           quantity: d.data().quantity ?? 1,
           specialInstructions: d.data().specialInstructions ?? '',
@@ -222,6 +223,38 @@ export async function recordPayment(orderId: string, method: PaymentMethod): Pro
     'payment.paidAt': serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+}
+
+/**
+ * Categories that an active station of the branch prepares. Anything else is
+ * left unrouted by onOrderCreated and handled by the waiter (counter mode).
+ */
+export async function loadRoutedCategories(orgId: string, branchId: string): Promise<Set<string>> {
+  const snap = await getDocs(
+    query(
+      collection(db, paths.stations),
+      where('orgId', '==', orgId),
+      where('branchId', '==', branchId),
+      where('isActive', '==', true),
+    ),
+  );
+  return new Set(snap.docs.flatMap((d) => (d.data().categoryIds as string[] | undefined) ?? []));
+}
+
+/**
+ * Counter mode: the waiter marks unrouted items as prepared. onOrderItemUpdated
+ * moves the order to 'ready' once every item is done, like the KDS does.
+ */
+export async function markItemsReady(itemIds: string[]): Promise<void> {
+  const batch = writeBatch(db);
+  for (const id of itemIds) {
+    batch.update(doc(db, paths.orderItems, id), {
+      status: 'done',
+      completedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+  await batch.commit();
 }
 
 /** Paid + ready + handed to the customer → the order is done. */

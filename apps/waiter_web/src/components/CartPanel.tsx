@@ -7,6 +7,8 @@ interface Props {
   lines: CartLine[];
   taxPercent: number;
   sending: boolean;
+  /** 'Enviar a cocina', or 'Crear pedido' when nothing goes to a station. */
+  sendLabel: string;
   sendError: string;
   onNameChange: (name: string) => void;
   onUpdateLine: (key: string, patch: Partial<CartLine>) => void;
@@ -22,6 +24,7 @@ export function CartPanel({
   lines,
   taxPercent,
   sending,
+  sendLabel,
   sendError,
   onNameChange,
   onUpdateLine,
@@ -127,7 +130,7 @@ export function CartPanel({
           disabled={sending || lines.length === 0}
           className="btn btn-lg btn-filled mt-2 w-full"
         >
-          {sending ? 'Enviando…' : 'Enviar a cocina'}
+          {sending ? 'Enviando…' : sendLabel}
         </button>
         {(lines.length > 0 || name) && (
           <button

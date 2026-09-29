@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createOrder, loadMenu, type MenuData } from '../lib/api';
+import { createOrder, loadMenu, loadRoutedCategories, type MenuData } from '../lib/api';
 import { money } from '../lib/format';
 import { Spinner } from '../components/Spinner';
 import { CartPanel } from '../components/CartPanel';
@@ -43,6 +43,15 @@ export function NewOrderScreen({ branch }: Props) {
         setMenuError('No se pudo cargar el menú.');
       });
   }, [branch.menuId]);
+
+  // Categories an active station prepares. Unknown (null) → assume the kitchen.
+  const [routed, setRouted] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    loadRoutedCategories(branch.orgId, branch.id)
+      .then(setRouted)
+      .catch((e) => console.error('[waiter] stations load failed', e));
+  }, [branch.orgId, branch.id]);
+  const toKitchen = !routed || lines.some((l) => routed.has(l.categoryId));
 
   const qtyByProduct = useMemo(() => {
     const m = new Map<string, number>();
@@ -125,6 +134,7 @@ export function NewOrderScreen({ branch }: Props) {
     lines,
     taxPercent: branch.taxPercent,
     sending,
+    sendLabel: toKitchen ? 'Enviar a cocina' : 'Crear pedido',
     sendError,
     onNameChange: setCustomerName,
     onUpdateLine: updateLine,

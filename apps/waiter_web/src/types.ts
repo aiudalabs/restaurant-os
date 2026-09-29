@@ -75,6 +75,8 @@ export type ItemStatus = 'queued' | 'in_progress' | 'done' | 'cancelled';
 
 export interface OrderItem {
   id: string;
+  /** '' when no active station covers its category: the waiter prepares it (counter mode). */
+  stationId: string;
   productName: string;
   quantity: number;
   specialInstructions: string;
