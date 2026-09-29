@@ -56,7 +56,10 @@
       "target": "customer",
       "public": "apps/customer_web/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [{"source": "**", "destination": "/index.html"}],
+      "rewrites": [
+        {"source": "/manifest.webmanifest", "function": {"functionId": "customerManifest", "region": "us-central1"}},
+        {"source": "**", "destination": "/index.html"}
+      ],
       "predeploy": "npm --prefix apps/customer_web run build",
       "headers": [
         {

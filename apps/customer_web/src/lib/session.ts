@@ -13,6 +13,8 @@ export interface SavedOrder {
 }
 
 const KEY = 'ros_customer_active_order';
+// An order older than this is yesterday's: don't offer it as "active" on the home screen.
+const ACTIVE_ORDER_TTL_MS = 12 * 60 * 60 * 1000;
 
 export function saveActiveOrder(order: SavedOrder): void {
   try {
@@ -28,6 +30,10 @@ export function loadActiveOrder(): SavedOrder | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as SavedOrder;
     if (!parsed.orderId || !parsed.pickupCode) return null;
+    if (Date.now() - (parsed.createdAt ?? 0) > ACTIVE_ORDER_TTL_MS) {
+      localStorage.removeItem(KEY);
+      return null;
+    }
     return parsed;
   } catch {
     return null;

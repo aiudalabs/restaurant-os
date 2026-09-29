@@ -6,6 +6,9 @@ import { money } from '../lib/format';
 import { clearActiveOrder } from '../lib/session';
 import { useSession } from '../store/session';
 import { Spinner } from '../components/Spinner';
+import { InstallCard } from '../components/InstallCard';
+import { loadActiveOrder } from '../lib/session';
+import { loadHome } from '../lib/home';
 import type { OrderDoc, OrderItemDoc, OrderStatus } from '../types';
 
 const STEPS: { key: string; label: string; icon: string; statuses: OrderStatus[] }[] = [
@@ -23,7 +26,7 @@ function stepIndex(status: OrderStatus): number {
 export function TrackingScreen() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
-  const { clear: clearSession } = useSession();
+  const { session, clear: clearSession } = useSession();
   const [order, setOrder] = useState<OrderDoc | null>(null);
   const [items, setItems] = useState<OrderItemDoc[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -133,6 +136,8 @@ export function TrackingScreen() {
         </div>
       )}
 
+      <InstallFor orderBranchId={order.branchId} sessionBranch={session} />
+
       {isReady && (
         <div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-700">
           🔔 ¡Tu pedido está listo! Acércate al mostrador con tu número.
@@ -235,6 +240,10 @@ function YappySteps({ order }: { order: OrderDoc }) {
   return (
     <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
       <p className="text-center text-sm font-semibold text-ink">Paga con Yappy para que lo preparemos</p>
+      <p className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-center text-xs text-emerald-800">
+        💚 Sabemos que copiar datos en Yappy no es lo más cómodo. Estamos trabajando para que muy pronto pagues con un
+        solo toque. ¡Gracias por tu paciencia!
+      </p>
       <ol className="mt-3 space-y-3 text-sm">
         <li className="flex items-center gap-3">
           <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand/10 text-xs font-bold text-brand">1</span>
@@ -261,4 +270,17 @@ function YappySteps({ order }: { order: OrderDoc }) {
       </ol>
     </div>
   );
+}
+
+/** Install card for the order's restaurant (org/name from the session, saved order or remembered home). */
+function InstallFor({
+  orderBranchId,
+  sessionBranch,
+}: {
+  orderBranchId: string;
+  sessionBranch: { orgId: string; branchId: string; branchName: string } | null;
+}) {
+  const known = [sessionBranch, loadActiveOrder(), loadHome()].find((b) => b?.branchId === orderBranchId);
+  if (!known) return null;
+  return <InstallCard orgId={known.orgId} branchId={known.branchId} branchName={known.branchName} />;
 }

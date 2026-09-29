@@ -1,22 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { loadBranch } from '../lib/api';
+import { loadHome } from '../lib/home';
+import { setAppIdentity } from '../lib/install';
 import { loadActiveOrder } from '../lib/session';
 import { useSession } from '../store/session';
 import { Spinner } from '../components/Spinner';
+import { InstallCard } from '../components/InstallCard';
 
 export function EntryScreen() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { session, start } = useSession();
 
-  // QR carries org + branch. Fall back to an existing in-progress session.
-  const orgId = params.get('org') ?? session?.orgId ?? '';
-  const branchId = params.get('branch') ?? session?.branchId ?? '';
+  // QR/link carries org + branch. Fall back to the in-progress session, then to
+  // the restaurant this device remembers (daily orders without the QR).
+  const home = useMemo(() => loadHome(), []);
+  const orgId = params.get('org') ?? session?.orgId ?? home?.orgId ?? '';
+  const branchId = params.get('branch') ?? session?.branchId ?? home?.branchId ?? '';
 
   const saved = useMemo(() => loadActiveOrder(), []);
   const [branchName, setBranchName] = useState(session?.branchName ?? '');
-  const [name, setName] = useState(session?.customerName ?? '');
+  const [name, setName] = useState(session?.customerName ?? home?.customerName ?? '');
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
     branchId ? 'loading' : 'error',
   );
@@ -33,6 +38,7 @@ export function EntryScreen() {
       .then((b) => {
         if (!alive) return;
         setBranchName(b.name);
+        setAppIdentity(orgId, branchId, b.name);
         setStatus('ready');
       })
       .catch((e) => {
@@ -43,7 +49,7 @@ export function EntryScreen() {
     return () => {
       alive = false;
     };
-  }, [branchId]);
+  }, [branchId, orgId]);
 
   const beginOrder = () => {
     start({ orgId, branchId, branchName, customerName: name.trim() });
@@ -102,6 +108,9 @@ export function EntryScreen() {
                 autoComplete="given-name"
                 className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3.5 text-center text-base outline-none focus:border-brand"
               />
+            </div>
+            <div className="w-full text-left">
+              <InstallCard orgId={orgId} branchId={branchId} branchName={branchName} />
             </div>
           </>
         )}
