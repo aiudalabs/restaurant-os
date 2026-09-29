@@ -5,6 +5,28 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#E23744" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- Manifest per branch (customerManifest): from the link's ?org&branch, else the
+         restaurant this device remembers. Set before load so Chrome reads the right one. -->
+    <script>
+      (function () {
+        var p = new URLSearchParams(location.search);
+        var org = p.get('org'), branch = p.get('branch');
+        if (!branch) {
+          try {
+            var h = JSON.parse(localStorage.getItem('ros_customer_home') || 'null');
+            if (h) { org = h.orgId; branch = h.branchId; if (h.branchName) document.title = h.branchName; }
+          } catch (e) {}
+        }
+        var l = document.createElement('link');
+        l.rel = 'manifest';
+        l.href = '/manifest.webmanifest' + (org && branch ? '?org=' + encodeURIComponent(org) + '&branch=' + encodeURIComponent(branch) : '');
+        document.head.appendChild(l);
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

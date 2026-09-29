@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { saveHome } from '../lib/home';
 
 export interface OrderingSession {
   orgId: string;
@@ -43,6 +44,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       session,
       start: (s) => {
         persist(s);
+        saveHome(s); // remember the restaurant for next time (no QR needed)
         setSession(s);
       },
       update: (patch) =>
@@ -50,6 +52,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           if (!prev) return prev;
           const next = { ...prev, ...patch };
           persist(next);
+          saveHome(next);
           return next;
         }),
       clear: () => {
