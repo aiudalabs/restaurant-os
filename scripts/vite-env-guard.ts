@@ -15,7 +15,7 @@ export function assertProjectEnv(
 ): void {
   if (mode === 'production') {
     throw new Error(
-      `[${app}] Construye con --mode <proyecto>, p. ej. \`npm run build -- --mode restaurant-os-dev\`. ` +
+      `[${app}] Construye con --mode <proyecto>, p. ej. \`npm run build -- --mode restaurant-os-dev-49096\`. ` +
         '`firebase deploy` y scripts/deploy.sh lo hacen solos (docs/ENVIRONMENTS.md).',
     );
   }

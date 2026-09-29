@@ -22,7 +22,7 @@ import urllib.error
 from datetime import datetime, timezone
 
 PROJECT_ID = os.environ.get("ROS_PROJECT") or sys.exit(
-    "Define ROS_PROJECT: restaurant-os-68c79 (prod) o restaurant-os-dev (dev). Ver docs/ENVIRONMENTS.md"
+    "Define ROS_PROJECT: restaurant-os-68c79 (prod) o restaurant-os-dev-49096 (dev). Ver docs/ENVIRONMENTS.md"
 )
 ORG_ID       = "demo-org"
 BRANCH_ID    = "demo-branch"

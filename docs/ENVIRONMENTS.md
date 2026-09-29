@@ -5,20 +5,20 @@ RestaurantOS corre en **dos proyectos de Firebase/GCP separados**. Cada uno tien
 | Alias | Proyecto | Para qué | Quién lo usa |
 |---|---|---|---|
 | `prod` | `restaurant-os-68c79` | Clientes reales (Pick & Eat, …) | Restaurantes y sus clientes |
-| `dev` | `restaurant-os-dev` | Probar antes de publicar | El equipo |
+| `dev` | `restaurant-os-dev-49096` | Probar antes de publicar | El equipo |
 
 URLs de cada ambiente:
 
 | App | prod | dev |
 |---|---|---|
-| Admin | restaurant-os-68c79.web.app | restaurant-os-dev.web.app |
+| Admin | restaurant-os-68c79.web.app | restaurant-os-dev-49096.web.app |
 | Pedidos (cliente) | restaurant-os-pedir.web.app | restaurant-os-dev-pedir.web.app |
 | KDS (cocina) | restaurant-os-cocina.web.app | restaurant-os-dev-cocina.web.app |
 | Mesero | restaurant-os-mesero.web.app | restaurant-os-dev-mesero.web.app |
 | Landing | restaurant-os-inicio.web.app | restaurant-os-dev-inicio.web.app |
-| BFF (Cloud Run) | restaurantos-bff-839468636765.us-central1.run.app | la imprime `bootstrap-env.sh` |
+| BFF (Cloud Run) | restaurantos-bff-839468636765.us-central1.run.app | restaurantos-bff-807685538005.us-central1.run.app |
 
-> Las URLs de dev son las que crea `scripts/bootstrap-env.sh` con el prefijo por defecto. Si un nombre de sitio estaba tomado y usaste otro prefijo, la fuente de verdad es `.firebaserc`.
+> Dev se creó el 2026-09-29 con `scripts/bootstrap-env.sh dev restaurant-os-dev-49096 restaurant-os-dev` (el ID `restaurant-os-dev` estaba tomado; Firebase agregó `-49096`). La fuente de verdad de sitios y proyectos es `.firebaserc`.
 
 ---
 
@@ -42,7 +42,7 @@ URLs de cada ambiente:
 - **`.firebaserc`:**
   - aliases `prod` y `dev`, cada uno con sus 5 sitios de Hosting;
   - **no hay proyecto `default`**: todo deploy tiene que nombrar su ambiente.
-- **Scripts de `tools/`:** exigen `ROS_PROJECT=<proyecto>`, por ejemplo `ROS_PROJECT=restaurant-os-dev python3 tools/debug_kds_routing.py`. Sin eso no corren, para que nadie toque producción por accidente.
+- **Scripts de `tools/`:** exigen `ROS_PROJECT=<proyecto>`, por ejemplo `ROS_PROJECT=restaurant-os-dev-49096 python3 tools/debug_kds_routing.py`. Sin eso no corren, para que nadie toque producción por accidente.
 
 ---
 
