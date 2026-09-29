@@ -9,6 +9,11 @@ export function buildCustomerQrUrl(orgId: string, branchId: string, tableId: str
   return `${CUSTOMER_APP_URL}/?org=${orgId}&branch=${branchId}&table=${tableId}`;
 }
 
+/** Link to order for pickup from anywhere (offices, WhatsApp, a lobby poster) — no table. */
+export function buildCustomerOrderUrl(orgId: string, branchId: string): string {
+  return `${CUSTOMER_APP_URL}/?org=${orgId}&branch=${branchId}`;
+}
+
 // FastAPI BFF (auth, payments, and the AI build assistant). Override with VITE_BFF_URL.
 export const BFF_URL: string = (
   import.meta.env.VITE_BFF_URL ?? 'https://restaurantos-bff-t454q6kiqa-uc.a.run.app'

@@ -78,6 +78,8 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
   tipOptions?: number[]
   isActive: boolean
   showProductImagesToWaiters?: boolean  // app del mesero muestra fotos de productos (default false)
+  yappyHandle?: string          // Yappy (número o @usuario) al que pagan los pedidos por link — Yappy manual
+  allowPayAtPickup?: boolean    // los pedidos por link pueden pagarse al retirar (van directo a cocina)
   businessHours: {
     monday?: { open: string, close: string }   // "08:00", "22:00"
     tuesday?: { open: string, close: string }
@@ -204,6 +206,8 @@ ModifierOption {
     yappyOrderId?: string
     confirmationNumber?: string
     paidAt?: Timestamp
+    payTo?: string              // Yappy manual: handle al que el cliente debe pagar (copiado de la sucursal)
+    reviewedBy?: string         // Yappy manual: uid del personal que confirmó / rechazó el pago
   }
   itemCount: number             // desnormalizado — para mostrar sin leer items
   createdAt: Timestamp
@@ -212,6 +216,9 @@ ModifierOption {
 }
 
 // OrderStatus valores:
+// "pending_payment"→ pedido del cliente esperando su pago: no va a cocina. Con
+//                    payment.method "yappy" es Yappy manual y lo confirma el personal
+//                    (callable confirmManualPayment); con method null es pago en línea (BFF).
 // "pending"        → recibido, aún no confirmado
 // "confirmed"      → confirmado y enrutado a estaciones
 // "in_preparation" → al menos un ítem en progreso

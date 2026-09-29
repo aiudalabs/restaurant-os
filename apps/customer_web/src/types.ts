@@ -5,6 +5,20 @@ export interface Branch {
   menuId: string;
 }
 
+/**
+ * How the customer pays (issue #47):
+ * - 'yappy': manual Yappy to the branch's handle; staff confirm it in the waiter app.
+ * - 'card': PagueloFácil hosted checkout (only when VITE_PAYMENTS_ENABLED).
+ * - 'pickup': pay at the counter when picking up.
+ */
+export type PayMethod = 'yappy' | 'card' | 'pickup';
+
+export interface CheckoutConfig {
+  taxPercent: number;
+  methods: PayMethod[];
+  yappyHandle: string;
+}
+
 export interface Category {
   id: string;
   orgId: string;
@@ -64,6 +78,10 @@ export interface OrderDoc {
   total: number;
   itemCount: number;
   branchId: string;
+  /** 'yappy' for manual Yappy orders; null otherwise. */
+  paymentMethod: string | null;
+  /** Yappy handle the customer must pay to (copied from the branch at order time). */
+  payTo: string;
 }
 
 // ItemStatus in FIREBASE_SCHEMA.md.
