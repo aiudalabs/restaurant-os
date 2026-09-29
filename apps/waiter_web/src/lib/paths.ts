@@ -6,5 +6,6 @@ export const paths = {
   products: 'products',
   orders: 'orders',
   orderItems: 'order_items',
+  stations: 'stations',
   users: 'users',
 } as const;
