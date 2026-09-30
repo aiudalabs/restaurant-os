@@ -44,7 +44,7 @@ function FieldShell({ id, label, error, isRequired, supporting, children }: Fiel
 }
 
 const FIELD_CLASSES = cn(
-  't-body-large w-full rounded-[4px] border border-[var(--md-sys-color-outline)] bg-transparent px-4',
+  't-body-large w-full rounded-xl border border-[var(--md-sys-color-outline)] bg-transparent px-4',
   'text-[var(--md-sys-color-on-surface)] placeholder:text-[var(--md-sys-color-on-surface-variant)]/70',
   'hover:border-[var(--md-sys-color-on-surface)]',
   'focus:border-2 focus:border-[var(--md-sys-color-primary)] focus:px-[15px] focus:outline-none',

@@ -4,9 +4,11 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Material Design 3 — RestaurantOS Admin.
-   Scheme: SchemeTonalSpot from seed #386A20 ("verde albahaca"), generated with
-   @material/material-color-utilities 0.4.0 — no hand-picked colors.
+   RestaurantOS Admin — identidad «El pase» (issue #54).
+   Palette: albahaca #2F7A4F (primary), azafrán #F5B83D (attention, tertiary),
+   ají #C23B26 (delays/errors), aceituna #1F2A24 (ink, navigation), sal #F3F5F2
+   (ground). Type: Big Shoulders Display for titles and numbers, Onest for text.
+   The component structure is still Material 3; only the tokens changed.
 
    Two layers:
    1. --md-sys-color-* : the full M3 color roles (use these in new code).
@@ -17,44 +19,45 @@
       used by pages are aliased to the M3 roles below.
    ───────────────────────────────────────────────────────────────────────── */
 @theme {
-  --font-sans: "Roboto Flex", Roboto, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: "Onest", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Big Shoulders Display", "Onest", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Roboto Mono", ui-monospace, monospace;
 
-  /* primary tonal palette: tones 98 95 90 80 70 60 40 30 20 10 */
-  --color-orange-50: #eeffde;
-  --color-orange-100: #d3fdb8;
-  --color-orange-200: #c5efab;
-  --color-orange-300: #a9d291;
-  --color-orange-400: #8fb678;
-  --color-orange-500: #759b60;
-  --color-orange-600: #446732; /* primary */
-  --color-orange-700: #2d4f1c;
-  --color-orange-800: #173807;
-  --color-orange-900: #072100;
+  /* primary tonal palette (albahaca) */
+  --color-orange-50: #eef7f1;
+  --color-orange-100: #e3f0e8;
+  --color-orange-200: #c7e2d1;
+  --color-orange-300: #a2cfb2;
+  --color-orange-400: #6fb088;
+  --color-orange-500: #479468;
+  --color-orange-600: #2f7a4f; /* primary */
+  --color-orange-700: #23603d;
+  --color-orange-800: #1a472e;
+  --color-orange-900: #10301f;
 
-  /* error tonal palette */
-  --color-red-50: #fff8f7;
-  --color-red-100: #ffedea;
-  --color-red-200: #ffdad6;
-  --color-red-300: #ffb4ab;
-  --color-red-400: #ff897d;
-  --color-red-500: #ff5449;
-  --color-red-600: #ba1a1a; /* error */
-  --color-red-700: #93000a;
-  --color-red-800: #690005;
-  --color-red-900: #410002;
+  /* error tonal palette (ají) */
+  --color-red-50: #fdf3f1;
+  --color-red-100: #fbe7e3;
+  --color-red-200: #f6cbc3;
+  --color-red-300: #eda296;
+  --color-red-400: #e07564;
+  --color-red-500: #d2412c;
+  --color-red-600: #c23b26; /* error */
+  --color-red-700: #9e2e1d;
+  --color-red-800: #7f1d10;
+  --color-red-900: #5a1409;
 
-  /* neutral (50–200, 800–900) + neutral-variant (300–700) */
-  --color-gray-50: #f2f5ea;
-  --color-gray-100: #edefe5;
-  --color-gray-200: #e1e4d9;
-  --color-gray-300: #c3c8bb;
-  --color-gray-400: #8d9286;
-  --color-gray-500: #74796d;
-  --color-gray-600: #43483e;
-  --color-gray-700: #2d3229;
-  --color-gray-800: #2e312b;
-  --color-gray-900: #191d16;
+  /* neutral (sal → aceituna) */
+  --color-gray-50: #f3f5f2;
+  --color-gray-100: #eef1ed;
+  --color-gray-200: #dde3de;
+  --color-gray-300: #c9d3cc;
+  --color-gray-400: #93a098;
+  --color-gray-500: #7c8a81;
+  --color-gray-600: #5e6b63;
+  --color-gray-700: #3f4b44;
+  --color-gray-800: #2a352f;
+  --color-gray-900: #1f2a24;
 
   /* M3 shape scale */
   --radius-xs: 4px;   /* extra-small: text fields, snackbar */
@@ -72,35 +75,42 @@
 }
 
 :root {
-  --md-sys-color-primary: #446732;
+  --md-sys-color-primary: #2f7a4f;
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #c5efab;
-  --md-sys-color-on-primary-container: #2d4f1c;
-  --md-sys-color-secondary: #55624c;
+  --md-sys-color-primary-container: #e3f0e8;
+  --md-sys-color-on-primary-container: #1e5234;
+  --md-sys-color-secondary: #1f2a24;
   --md-sys-color-on-secondary: #ffffff;
-  --md-sys-color-secondary-container: #d8e7cb;
-  --md-sys-color-on-secondary-container: #3e4a35;
-  --md-sys-color-tertiary: #386666;
+  --md-sys-color-secondary-container: #1f2a24;
+  --md-sys-color-on-secondary-container: #ffffff;
+  --md-sys-color-tertiary: #7a5200;
   --md-sys-color-on-tertiary: #ffffff;
-  --md-sys-color-tertiary-container: #bbebec;
-  --md-sys-color-on-tertiary-container: #1e4e4f;
-  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-tertiary-container: #fdf1d6;
+  --md-sys-color-on-tertiary-container: #5c3d00;
+  --md-sys-color-error: #c23b26;
   --md-sys-color-on-error: #ffffff;
-  --md-sys-color-error-container: #ffdad6;
-  --md-sys-color-on-error-container: #93000a;
-  --md-sys-color-surface: #f8faf0;
-  --md-sys-color-on-surface: #191d16;
-  --md-sys-color-on-surface-variant: #43483e;
+  --md-sys-color-error-container: #fbe7e3;
+  --md-sys-color-on-error-container: #7f1d10;
+  --md-sys-color-surface: #f3f5f2;
+  --md-sys-color-on-surface: #1f2a24;
+  --md-sys-color-on-surface-variant: #5e6b63;
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #f2f5ea;
-  --md-sys-color-surface-container: #edefe5;
-  --md-sys-color-surface-container-high: #e7e9df;
-  --md-sys-color-surface-container-highest: #e1e4d9;
-  --md-sys-color-inverse-surface: #2e312b;
-  --md-sys-color-inverse-on-surface: #f0f2e7;
-  --md-sys-color-inverse-primary: #a9d291;
-  --md-sys-color-outline: #74796d;
-  --md-sys-color-outline-variant: #c3c8bb;
+  --md-sys-color-surface-container-low: #ffffff;
+  --md-sys-color-surface-container: #eef1ed;
+  --md-sys-color-surface-container-high: #ffffff;
+  --md-sys-color-surface-container-highest: #e7ebe6;
+  --md-sys-color-inverse-surface: #1f2a24;
+  --md-sys-color-inverse-on-surface: #f3f5f2;
+  --md-sys-color-inverse-primary: #8cc4a0;
+  --md-sys-color-outline: #7c8a81;
+  --md-sys-color-outline-variant: #dde3de;
+
+  /* «El pase» accents outside the M3 roles */
+  --ros-rail: #1f2a24;          /* navigation rail / bottom bar */
+  --ros-rail-fg: #c9d3cc;
+  --ros-saffron: #f5b83d;       /* live / attention */
+  --ros-ticket: #ffffff;        /* order tickets on the pass */
+  --ros-ticket-shadow: 0 10px 24px rgb(31 42 36 / 0.10);
 
   /* Legacy aliases used across pages (keep until every page uses --md-sys-*) */
   --color-primary: var(--md-sys-color-primary);
@@ -126,71 +136,77 @@
 
 /* Dark theme: override the SAME tokens so the whole app flips with no per-page work. */
 .dark {
-  --md-sys-color-primary: #a9d291;
-  --md-sys-color-on-primary: #173807;
-  --md-sys-color-primary-container: #2d4f1c;
-  --md-sys-color-on-primary-container: #c5efab;
-  --md-sys-color-secondary: #bdcbb0;
-  --md-sys-color-on-secondary: #283420;
-  --md-sys-color-secondary-container: #3e4a35;
-  --md-sys-color-on-secondary-container: #d8e7cb;
-  --md-sys-color-tertiary: #a0cfd0;
-  --md-sys-color-on-tertiary: #003738;
-  --md-sys-color-tertiary-container: #1e4e4f;
-  --md-sys-color-on-tertiary-container: #bbebec;
-  --md-sys-color-error: #ffb4ab;
-  --md-sys-color-on-error: #690005;
-  --md-sys-color-error-container: #93000a;
-  --md-sys-color-on-error-container: #ffdad6;
-  --md-sys-color-surface: #11140f;
-  --md-sys-color-on-surface: #e1e4d9;
-  --md-sys-color-on-surface-variant: #c3c8bb;
-  --md-sys-color-surface-container-lowest: #0c0f0a;
-  --md-sys-color-surface-container-low: #191d16;
-  --md-sys-color-surface-container: #1d211a;
-  --md-sys-color-surface-container-high: #282b24;
-  --md-sys-color-surface-container-highest: #32362f;
-  --md-sys-color-inverse-surface: #e1e4d9;
-  --md-sys-color-inverse-on-surface: #2e312b;
-  --md-sys-color-inverse-primary: #446732;
-  --md-sys-color-outline: #8d9286;
-  --md-sys-color-outline-variant: #43483e;
+  --md-sys-color-primary: #8cc4a0;
+  --md-sys-color-on-primary: #0e2a1a;
+  --md-sys-color-primary-container: #1e5234;
+  --md-sys-color-on-primary-container: #c7e2d1;
+  --md-sys-color-secondary: #e4eae5;
+  --md-sys-color-on-secondary: #1f2a24;
+  --md-sys-color-secondary-container: #e4eae5;
+  --md-sys-color-on-secondary-container: #1f2a24;
+  --md-sys-color-tertiary: #f5b83d;
+  --md-sys-color-on-tertiary: #3d2a00;
+  --md-sys-color-tertiary-container: #4a3500;
+  --md-sys-color-on-tertiary-container: #fdf1d6;
+  --md-sys-color-error: #f2a092;
+  --md-sys-color-on-error: #5a1409;
+  --md-sys-color-error-container: #7f1d10;
+  --md-sys-color-on-error-container: #fbe7e3;
+  --md-sys-color-surface: #111713;
+  --md-sys-color-on-surface: #e4eae5;
+  --md-sys-color-on-surface-variant: #a9b6ae;
+  --md-sys-color-surface-container-lowest: #0b100d;
+  --md-sys-color-surface-container-low: #18201b;
+  --md-sys-color-surface-container: #1c2520;
+  --md-sys-color-surface-container-high: #222c26;
+  --md-sys-color-surface-container-highest: #2b3630;
+  --md-sys-color-inverse-surface: #e4eae5;
+  --md-sys-color-inverse-on-surface: #1f2a24;
+  --md-sys-color-inverse-primary: #2f7a4f;
+  --md-sys-color-outline: #7c8a81;
+  --md-sys-color-outline-variant: #34403a;
 
-  --color-orange-50: #072100;
-  --color-orange-100: #173807;
-  --color-orange-200: #2d4f1c;
-  --color-orange-300: #446732;
-  --color-orange-400: #759b60;
-  --color-orange-500: #8fb678;
-  --color-orange-600: #a9d291;
-  --color-orange-700: #c5efab;
-  --color-orange-800: #d3fdb8;
-  --color-orange-900: #eeffde;
+  --ros-rail: #0b100d;
+  --ros-rail-fg: #a9b6ae;
+  --ros-saffron: #f5b83d;
+  --ros-ticket: #18201b;
+  --ros-ticket-shadow: 0 10px 24px rgb(0 0 0 / 0.35);
 
-  --color-red-50: #410002;
-  --color-red-100: #690005;
-  --color-red-200: #93000a;
-  --color-red-300: #ba1a1a;
-  --color-red-400: #ff5449;
-  --color-red-500: #ff897d;
-  --color-red-600: #ffb4ab;
-  --color-red-700: #ffdad6;
-  --color-red-800: #ffedea;
-  --color-red-900: #fff8f7;
+  --color-orange-50: #10301f;
+  --color-orange-100: #1a472e;
+  --color-orange-200: #23603d;
+  --color-orange-300: #2f7a4f;
+  --color-orange-400: #479468;
+  --color-orange-500: #6fb088;
+  --color-orange-600: #8cc4a0;
+  --color-orange-700: #a2cfb2;
+  --color-orange-800: #c7e2d1;
+  --color-orange-900: #eef7f1;
 
-  --color-gray-50: #11140f;
-  --color-gray-100: #1d211a;
-  --color-gray-200: #43483e;
-  --color-gray-300: #5b6055;
-  --color-gray-400: #8d9286;
-  --color-gray-500: #a8ada0;
-  --color-gray-600: #c3c8bb;
-  --color-gray-700: #d9dbd1;
-  --color-gray-800: #e1e4d9;
-  --color-gray-900: #e1e4d9;
+  --color-red-50: #5a1409;
+  --color-red-100: #7f1d10;
+  --color-red-200: #9e2e1d;
+  --color-red-300: #c23b26;
+  --color-red-400: #d2412c;
+  --color-red-500: #e07564;
+  --color-red-600: #f2a092;
+  --color-red-700: #f6cbc3;
+  --color-red-800: #fbe7e3;
+  --color-red-900: #fdf3f1;
 
-  --color-white: #191d16; /* card surface in dark (surface-container-low) */
-  --color-black: #e1e4d9;
+  --color-gray-50: #111713;
+  --color-gray-100: #1c2520;
+  --color-gray-200: #34403a;
+  --color-gray-300: #4a5750;
+  --color-gray-400: #7c8a81;
+  --color-gray-500: #93a098;
+  --color-gray-600: #a9b6ae;
+  --color-gray-700: #c9d3cc;
+  --color-gray-800: #e4eae5;
+  --color-gray-900: #e4eae5;
+
+  --color-white: #18201b; /* card surface in dark (surface-container-low) */
+  --color-black: #e4eae5;
 }
 
 html { color-scheme: light; }
@@ -241,34 +257,38 @@ body {
   .m3-state:active::after { opacity: 0.10; }
 
   /* Cards: filled / outlined / elevated (M3 medium corner). */
+  /* «El pase»: panels are plain surfaces on the tinted ground (no borders), 20px corners. */
   .m3-card {
     background: var(--md-sys-color-surface-container-low);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-e1);
+    border-radius: 20px;
+    box-shadow: var(--ros-ticket-shadow);
   }
   .m3-card-filled {
     background: var(--md-sys-color-surface-container-highest);
-    border-radius: var(--radius-md);
+    border-radius: 20px;
   }
   .m3-card-outlined {
-    background: var(--md-sys-color-surface);
-    border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: var(--radius-md);
+    background: var(--md-sys-color-surface-container-low);
+    border-radius: 20px;
   }
 
   /* M3 typescale (baseline). */
-  .t-display-small { font: 400 36px/44px var(--font-sans); }
-  .t-headline-medium { font: 400 28px/36px var(--font-sans); }
-  .t-headline-small { font: 400 24px/32px var(--font-sans); }
-  .t-title-large { font: 400 22px/28px var(--font-sans); }
-  .t-title-medium { font: 500 16px/24px var(--font-sans); letter-spacing: .15px; }
-  .t-title-small { font: 500 14px/20px var(--font-sans); letter-spacing: .1px; }
-  .t-body-large { font: 400 16px/24px var(--font-sans); letter-spacing: .5px; }
-  .t-body-medium { font: 400 14px/20px var(--font-sans); letter-spacing: .25px; }
-  .t-body-small { font: 400 12px/16px var(--font-sans); letter-spacing: .4px; }
-  .t-label-large { font: 500 14px/20px var(--font-sans); letter-spacing: .1px; }
-  .t-label-medium { font: 500 12px/16px var(--font-sans); letter-spacing: .5px; }
-  .t-label-small { font: 500 11px/16px var(--font-sans); letter-spacing: .5px; }
+  /* Display face (Big Shoulders Display) for titles and numbers; Onest for text. */
+  .t-display-large { font: 800 76px/0.9 var(--font-display); }
+  .t-display-medium { font: 800 52px/0.95 var(--font-display); }
+  .t-display-small { font: 800 44px/1 var(--font-display); }
+  .t-headline-medium { font: 800 36px/1 var(--font-display); }
+  .t-headline-small { font: 700 30px/1.05 var(--font-display); }
+  .t-title-large { font: 700 24px/1.15 var(--font-display); }
+  .t-title-medium { font: 600 16px/24px var(--font-sans); }
+  .t-title-small { font: 600 14px/20px var(--font-sans); }
+  .t-body-large { font: 400 16px/24px var(--font-sans); }
+  .t-body-medium { font: 400 14px/20px var(--font-sans); }
+  .t-body-small { font: 400 12px/16px var(--font-sans); }
+  .t-label-large { font: 600 14px/20px var(--font-sans); }
+  .t-label-medium { font: 500 12px/16px var(--font-sans); }
+  .t-label-small { font: 500 11px/16px var(--font-sans); }
+  .t-number { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
 }
 
 @keyframes m3-fade-in { from { opacity: 0; } }

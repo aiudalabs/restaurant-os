@@ -21,6 +21,8 @@ export interface OrderPayment {
   yappyOrderId?: string;
   confirmationNumber?: string;
   paidAt?: Timestamp;
+  /** Manual Yappy: handle the customer pays to. */
+  payTo?: string;
 }
 
 export interface Order {
@@ -29,6 +31,10 @@ export interface Order {
   branchId: string;
   tableId: string;
   tableNumber: string;
+  /** Waiter and customer-web orders carry who it is for and the pickup number. */
+  customerName?: string;
+  pickupCode?: string;
+  source?: 'waiter' | 'qr';
   status: OrderStatus;
   subtotal: number;
   taxAmount: number;
