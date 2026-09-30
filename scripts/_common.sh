@@ -29,8 +29,12 @@ guard_prod() {
   [ "$branch" = "main" ] || die "A producción solo se despliega desde main (estás en '$branch')."
   git fetch -q origin main
   [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || die "main local no coincide con origin/main. Haz git pull (o push) primero."
+  # Any change to a tracked file blocks. Untracked files only block when they can
+  # end up in a build (src/, public/, .env.*): loose local files (a QR you
+  # printed, notes) are not deployed.
   local dirty
-  dirty="$(git status --porcelain -- "$@")"
+  dirty="$(git status --porcelain -- "$@" | grep -vE '^\?\? ' || true)"
+  dirty="$dirty$(git status --porcelain -- "$@" | grep -E '^\?\? ' | grep -E '/(src|public)/|/\.env\.' || true)"
   [ -z "$dirty" ] || die "Hay cambios sin commitear en lo que se despliega:
 $dirty"
   printf '\n⚠  Vas a desplegar a PRODUCCIÓN: %s\n   Escribe «prod» para continuar: ' "$what"
