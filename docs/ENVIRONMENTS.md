@@ -171,6 +171,7 @@ rama feat/issue-N-…  ──►  scripts/deploy.sh dev …  ──►  probar e
         └──►  PR a main  ──►  merge  ──►  git checkout main && git pull  ──►  scripts/deploy.sh prod …
 ```
 
+- **Regla del proyecto: siempre en dev primero.** Todo se prueba en dev; a producción solo va lo que está mergeado en `main`, probado de punta a punta en dev y aprobado explícitamente para prod.
 - Dev se puede desplegar desde **cualquier rama**, para probar antes del PR.
 - Producción **solo desde `main`**: lo que está en producción siempre es lo que está en `main`.
 - Cambios de esquema, reglas o functions: pruébalos primero en dev con datos de prueba.

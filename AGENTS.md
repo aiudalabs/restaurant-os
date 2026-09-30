@@ -19,6 +19,8 @@ Describe **el estado real del repo** y cómo trabajar en él sin romper nada.
 producción con el admin naranja, y `feat/issue-41-admin-m3-green`) en `main`. El admin que queda es el
 **Material Design 3 «verde albahaca»** (issue #41), con todas las funciones del anterior.
 
+- **Regla: siempre en dev primero** (ver `CLAUDE.md`). Todo se despliega y prueba en `dev`; a `prod` solo va lo
+  mergeado en `main`, probado en dev y cuando el usuario lo pide explícitamente.
 - **Dos ambientes:** `prod` = `restaurant-os-68c79` (clientes reales) y `dev` = `restaurant-os-dev-49096`. Guía completa:
   **`docs/ENVIRONMENTS.md`**. Despliega con `scripts/deploy.sh <dev|prod> [qué]`: producción solo desde `main` limpio
   y con confirmación. Cada app se construye para su proyecto sola (`vite build --mode $GCLOUD_PROJECT` →
