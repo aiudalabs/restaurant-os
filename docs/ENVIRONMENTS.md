@@ -5,20 +5,20 @@ RestaurantOS corre en **dos proyectos de Firebase/GCP separados**. Cada uno tien
 | Alias | Proyecto | Para qué | Quién lo usa |
 |---|---|---|---|
 | `prod` | `restaurant-os-68c79` | Clientes reales (Pick & Eat, …) | Restaurantes y sus clientes |
-| `dev` | `restaurant-os-dev` | Probar antes de publicar | El equipo |
+| `dev` | `restaurant-os-dev-49096` | Probar antes de publicar | El equipo |
 
 URLs de cada ambiente:
 
 | App | prod | dev |
 |---|---|---|
-| Admin | restaurant-os-68c79.web.app | restaurant-os-dev.web.app |
+| Admin | restaurant-os-68c79.web.app | restaurant-os-dev-49096.web.app |
 | Pedidos (cliente) | restaurant-os-pedir.web.app | restaurant-os-dev-pedir.web.app |
 | KDS (cocina) | restaurant-os-cocina.web.app | restaurant-os-dev-cocina.web.app |
 | Mesero | restaurant-os-mesero.web.app | restaurant-os-dev-mesero.web.app |
 | Landing | restaurant-os-inicio.web.app | restaurant-os-dev-inicio.web.app |
-| BFF (Cloud Run) | restaurantos-bff-839468636765.us-central1.run.app | la imprime `bootstrap-env.sh` |
+| BFF (Cloud Run) | restaurantos-bff-839468636765.us-central1.run.app | restaurantos-bff-807685538005.us-central1.run.app |
 
-> Las URLs de dev son las que crea `scripts/bootstrap-env.sh` con el prefijo por defecto. Si un nombre de sitio estaba tomado y usaste otro prefijo, la fuente de verdad es `.firebaserc`.
+> Dev se creó el 2026-09-29 con `scripts/bootstrap-env.sh dev restaurant-os-dev-49096 restaurant-os-dev` (el ID `restaurant-os-dev` estaba tomado; Firebase agregó `-49096`). La fuente de verdad de sitios y proyectos es `.firebaserc`.
 
 ---
 
@@ -42,7 +42,7 @@ URLs de cada ambiente:
 - **`.firebaserc`:**
   - aliases `prod` y `dev`, cada uno con sus 5 sitios de Hosting;
   - **no hay proyecto `default`**: todo deploy tiene que nombrar su ambiente.
-- **Scripts de `tools/`:** exigen `ROS_PROJECT=<proyecto>`, por ejemplo `ROS_PROJECT=restaurant-os-dev python3 tools/debug_kds_routing.py`. Sin eso no corren, para que nadie toque producción por accidente.
+- **Scripts de `tools/`:** exigen `ROS_PROJECT=<proyecto>`, por ejemplo `ROS_PROJECT=restaurant-os-dev-49096 python3 tools/debug_kds_routing.py`. Sin eso no corren, para que nadie toque producción por accidente.
 
 ---
 
@@ -80,6 +80,8 @@ Replica la configuración de producción:
 | 6 | Registra la app web y obtiene su config pública |
 | 7 | Crea los 5 sitios de Hosting (`<proyecto>`, `-pedir`, `-cocina`, `-mesero`, `-inicio`) |
 | 8 | Da a la cuenta `firebase-adminsdk-…` los mismos roles que tiene el BFF en producción |
+| 8b | Crea los agentes de Pub/Sub y Eventarc y da los permisos de Cloud Build (functions de 2.ª generación) |
+| 8c | Da a las cuentas con las que corren las functions (`@appspot`, `-compute`) los roles que tienen en producción |
 | 9 | Escribe `apps/*/.env.<proyecto>`, `apps/*/.env.development`, `.firebaserc` y `deploy/env/dev.env` |
 
 Otros detalles:
@@ -97,7 +99,30 @@ scripts/deploy.sh dev bff            # el BFF en Cloud Run
 
 Luego entra a la **landing de dev** y regístrate como un restaurante nuevo. Ese flujo crea la organización, el admin y la primera sucursal. **Dev empieza sin datos**, y no se copian datos de clientes reales.
 
-Si el primer deploy de functions falla por permisos de APIs recién habilitadas (Cloud Build, Eventarc), espera unos minutos y reintenta.
+### Problemas del primer deploy en un proyecto nuevo
+
+Estos problemas salieron al crear dev (2026-09-29). Los cuatro primeros ya los resuelve el bootstrap (pasos 8b y 8c); los dos últimos se revisan tras el primer deploy.
+
+| Síntoma | Causa | Arreglo |
+|---|---|---|
+| `We failed to modify the IAM policy for the project` | El agente de servicio de Pub/Sub aún no existe | 8b: crea los agentes de Pub/Sub y Eventarc y da los roles que pide la CLI |
+| `Build failed: Access to bucket gcf-sources-… denied` | La cuenta Compute por defecto (la que usa Cloud Build) ya no tiene acceso en proyectos nuevos | 8b: `roles/cloudbuild.builds.builder` a `<número>-compute@developer.gserviceaccount.com` |
+| `Permission denied while using the Eventarc Service Agent` | Los permisos del agente tardan en propagarse | 8b: `roles/eventarc.serviceAgent`; si persiste, espera unos minutos y reintenta |
+| Functions responden pero fallan con `PERMISSION_DENIED` en Firestore (p. ej. crear la organización) | Los proyectos nuevos no dan roles a las cuentas con las que corren las functions | 8c: los mismos roles que en producción para `<proyecto>@appspot` y `<número>-compute` |
+| Functions desplegadas pero **403** (manifest, login, PIN…) | Si el primer intento falló, los deploys siguientes no hacen públicas las functions HTTP | Ver el comando de abajo |
+| `could not set up cleanup policy` | Falta la política de limpieza de imágenes (necesita un deploy exitoso previo) | `npx -y firebase-tools@15.30.2 functions:artifacts:setpolicy --project <alias> --days 1 --force` |
+
+Hacer públicas las functions HTTP, como están en producción (las callables validan la autenticación en su código):
+
+```bash
+P=<proyecto>
+for name in $(gcloud functions list --project $P --format="value(name)" | xargs -n1 basename); do
+  [ -n "$(gcloud functions describe $name --region us-central1 --project $P --format='value(httpsTrigger.url)')" ] &&
+    gcloud functions add-iam-policy-binding $name --region us-central1 --project $P --member=allUsers --role=roles/cloudfunctions.invoker
+done
+```
+
+Si una function **nueva** se despliega por primera vez con éxito, la CLI ya la hace pública sola; esto solo hace falta tras un primer deploy fallido.
 
 ---
 
@@ -146,6 +171,7 @@ rama feat/issue-N-…  ──►  scripts/deploy.sh dev …  ──►  probar e
         └──►  PR a main  ──►  merge  ──►  git checkout main && git pull  ──►  scripts/deploy.sh prod …
 ```
 
+- **Regla del proyecto: siempre en dev primero.** Todo se prueba en dev; a producción solo va lo que está mergeado en `main`, probado de punta a punta en dev y aprobado explícitamente para prod.
 - Dev se puede desplegar desde **cualquier rama**, para probar antes del PR.
 - Producción **solo desde `main`**: lo que está en producción siempre es lo que está en `main`.
 - Cambios de esquema, reglas o functions: pruébalos primero en dev con datos de prueba.

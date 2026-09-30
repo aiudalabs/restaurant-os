@@ -10,7 +10,7 @@ import os
 import json, subprocess, sys, urllib.request, urllib.error
 
 PROJECT = os.environ.get("ROS_PROJECT") or sys.exit(
-    "Define ROS_PROJECT: restaurant-os-68c79 (prod) o restaurant-os-dev (dev). Ver docs/ENVIRONMENTS.md"
+    "Define ROS_PROJECT: restaurant-os-68c79 (prod) o restaurant-os-dev-49096 (dev). Ver docs/ENVIRONMENTS.md"
 )
 ORG = "demo-org"
 BRANCH = "26qBYnIxdHuUYSNN7uHx"

@@ -25,7 +25,7 @@ import urllib.request
 import urllib.error
 
 PROJECT_ID = os.environ.get("ROS_PROJECT") or sys.exit(
-    "Define ROS_PROJECT: restaurant-os-68c79 (prod) o restaurant-os-dev (dev). Ver docs/ENVIRONMENTS.md"
+    "Define ROS_PROJECT: restaurant-os-68c79 (prod) o restaurant-os-dev-49096 (dev). Ver docs/ENVIRONMENTS.md"
 )
 DEFAULT_MENU_ID = "oGd13kHc3YA0Q1Bmn3Zr"   # Boda Lucas
 FIRESTORE_BASE = f"https://firestore.googleapis.com/v1/projects/{PROJECT_ID}/databases/(default)/documents"

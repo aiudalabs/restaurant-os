@@ -19,6 +19,23 @@ solo para auth (login contra Odoo) y pagos.
 
 ---
 
+## Ambientes: siempre en dev primero — OBLIGATORIO
+
+Hay dos proyectos Firebase/GCP (guía: `docs/ENVIRONMENTS.md`):
+`dev` = `restaurant-os-dev-49096` (pruebas) y `prod` = `restaurant-os-68c79` (restaurantes reales).
+
+1. **Todo el trabajo se despliega y prueba en dev**: `scripts/deploy.sh dev <qué>` (desde cualquier rama).
+   `npm run dev` local también apunta a dev (`apps/*/.env.development`).
+2. **Nada va a prod hasta que esté listo y probado**: la funcionalidad está mergeada en `main` por PR,
+   probada de punta a punta en dev, y **el usuario lo pide explícitamente** («pásalo a prod»). Entonces,
+   desde `main` limpio: `scripts/deploy.sh prod <qué>` (nombra lo que cambió; no `all` por costumbre).
+3. **Datos:** los scripts de `tools/` y cualquier escritura directa en Firestore/RTDB van contra dev
+   (`ROS_PROJECT=restaurant-os-dev-49096`). Tocar datos de prod solo si el usuario lo pide para ese caso.
+4. Al terminar una tarea, reporta qué quedó **desplegado en dev** y qué falta para prod; no lo despliegues
+   a prod por iniciativa propia.
+
+---
+
 ## Las apps y su tecnología
 
 | App | Tecnología | Plataforma | Quién la usa |
