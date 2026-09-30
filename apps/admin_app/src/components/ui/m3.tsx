@@ -10,7 +10,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const CARD: Record<string, string> = {
-  outlined: 'm3-card-outlined [--field-bg:var(--md-sys-color-surface)]',
+  outlined: 'm3-card-outlined [--field-bg:var(--md-sys-color-surface-container-low)]',
   filled: 'm3-card-filled [--field-bg:var(--md-sys-color-surface-container-highest)]',
   elevated: 'm3-card [--field-bg:var(--md-sys-color-surface-container-low)]',
 };

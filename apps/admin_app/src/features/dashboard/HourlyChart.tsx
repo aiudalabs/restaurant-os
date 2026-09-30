@@ -61,6 +61,8 @@ export function HourlyChart({ orders }: { orders: Order[] }) {
   const [metric, setMetric] = useState<Metric>('count');
   const [activeHour, setActiveHour] = useState<number | null>(null);
   const data = useMemo(() => bucketByHour(orders), [orders]);
+  // The hour in progress is drawn in saffron, like "Ahora" on the pass.
+  const nowHour = new Date().getHours();
 
   const step = niceStep(Math.max(...data.map((d) => d[metric]), 1) / GRID_LINES);
   const max = step * GRID_LINES;
@@ -155,7 +157,7 @@ export function HourlyChart({ orders }: { orders: Order[] }) {
                   width={barW}
                   height={h}
                   rx={Math.min(8, barW / 2)}
-                  fill={isActive ? 'var(--md-sys-color-tertiary)' : 'var(--md-sys-color-primary)'}
+                  fill={isActive || d.hour === nowHour ? 'var(--ros-saffron)' : 'var(--md-sys-color-primary)'}
                 />
               )}
               {i % labelEvery === 0 && (

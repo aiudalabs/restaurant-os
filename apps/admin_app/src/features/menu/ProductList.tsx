@@ -1,5 +1,4 @@
 import { Button, IconButton } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
 import { Card, EmptyState, ExtendedFab, Switch, TagChip } from '@/components/ui/m3';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types/product';
@@ -65,9 +64,9 @@ export default function ProductList({
           />
         </Card>
       ) : (
-        <div className="grid gap-4 @lg:grid-cols-2 @3xl:grid-cols-3">
+        <ul className="flex flex-col gap-1 rounded-3xl bg-[var(--md-sys-color-surface-container-low)] p-2">
           {products.map((product) => (
-            <ProductCard
+            <ProductRow
               key={product.id}
               product={product}
               onEdit={onEdit}
@@ -75,75 +74,83 @@ export default function ProductList({
               onDelete={onDelete}
             />
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );
 }
 
-interface ProductCardProps {
+interface ProductRowProps {
   product: Product;
   onEdit: (product: Product) => void;
   onToggle: (id: string, isActive: boolean) => void;
   onDelete: (product: Product) => void;
 }
 
-function ProductCard({ product, onEdit, onToggle, onDelete }: ProductCardProps) {
+/** One product as a menu line: photo, name, description, note for the waiter, big price. */
+function ProductRow({ product, onEdit, onToggle, onDelete }: ProductRowProps) {
   const switchId = `product-active-${product.id}`;
   const modifierCount = product.modifierGroups?.length ?? 0;
 
   return (
-    <Card className="flex flex-col overflow-hidden">
-      {/* Inactive products are dimmed; the controls below stay at full contrast. */}
-      <div className={cn('flex flex-1 flex-col', !product.isActive && 'opacity-50')}>
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl px-3 py-3 transition-colors hover:bg-[var(--md-sys-color-surface-container)] sm:flex-nowrap sm:px-4">
+      {/* Inactive products are dimmed; the controls stay at full contrast. */}
+      <button
+        type="button"
+        onClick={() => onEdit(product)}
+        className={cn('flex min-w-0 flex-1 items-center gap-4 text-left', !product.isActive && 'opacity-50')}
+        aria-label={`Editar ${product.name}`}
+      >
         {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} loading="lazy" className="h-36 w-full object-cover" />
+          <img src={product.imageUrl} alt="" loading="lazy" className="h-[72px] w-[72px] shrink-0 rounded-2xl object-cover" />
         ) : (
-          <div
-            className="t-display-small grid h-36 w-full place-items-center bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]"
+          <span
+            className="t-title-large grid h-[72px] w-[72px] shrink-0 place-items-center rounded-2xl border-2 border-dashed border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface-variant)]"
             aria-hidden="true"
           >
             {product.name.trim().charAt(0).toUpperCase() || '?'}
-          </div>
+          </span>
         )}
-
-        <div className="flex flex-1 flex-col px-4 pt-4">
-          <div className="flex items-start justify-between gap-3">
-            <h4 className="t-title-medium min-w-0 flex-1 truncate text-[var(--md-sys-color-on-surface)]">
-              {product.name}
-            </h4>
-            <span className="t-title-large whitespace-nowrap tabular-nums text-[var(--md-sys-color-on-surface)]">
-              ${product.price.toFixed(2)}
-            </span>
-          </div>
+        <span className="min-w-0 flex-1">
+          <span className="t-title-medium block truncate font-bold text-[var(--md-sys-color-on-surface)]">{product.name}</span>
           {product.description && (
-            <p className="t-body-medium mt-1 line-clamp-2 text-[var(--md-sys-color-on-surface-variant)]">
+            <span className="t-body-medium mt-0.5 block truncate text-[var(--md-sys-color-on-surface-variant)]">
               {product.description}
-            </p>
+            </span>
           )}
-
-          {(product.tags?.length ?? 0) > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
+          {product.waiterNote && (
+            <span className="t-body-small mt-0.5 block truncate font-semibold text-[var(--md-sys-color-tertiary)]">
+              Para el mesero: {product.waiterNote}
+            </span>
+          )}
+          {((product.tags?.length ?? 0) > 0 || modifierCount > 0) && (
+            <span className="mt-2 flex flex-wrap gap-2">
               {product.tags?.map((tag) => (
                 <TagChip key={tag}>{tag}</TagChip>
               ))}
-            </div>
+              {modifierCount > 0 && (
+                <TagChip icon="tune">
+                  {modifierCount} {modifierCount === 1 ? 'grupo de opciones' : 'grupos de opciones'}
+                </TagChip>
+              )}
+            </span>
           )}
+        </span>
+        <span className="t-number shrink-0 text-[30px] font-bold leading-none text-[var(--md-sys-color-on-surface)]">
+          ${product.price.toFixed(2)}
+        </span>
+      </button>
 
-          {modifierCount > 0 && (
-            <p className="t-body-small mt-3 inline-flex items-center gap-1 text-[var(--md-sys-color-on-surface-variant)]">
-              <Icon name="tune" size={16} />
-              {modifierCount} grupo(s) de modificadores
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-3 flex items-center gap-3 border-t border-[var(--md-sys-color-outline-variant)] py-2 pl-4 pr-2">
-        <Switch id={switchId} checked={product.isActive} onChange={(checked) => onToggle(product.id, checked)} />
-        <label htmlFor={switchId} className="t-label-large min-w-0 flex-1 cursor-pointer text-[var(--md-sys-color-on-surface-variant)]">
+      <div className="flex w-full items-center gap-2 sm:w-auto">
+        <Switch
+          id={switchId}
+          checked={product.isActive}
+          onChange={(checked) => onToggle(product.id, checked)}
+          label={product.isActive ? `${product.name}: disponible` : `${product.name}: no disponible`}
+        />
+        <span className="t-body-small min-w-0 flex-1 text-[var(--md-sys-color-on-surface-variant)] sm:hidden">
           {product.isActive ? 'Disponible' : 'No disponible'}
-        </label>
+        </span>
         <IconButton icon="edit" label={`Editar ${product.name}`} onClick={() => onEdit(product)} />
         <IconButton
           icon="delete"
@@ -152,6 +159,6 @@ function ProductCard({ product, onEdit, onToggle, onDelete }: ProductCardProps) 
           onClick={() => onDelete(product)}
         />
       </div>
-    </Card>
+    </li>
   );
 }

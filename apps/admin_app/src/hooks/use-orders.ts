@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Order, OrderStatus } from '@/types/order';
 import type { OrderItem } from '@/types/order-item';
 import {
   watchActiveOrders,
   watchOrders,
   fetchOrderItems as fetchOrderItemsService,
+  fetchItemsForOrders,
+  fetchProductImages,
+  confirmManualPayment as confirmManualPaymentService,
   fetchTodayOrders as fetchTodayOrdersService,
   updateOrderStatus as updateOrderStatusService,
 } from '@/services/order.service';
@@ -105,4 +108,59 @@ export function useUpdateOrderStatus() {
   }, []);
 
   return { updateStatus, updating };
+}
+
+/**
+ * Items of the given orders, refetched when the set of orders changes (e.g. a
+ * new order lands on the pass). Keyed by the sorted ids so re-renders don't refetch.
+ */
+export function useItemsForOrders(orgId: string, orderIds: string[]) {
+  const key = useMemo(() => [...orderIds].sort().join(','), [orderIds]);
+  const [items, setItems] = useState<OrderItem[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    const ids = key ? key.split(',') : [];
+    fetchItemsForOrders(orgId, ids)
+      .then((data) => alive && setItems(data))
+      .catch((e) => console.error('[admin] order items load failed', e));
+    return () => {
+      alive = false;
+    };
+  }, [orgId, key]);
+
+  return items;
+}
+
+/** productId → imageUrl for the given products. */
+export function useProductImages(productIds: string[]) {
+  const key = useMemo(() => [...new Set(productIds)].sort().join(','), [productIds]);
+  const [images, setImages] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let alive = true;
+    fetchProductImages(key ? key.split(',') : [])
+      .then((data) => alive && setImages(data))
+      .catch((e) => console.error('[admin] product images load failed', e));
+    return () => {
+      alive = false;
+    };
+  }, [key]);
+
+  return images;
+}
+
+export function useConfirmManualPayment() {
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const confirm = useCallback(async (orderId: string, received: boolean) => {
+    setBusyId(orderId);
+    try {
+      await confirmManualPaymentService(orderId, received);
+    } finally {
+      setBusyId(null);
+    }
+  }, []);
+
+  return { confirm, busyId };
 }
