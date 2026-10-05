@@ -240,11 +240,14 @@ en la DB deben limpiar lo que crean.
 ### Emuladores (prueba local sin tocar producción)
 `firebase.json` tiene bloque `emulators` (auth 9099, firestore 8080, database 9000, functions 5001, storage 9199, UI 4000).
 Sin el emulador de **auth** corriendo, las Functions emuladas crean usuarios en el Auth **real** — verifica
-que aparezca "Authentication" en la tabla de arranque. Usa Node 20 (`/opt/homebrew/opt/node@20/bin`).
+que aparezca "Authentication" en la tabla de arranque. Las functions corren en Node 22 (`engines`).
+**Suites automáticas:** `scripts/test-emulators.sh` (o `… rules|counter|yappy`) corre
+`functions/test/emulator/*` contra las reglas y las Cloud Functions reales en el proyecto `demo-ros-test`
+(nunca toca dev ni prod). Córrelo antes de desplegar functions o reglas. Necesita un JDK ≥ 21.
 ⚠️ Bug de `firebase-tools` (14.12 y 15.30): el emulador envuelve `admin.firestore` con `.bind()` y se
 pierde `admin.firestore.Timestamp` → las Functions fallan **solo en el emulador** con
-"Cannot read properties of undefined (reading 'now')". En producción funcionan. Para probar, usar una copia
-local de firebase-tools con `Proxied.getOriginal` parcheado (`Object.assign(value.bind(target), value)`).
+"Cannot read properties of undefined (reading 'now')". En producción funcionan. El script usa una copia
+privada de firebase-tools en `$TMPDIR` con `Proxied.getOriginal` parcheado; no hace falta hacerlo a mano.
 `waiter_web` se conecta a los emuladores con `VITE_USE_EMULATORS=true npm run dev`.
 
 ---

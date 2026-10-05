@@ -116,7 +116,8 @@
         ".git",
         "firebase-debug.log",
         "firebase-debug.*.log",
-        "*.local"
+        "*.local",
+        "test"
       ],
       "predeploy": [
         "npm --prefix \"$RESOURCE_DIR\" run build"
