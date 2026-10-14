@@ -67,6 +67,62 @@ Registro en Zaveli: `endpoint_url = http://127.0.0.1:8040/zaveli/tools`,
 `events_url = http://127.0.0.1:8040/zaveli/events` (Zaveli en modo desarrollo acepta
 `http://127.0.0.1`; en producción exige `https` pública).
 
+## Cómo sabe Zaveli qué restaurante es
+
+Cada restaurante es un **negocio** de Zaveli cuyo `external_ref` es el `branchId` de la
+sucursal en RestaurantOS. Zaveli manda esa referencia en cada llamada, dentro del contexto
+firmado (`context.business_ref`); el modelo no la escribe ni la puede cambiar.
+`_branch_for` (`app/zaveli/service.py`) lee `branches/{business_ref}`, y de ahí salen la
+organización, el menú, el impuesto y dónde se crea el pedido.
+
+## Agregar un restaurante
+
+La integración es de la organización de Zaveli: una URL, un secreto y las mismas
+herramientas sirven a **todos** sus negocios a la vez, cada uno con su propio chat. Agregar
+un restaurante no cambia código ni pide otra conformidad.
+
+1. **RestaurantOS (dev):** una sucursal activa con menú y productos (desde el panel o con
+   un seed como `tools/seed_zaveli_demo.py`). Apunta su `branchId`.
+2. **Zaveli — el negocio**, con `external_ref` = ese `branchId`:
+   ```sh
+   set -a; . ~/.zaveli-restaurantos/zaveli.env; set +a
+   curl -sS -X POST "$ZAVELI_URL/v1/businesses" \
+     -H "Authorization: Bearer $ZAVELI_API_KEY" -H "Content-Type: application/json" \
+     -d '{"name": "Otro Restaurante", "timezone": "America/Panama", "data_class": "standard",
+          "jurisdiction": "PA", "capabilities": ["integration"], "external_ref": "<branchId>"}' | jq -r .id
+   ```
+   A un negocio que ya existe: `PUT /v1/businesses/{id}/capabilities/integration` y
+   `PUT /v1/businesses/{id}/external-ref` con `{"external_ref": "<branchId>"}`.
+3. **Comprobar** que recibe las herramientas (las tres con `included: true`):
+   ```sh
+   curl -sS "$ZAVELI_URL/v1/businesses/<business_id>/integration" \
+     -H "Authorization: Bearer $ZAVELI_API_KEY" | jq
+   ```
+4. **Su chat web:**
+   ```sh
+   curl -sS -X POST "$ZAVELI_URL/v1/businesses/<business_id>/channel-connections" \
+     -H "Authorization: Bearer $ZAVELI_API_KEY" -H "Content-Type: application/json" \
+     -d '{"channel": "webchat"}' | jq -r .id
+   ```
+   Chat de pruebas: `http://localhost:5183/demo/?connection=<connection_id>`.
+
+Límites:
+- Un negocio por sucursal: `external_ref` es único en la organización de Zaveli
+  (409 `external_ref_taken`). Dos sucursales de una cadena son dos negocios.
+- Las llamadas a las herramientas cuentan en el uso de la organización de Zaveli, sumando
+  todos sus negocios.
+- El endpoint local lee solo Firestore de dev.
+- `ver_menu` devuelve como mucho 20 productos.
+
+## Demo en dev (2026-10-14)
+
+| Qué | Valor |
+|---|---|
+| Organización / sucursal RestaurantOS | `zaveli-demo-org` / `zaveli-demo-branch` |
+| Negocio Zaveli (`business_id`) | `1e81726b-bd89-4afa-aa3b-1ac829d4bcb6` |
+| Chat web (`connection_id`) | `fb94c00c-effa-4d32-af88-92f6cfc1d4c4` |
+| Panel (admin de la sucursal) | https://restaurant-os-dev-49096.web.app — usuario `admin@zaveli-demo.test` (la contraseña no se guarda en el repo) |
+
 ## Pendiente
 
 - Desplegar el BFF con este dominio (Cloud Run) y una URL `https` pública; secreto en Secret Manager.
