@@ -1,0 +1,14 @@
+{
+  "description": "Consulta el estado de un pedido por su código (Z-…).",
+  "effect": "read",
+  "identification": "none",
+  "timeout_ms": 5000,
+  "input_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {"pedido": {"type": "string", "description": "El código del pedido, como Z-7RACZEP2", "minLength": 1, "maxLength": 20}},
+    "required": ["pedido"]
+  },
+  "instructions": ["Para saber cómo va un pedido, pide al cliente su código (Z-…) y consulta estado_pedido."],
+  "contact_data": "none"
+}

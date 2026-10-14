@@ -1,0 +1,41 @@
+{
+  "description": "Crea un pedido para retirar en el restaurante, con los productos que el cliente confirmó. El total lo calcula el restaurante.",
+  "effect": "write",
+  "identification": "none",
+  "timeout_ms": 8000,
+  "input_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "productos": {
+        "type": "array",
+        "description": "Un código de ver_menu por unidad: dos pizzas son dos veces el código",
+        "minItems": 1,
+        "maxItems": 20,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        }
+      },
+      "nombre": {
+        "type": "string",
+        "description": "Nombre con el que se llama al cliente al retirar, si lo dio",
+        "maxLength": 60
+      },
+      "notas": {
+        "type": "string",
+        "description": "Indicaciones del cliente para la cocina, si las dio",
+        "maxLength": 200
+      }
+    },
+    "required": [
+      "productos"
+    ]
+  },
+  "instructions": [
+    "Crea el pedido solo cuando el cliente confirmó los productos y las cantidades; usa los códigos de ver_menu.",
+    "Di el total que devuelve crear_pedido, nunca uno calculado por ti, y da al cliente el código del pedido (Z-…): lo necesita para retirarlo y pagar al retirar."
+  ],
+  "contact_data": "none"
+}

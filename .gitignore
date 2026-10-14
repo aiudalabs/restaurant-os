@@ -19,3 +19,6 @@ serviceAccountKey.json
 # Secretos del BFF por ambiente (docs/ENVIRONMENTS.md)
 deploy/env/*.secrets.env
 !deploy/env/example.secrets.env
+
+# Local Zaveli endpoint state (scripts/zaveli-endpoint.sh): .env with the signing secret, pid, logs
+apps/fastapi_bff/.zaveli-dev/
