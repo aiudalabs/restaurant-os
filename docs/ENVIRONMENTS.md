@@ -150,6 +150,12 @@ DRY_RUN=1 scripts/deploy.sh dev all          # muestra el comando sin ejecutarlo
 scripts/deploy.sh prod "hosting:customer"    # producción: ver abajo
 ```
 
+**Antes de desplegar functions o reglas**, corre las suites de los emuladores (no tocan dev ni prod):
+
+```bash
+scripts/test-emulators.sh            # reglas, modo barra y Yappy manual contra las functions reales
+```
+
 **Producción tiene candados.** `scripts/deploy.sh prod …` y `scripts/deploy-bff.sh prod` se niegan a desplegar si:
 - no estás en `main`;
 - `main` local no es igual a `origin/main` (haz `git pull` o `push`);
