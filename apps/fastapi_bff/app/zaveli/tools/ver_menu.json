@@ -1,0 +1,12 @@
+{
+  "description": "Devuelve el menú del restaurante: código, nombre, categoría y precio de cada producto.",
+  "effect": "read",
+  "identification": "none",
+  "timeout_ms": 5000,
+  "input_schema": {"type": "object", "additionalProperties": false, "properties": {}},
+  "instructions": [
+    "Antes de nombrar un producto o decir un precio, consulta ver_menu: di solo los productos y precios que devuelve.",
+    "Los precios del menú no incluyen el impuesto (impuesto_porcentaje); el total de crear_pedido sí lo incluye."
+  ],
+  "contact_data": "none"
+}

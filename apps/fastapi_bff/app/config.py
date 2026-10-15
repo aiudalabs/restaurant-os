@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-flash-latest"
     ai_max_csv_rows: int = 500
 
+    # Zaveli (agente conversacional) — signing secrets (zsk_…) of the tool and
+    # event calls, comma-separated: during a rotation the new one and the previous
+    # one. Empty = every call is refused (401). Never commit it. See app/zaveli/.
+    zaveli_signing_secrets: str = ""
+
     # Server
     host: str = "0.0.0.0"
     port: int = 8000
