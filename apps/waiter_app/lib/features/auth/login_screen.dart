@@ -102,7 +102,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 textInputAction: TextInputAction.done,
                 decoration: _inputDecoration('Mínimo 6 caracteres'),
                 validator: (v) =>
-                    (v == null || v.length < 6) ? 'Muy corta' : null,
+                    (v == null || v.isEmpty) ? 'Campo requerido' : null,
                 onFieldSubmitted: (_) => _submit(),
               ),
               if (error != null) ...[
