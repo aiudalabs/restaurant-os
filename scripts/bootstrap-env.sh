@@ -169,13 +169,21 @@ ok "Pub/Sub, Eventarc y Cloud Build listos"
 # ── 8c. Runtime accounts of the functions: same roles as production ─────────
 # New projects no longer grant roles to default service accounts, so functions
 # failed with PERMISSION_DENIED on Firestore (createOrganization). Prod has:
-#   <project>@appspot  (1st gen) datastore.user, firebase.admin, serviceUsageConsumer
+#   <project>@appspot  (1st gen) datastore.user, firebase.admin, serviceUsageConsumer,
+#                      and serviceAccountTokenCreator on itself
 #   <number>-compute    (2nd gen) datastore.user, logging.logWriter (+ the ones in 8b)
 step "8c. Cuentas con las que corren las functions"
 for role in roles/datastore.user roles/firebase.admin roles/serviceusage.serviceUsageConsumer; do
   run gcloud projects add-iam-policy-binding "$PROJECT" --condition=None --quiet \
     --member="serviceAccount:$PROJECT@appspot.gserviceaccount.com" --role="$role" >/dev/null
 done
+# waiterLogin / kdsLogin mint custom tokens (createCustomToken → signBlob): the
+# appspot account must be able to sign as itself. Without it a correct PIN ends
+# in "Permission 'iam.serviceAccounts.signBlob' denied" (issue #60).
+run gcloud iam service-accounts add-iam-policy-binding "$PROJECT@appspot.gserviceaccount.com" \
+  --project "$PROJECT" --quiet \
+  --member="serviceAccount:$PROJECT@appspot.gserviceaccount.com" \
+  --role=roles/iam.serviceAccountTokenCreator >/dev/null
 for role in roles/datastore.user roles/logging.logWriter; do
   run gcloud projects add-iam-policy-binding "$PROJECT" --condition=None --quiet \
     --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role="$role" >/dev/null
