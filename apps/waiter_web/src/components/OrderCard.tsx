@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { closeOrder, confirmManualPayment, markItemsReady, recordPayment, watchOrderItems } from '../lib/api';
 import { money } from '../lib/format';
+import { printPdf } from '../lib/print';
 import { PaymentSheet } from './PaymentSheet';
 import type { FiscalInfo, InvoiceRequest, Order, OrderItem, OrderStatus, PaymentMethod } from '../types';
 
@@ -190,6 +191,8 @@ export function OrderCard({ order, orgId, now }: Props) {
 
 /** One compact line with the electronic invoice state, shown once the order is paid. */
 function FiscalLine({ fiscal }: { fiscal: FiscalInfo }) {
+  const [printing, setPrinting] = useState(false);
+  const [printError, setPrintError] = useState('');
   if (fiscal.status === 'skipped') return null;
   if (fiscal.status === 'error') {
     return <p className="text-xs text-brand">Factura: error (reintentar desde el admin)</p>;
@@ -204,6 +207,26 @@ function FiscalLine({ fiscal }: { fiscal: FiscalInfo }) {
           <a href={fiscal.pdfUrl} target="_blank" rel="noopener" className="font-bold text-brand underline">
             Ver PDF
           </a>
+          {' · '}
+          <button
+            type="button"
+            disabled={printing}
+            onClick={async () => {
+              setPrintError('');
+              setPrinting(true);
+              try {
+                await printPdf(fiscal.pdfUrl as string);
+              } catch (e) {
+                setPrintError(e instanceof Error ? e.message : 'No se pudo imprimir');
+              } finally {
+                setPrinting(false);
+              }
+            }}
+            className="font-bold text-brand underline disabled:opacity-50"
+          >
+            {printing ? 'Imprimiendo…' : 'Imprimir'}
+          </button>
+          {printError && <span className="text-brand"> · {printError}</span>}
         </>
       )}
     </p>

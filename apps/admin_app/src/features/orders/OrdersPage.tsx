@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useAllOrders, useOrderItems, useUpdateOrderStatus } from '@/hooks/use-orders';
 import { retryInvoice } from '@/services/fiscal.service';
+import { printPdf } from '@/lib/print';
 import type { FiscalStatus, Order, OrderStatus, PaymentMethod, PaymentStatus } from '@/types/order';
 import type { OrderItem } from '@/types/order-item';
 
@@ -115,6 +116,8 @@ function InvoiceSection({ order }: { order: Order }) {
   const now = useNow();
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState('');
+  const [printing, setPrinting] = useState(false);
+  const [printError, setPrintError] = useState('');
   const fiscal = order.fiscal;
   const request = order.invoiceRequest;
   if (!fiscal && !request) return null;
@@ -185,6 +188,26 @@ function InvoiceSection({ order }: { order: Order }) {
               <Icon name="picture_as_pdf" size={18} /> Ver PDF
             </a>
           )}
+          {fiscal.pdfUrl && (
+            <Button
+              type="button"
+              variant="tonal"
+              disabled={printing}
+              onClick={async () => {
+                setPrintError('');
+                setPrinting(true);
+                try {
+                  await printPdf(fiscal.pdfUrl as string);
+                } catch (e) {
+                  setPrintError(e instanceof Error ? e.message : 'No se pudo imprimir');
+                } finally {
+                  setPrinting(false);
+                }
+              }}
+            >
+              <Icon name="print" size={18} /> {printing ? 'Imprimiendo…' : 'Imprimir'}
+            </Button>
+          )}
           {fiscal.qrUrl && (
             <a
               href={fiscal.qrUrl}
@@ -195,6 +218,7 @@ function InvoiceSection({ order }: { order: Order }) {
               <Icon name="open_in_new" size={18} /> Consultar en la DGI
             </a>
           )}
+          {printError && <p className="t-body-small w-full text-[var(--md-sys-color-error)]">{printError}</p>}
         </div>
       )}
 

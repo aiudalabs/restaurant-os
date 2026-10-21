@@ -75,7 +75,7 @@ Replica la configuración de producción:
 | 1 | Habilita las APIs (Firestore, RTDB, Storage, Hosting, Functions, Cloud Run, Eventarc, Vertex AI, …) |
 | 2 | Firestore en `nam5` |
 | 3 | Realtime Database por defecto en `us-central1` (la misma llamada que hace `firebase init database`) |
-| 4 | Storage: bucket por defecto en `US-EAST1` |
+| 4 | Storage: bucket por defecto en `US-EAST1`. Aplicar el CORS del repo (una vez por proyecto, no lo hace `firebase deploy`): `CLOUDSDK_CORE_ACCOUNT=admin@aiudalabs.com gsutil cors set storage.cors.json gs://<proyecto>.firebasestorage.app` — necesario para que mesero/admin puedan leer el PDF de la factura y mandarlo a imprimir |
 | 5 | Authentication: correo/contraseña y anónimo |
 | 6 | Registra la app web y obtiene su config pública |
 | 7 | Crea los 5 sitios de Hosting (`<proyecto>`, `-pedir`, `-cocina`, `-mesero`, `-inicio`) |
