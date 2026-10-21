@@ -23,6 +23,7 @@ const r1 = await call('confirmManualPayment', 'wA', { orderId: 'y1', received: t
 check('waiter confirms → confirmed', r1?.status === 'confirmed', JSON.stringify(r1));
 const o1 = await get('orders/y1');
 check('order paid + confirmed', o1.status === 'confirmed' && o1.payment.status === 'paid' && o1.payment.reviewedBy === 'wA');
+await waitFor('y1 ticket on the KDS (onOrderPaid)', async () => !!(await rtdb('order_items/K'))?.['y1_y1_0']);
 const kds = await rtdb('order_items/K');
 const ticket = kds?.['y1_y1_0'];
 check('food ticket now on the Cocina KDS', !!ticket && ticket.productName === 'Huevos' && ticket.quantity === 2 && ticket.tableNumber === '4821');
