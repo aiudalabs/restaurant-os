@@ -12,7 +12,7 @@ import { loadHome } from '../lib/home';
 import type { OrderDoc, OrderItemDoc, OrderStatus } from '../types';
 
 const STEPS: { key: string; label: string; icon: string; statuses: OrderStatus[] }[] = [
-  { key: 'received', label: 'Recibido', icon: '📝', statuses: ['pending', 'confirmed', 'paid'] },
+  { key: 'received', label: 'Recibido', icon: '📝', statuses: ['pending', 'confirmed'] },
   { key: 'preparing', label: 'En preparación', icon: '👨‍🍳', statuses: ['in_preparation'] },
   { key: 'ready', label: 'Listo para retirar', icon: '🔔', statuses: ['ready'] },
   { key: 'done', label: 'Entregado', icon: '✅', statuses: ['delivered', 'closed'] },

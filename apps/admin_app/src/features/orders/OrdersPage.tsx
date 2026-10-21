@@ -11,7 +11,6 @@ import type { OrderItem } from '@/types/order-item';
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending_payment: 'Esperando pago',
   payment_failed: 'Pago rechazado',
-  paid: 'Pagado',
   pending: 'Pendiente',
   confirmed: 'Confirmado',
   in_preparation: 'En preparacion',
@@ -25,7 +24,6 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 const STATUS_TONES: Record<OrderStatus, StatusTone> = {
   pending_payment: 'error',
   payment_failed: 'error',
-  paid: 'neutral',
   pending: 'error',
   confirmed: 'info',
   in_preparation: 'info',
@@ -43,6 +41,7 @@ const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: 'Efectivo',
   card: 'Tarjeta',
   yappy: 'Yappy',
+  transfer: 'Transferencia',
 };
 
 const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
