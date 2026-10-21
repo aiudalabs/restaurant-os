@@ -54,12 +54,24 @@ check('ticket carries the order data', t.productName === 'Huevos' && t.quantity 
 
 // 3. Invoice request with RUC travels with the payment.
 await patch('orders/o3', { id: 'o3', orgId: 'A', branchId: 'b1', source: 'waiter', status: 'ready', total: 10, tableNumber: 'Eva', payment: { method: null, status: 'pending' } });
-check('RUC invoice needs taxId and name', (await call('recordPayment', 'wA', { orderId: 'o3', method: 'card', invoiceRequest: { receiverType: '01', taxId: '' } })).error === 'INVALID_ARGUMENT');
-await call('recordPayment', 'wA', { orderId: 'o3', method: 'card', invoiceRequest: { receiverType: '01', taxId: '155704849-2-2021', dv: '32', name: 'Digifact', email: 'x@y.z' } });
+await call('recordPayment', 'wA', { orderId: 'o3', method: 'card', invoiceRequest: { taxId: '155704849-2-2021', name: 'Digifact', email: 'x@y.z' } });
 const o3 = await get('orders/o3');
-check('invoiceRequest stored', o3.invoiceRequest?.taxId === '155704849-2-2021' && o3.invoiceRequest?.dv === '32' && o3.invoiceRequest?.receiverType === '01');
+check('invoiceRequest stored (RUC → receiverType 01, DV resolved later by the BFF)', o3.invoiceRequest?.taxId === '155704849-2-2021' && o3.invoiceRequest?.receiverType === '01' && o3.invoiceRequest?.dv === undefined);
+await patch('orders/o3b', { id: 'o3b', orgId: 'A', branchId: 'b1', source: 'waiter', status: 'ready', total: 10, tableNumber: 'Ivo', payment: { method: null, status: 'pending' } });
+await call('recordPayment', 'wA', { orderId: 'o3b', method: 'cash', invoiceRequest: { name: 'Ivo Pérez' } });
+const o3b = await get('orders/o3b');
+check('name only → consumidor final con nombre', o3b.invoiceRequest?.taxId === 'CF' && o3b.invoiceRequest?.receiverType === '02' && o3b.invoiceRequest?.name === 'Ivo Pérez');
 
-// 4. Closed / cancelled orders cannot be collected.
+// 4. Electronic invoice hook: only orgs with fiscal.enabled get a fiscal block.
+check('org without fiscal config → no fiscal block', (await get('orders/o1')).fiscal === undefined);
+await patch('organizations/F', { name: 'Fiscal org', fiscal: { enabled: true, env: 'test' } });
+await patch('users/wF', { orgId: 'F', role: 'waiter' });
+await patch('orders/o5', { id: 'o5', orgId: 'F', branchId: 'bf', source: 'waiter', status: 'ready', total: 10, tableNumber: 'Zoe', payment: { method: null, status: 'pending' } });
+check('fiscal org: collect', (await call('recordPayment', 'wF', { orderId: 'o5', method: 'cash' }))?.status === 'paid');
+await waitFor('fiscal.status pending (BFF not configured in the emulator)', async () => (await get('orders/o5')).fiscal?.status === 'pending');
+check('fiscal block requested', true);
+
+// 5. Closed / cancelled orders cannot be collected.
 await patch('orders/o4', { id: 'o4', orgId: 'A', branchId: 'b1', status: 'cancelled', total: 5, payment: { method: null, status: 'pending' } });
 check('cancelled order is refused', (await call('recordPayment', 'wA', { orderId: 'o4', method: 'cash' })).error === 'FAILED_PRECONDITION');
 done();

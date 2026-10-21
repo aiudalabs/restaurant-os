@@ -12,7 +12,7 @@ import { useBranchContext } from '@/hooks/use-branch-context';
 import { useMenus } from '@/hooks/use-menu';
 import { functions } from '@/lib/firebase';
 import { buildCustomerOrderUrl, buildWaiterDeviceUrl } from '@/lib/config';
-import type { Branch } from '@/types/branch';
+import type { Branch, BranchFiscal } from '@/types/branch';
 import type { Menu } from '@/types/menu';
 
 interface ProvisionedOperator {
@@ -31,6 +31,51 @@ interface BranchFormState {
   showProductImagesToWaiters: boolean;
   yappyHandle: string;
   allowPayAtPickup: boolean;
+  fiscal: BranchFiscalForm;
+}
+
+/** BranchFiscal as typed in the form (nextNumber kept as text until save). */
+type BranchFiscalForm = Omit<BranchFiscal, 'nextNumber'> & { nextNumber: string };
+
+const EMPTY_FISCAL: BranchFiscalForm = {
+  branchCode: '0001',
+  billingPoint: '001',
+  nextNumber: '1',
+  codUbi: '',
+  coords: '',
+  address: '',
+  city: '',
+  district: '',
+  state: '',
+};
+
+function toFiscalForm(fiscal: BranchFiscal | undefined): BranchFiscalForm {
+  if (!fiscal) return EMPTY_FISCAL;
+  return {
+    branchCode: fiscal.branchCode ?? EMPTY_FISCAL.branchCode,
+    billingPoint: fiscal.billingPoint ?? EMPTY_FISCAL.billingPoint,
+    nextNumber: String(fiscal.nextNumber ?? 1),
+    codUbi: fiscal.codUbi ?? '',
+    coords: fiscal.coords ?? '',
+    address: fiscal.address ?? '',
+    city: fiscal.city ?? '',
+    district: fiscal.district ?? '',
+    state: fiscal.state ?? '',
+  };
+}
+
+function toBranchFiscal(form: BranchFiscalForm): BranchFiscal {
+  return {
+    branchCode: form.branchCode.trim(),
+    billingPoint: form.billingPoint.trim(),
+    nextNumber: Math.max(1, Math.floor(Number(form.nextNumber)) || 1),
+    codUbi: form.codUbi.trim(),
+    coords: form.coords.trim(),
+    address: form.address.trim(),
+    city: form.city.trim(),
+    district: form.district.trim(),
+    state: form.state.trim(),
+  };
 }
 
 const EMPTY: BranchFormState = {
@@ -43,6 +88,7 @@ const EMPTY: BranchFormState = {
   showProductImagesToWaiters: false,
   yappyHandle: '',
   allowPayAtPickup: false,
+  fiscal: EMPTY_FISCAL,
 };
 
 function CredRow({ label, value }: { label: string; value: string }) {
@@ -71,7 +117,7 @@ function BranchDialog({
   menus: Menu[];
   onClose: () => void;
 }) {
-  const { updateBranch } = useBranchContext();
+  const { updateBranch, branches } = useBranchContext();
   const [created, setCreated] = useState<ProvisionedOperator[] | null>(null);
   const [form, setForm] = useState<BranchFormState>(
     branch
@@ -85,6 +131,7 @@ function BranchDialog({
           showProductImagesToWaiters: branch.showProductImagesToWaiters ?? false,
           yappyHandle: branch.yappyHandle ?? '',
           allowPayAtPickup: branch.allowPayAtPickup ?? false,
+          fiscal: toFiscalForm(branch.fiscal),
         }
       : // A new branch with no menu can't take orders: preselect it when the org has only one.
         { ...EMPTY, menuId: menus.length === 1 ? menus[0].id : '' },
@@ -94,6 +141,21 @@ function BranchDialog({
 
   const set = <K extends keyof BranchFormState>(k: K, v: BranchFormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
+  const setFiscal = <K extends keyof BranchFiscalForm>(k: K, v: string) =>
+    setForm((f) => ({ ...f, fiscal: { ...f.fiscal, [k]: v } }));
+
+  // The BFF bumps fiscal.nextNumber on every invoice. Unless the admin typed a
+  // new number, keep the live counter so saving a stale dialog can't rewind it.
+  const fiscalPayload = (): BranchFiscal | undefined => {
+    if (!branch) return undefined;
+    const initial = toFiscalForm(branch.fiscal);
+    const touched = (Object.keys(initial) as (keyof BranchFiscalForm)[]).some((k) => initial[k] !== form.fiscal[k]);
+    if (!branch.fiscal && !touched) return undefined;
+    const fiscal = toBranchFiscal(form.fiscal);
+    const live = branches.find((b) => b.id === branch.id)?.fiscal?.nextNumber;
+    if (form.fiscal.nextNumber === initial.nextNumber && live != null) fiscal.nextNumber = live;
+    return fiscal;
+  };
 
   const save = async () => {
     if (!form.name.trim()) {
@@ -112,11 +174,13 @@ function BranchDialog({
     };
     try {
       if (branch) {
+        const fiscal = fiscalPayload();
         await updateBranch(branch.id, {
           ...payload,
           showProductImagesToWaiters: form.showProductImagesToWaiters,
           yappyHandle: form.yappyHandle.trim(),
           allowPayAtPickup: form.allowPayAtPickup,
+          ...(fiscal ? { fiscal } : {}),
         });
         onClose();
       } else {
@@ -286,6 +350,88 @@ function BranchDialog({
               <Switch id="branch-pickup-pay" checked={form.allowPayAtPickup} onChange={(v) => set('allowPayAtPickup', v)} />
             </div>
           </>
+        )}
+
+        {/* Edit only: the DGI establishment data used on this branch's electronic invoices. */}
+        {branch && (
+          <section className="space-y-6 border-t border-[var(--md-sys-color-outline-variant)] pt-5">
+            <div>
+              <h3 className="t-title-medium text-[var(--md-sys-color-on-surface)]">Datos fiscales (factura electrónica)</h3>
+              <p className="t-body-medium text-[var(--md-sys-color-on-surface-variant)]">
+                Se usan solo si la facturación está activa en «Facturación».
+              </p>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <Input
+                id="branch-fiscal-code"
+                label="Código de sucursal"
+                placeholder="0001"
+                value={form.fiscal.branchCode}
+                onChange={(e) => setFiscal('branchCode', e.target.value)}
+                supporting="Código del establecimiento registrado ante la DGI; 0000 = casa matriz."
+              />
+              <Input
+                id="branch-fiscal-point"
+                label="Punto de facturación"
+                placeholder="001"
+                value={form.fiscal.billingPoint}
+                onChange={(e) => setFiscal('billingPoint', e.target.value)}
+              />
+            </div>
+            <Input
+              id="branch-fiscal-next"
+              label="Próximo número"
+              type="number"
+              min={1}
+              step={1}
+              value={form.fiscal.nextNumber}
+              onChange={(e) => setFiscal('nextNumber', e.target.value)}
+              supporting="Próximo número de factura; cámbialo solo antes de emitir la primera."
+            />
+            <div className="grid gap-6 sm:grid-cols-2">
+              <Input
+                id="branch-fiscal-codubi"
+                label="Código de ubicación"
+                placeholder="8-8-12"
+                value={form.fiscal.codUbi}
+                onChange={(e) => setFiscal('codUbi', e.target.value)}
+                supporting="Provincia-distrito-corregimiento."
+              />
+              <Input
+                id="branch-fiscal-coords"
+                label="Coordenadas"
+                placeholder="+8.9213,-79.7068"
+                value={form.fiscal.coords}
+                onChange={(e) => setFiscal('coords', e.target.value)}
+              />
+            </div>
+            <Input
+              id="branch-fiscal-address"
+              label="Dirección fiscal"
+              value={form.fiscal.address}
+              onChange={(e) => setFiscal('address', e.target.value)}
+            />
+            <div className="grid gap-6 sm:grid-cols-3">
+              <Input
+                id="branch-fiscal-city"
+                label="Corregimiento"
+                value={form.fiscal.city}
+                onChange={(e) => setFiscal('city', e.target.value)}
+              />
+              <Input
+                id="branch-fiscal-district"
+                label="Distrito"
+                value={form.fiscal.district}
+                onChange={(e) => setFiscal('district', e.target.value)}
+              />
+              <Input
+                id="branch-fiscal-state"
+                label="Provincia"
+                value={form.fiscal.state}
+                onChange={(e) => setFiscal('state', e.target.value)}
+              />
+            </div>
+          </section>
         )}
 
         {error && (

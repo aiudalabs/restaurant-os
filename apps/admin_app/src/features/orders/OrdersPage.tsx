@@ -1,11 +1,12 @@
-import { useState, useMemo, type ReactNode } from 'react';
+import { useEffect, useState, useMemo, type ReactNode } from 'react';
 import { Button, IconButton } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Card, EmptyState, FilterChip, SideSheet, StatusChip, type StatusTone } from '@/components/ui/m3';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useAllOrders, useOrderItems, useUpdateOrderStatus } from '@/hooks/use-orders';
-import type { Order, OrderStatus, PaymentMethod, PaymentStatus } from '@/types/order';
+import { retryInvoice } from '@/services/fiscal.service';
+import type { FiscalStatus, Order, OrderStatus, PaymentMethod, PaymentStatus } from '@/types/order';
 import type { OrderItem } from '@/types/order-item';
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -71,6 +72,145 @@ function Spinner({ size = 32 }: { size?: number }) {
       className="animate-spin rounded-full border-4 border-[var(--md-sys-color-primary)] border-t-transparent"
       style={{ width: size, height: size }}
     />
+  );
+}
+
+// ─── Electronic invoice ───
+
+const FISCAL_LABELS: Record<FiscalStatus, string> = {
+  pending: 'Generando',
+  issuing: 'Generando',
+  issued: 'Emitida',
+  error: 'Error',
+  skipped: 'Sin facturación',
+};
+
+const FISCAL_TONES: Record<FiscalStatus, StatusTone> = {
+  pending: 'info',
+  issuing: 'info',
+  issued: 'success',
+  error: 'error',
+  skipped: 'neutral',
+};
+
+/** A `pending` invoice older than this is presumed stuck and can be retried by hand. */
+const STUCK_PENDING_MS = 2 * 60 * 1000;
+
+/** Ticks every 15 s so time-based UI (stuck invoices) updates without a reload. */
+function useNow(): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 15_000);
+    return () => window.clearInterval(t);
+  }, []);
+  return now;
+}
+
+const RECEIVER_LABELS: Record<'01' | '02', string> = {
+  '01': 'Contribuyente',
+  '02': 'Consumidor final',
+};
+
+function InvoiceSection({ order }: { order: Order }) {
+  const now = useNow();
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState('');
+  const fiscal = order.fiscal;
+  const request = order.invoiceRequest;
+  if (!fiscal && !request) return null;
+
+  const updatedMs = order.updatedAt?.toDate?.().getTime() ?? 0;
+  const stuck = fiscal?.status === 'pending' && updatedMs > 0 && now - updatedMs > STUCK_PENDING_MS;
+  const canRetry = fiscal?.status === 'error' || stuck;
+
+  const retry = async () => {
+    setRetrying(true);
+    setRetryError('');
+    try {
+      // The live order doc carries the final state; the response only tells us about a new error.
+      const result = await retryInvoice(order.id);
+      if (result.status === 'error') setRetryError(result.lastError || 'Digifact rechazó la factura.');
+    } catch (e) {
+      setRetryError(e instanceof Error ? e.message : 'No se pudo reintentar la factura.');
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  return (
+    <section className="border-t border-[var(--md-sys-color-outline-variant)] pt-4">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <h3 className="t-title-medium text-[var(--md-sys-color-on-surface)]">Factura electrónica</h3>
+        {fiscal && (
+          <StatusChip tone={FISCAL_TONES[fiscal.status] ?? 'outline'} icon="receipt">
+            {FISCAL_LABELS[fiscal.status] ?? fiscal.status}
+          </StatusChip>
+        )}
+      </div>
+      <dl className="space-y-1">
+        {request && (
+          <>
+            <DetailRow label="Cliente">{request.name}</DetailRow>
+            <DetailRow label={request.receiverType === '01' ? 'RUC' : 'Cédula / RUC'}>
+              {request.taxId ? `${request.taxId}${request.dv ? ` DV ${request.dv}` : ''}` : '-'}
+            </DetailRow>
+            <DetailRow label="Tipo">{RECEIVER_LABELS[request.receiverType] ?? request.receiverType}</DetailRow>
+          </>
+        )}
+        {fiscal?.numeroDF && <DetailRow label="Número">{fiscal.numeroDF}</DetailRow>}
+        {fiscal?.cufe && (
+          <DetailRow label="CUFE">
+            <span title={fiscal.cufe} className="break-all">
+              {fiscal.cufe.length > 24 ? `${fiscal.cufe.slice(0, 24)}…` : fiscal.cufe}
+            </span>
+          </DetailRow>
+        )}
+      </dl>
+
+      {fiscal?.status === 'error' && fiscal.lastError && (
+        <p className="t-body-medium mt-3 rounded-lg bg-[var(--md-sys-color-error-container)] px-3 py-2 text-[var(--md-sys-color-on-error-container)]">
+          {fiscal.lastError}
+        </p>
+      )}
+
+      {fiscal?.status === 'issued' && (fiscal.pdfUrl || fiscal.qrUrl) && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {fiscal.pdfUrl && (
+            <a
+              href={fiscal.pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="m3-state t-label-large inline-flex h-10 items-center gap-2 rounded-full bg-[var(--md-sys-color-secondary-container)] px-4 text-[var(--md-sys-color-on-secondary-container)]"
+            >
+              <Icon name="picture_as_pdf" size={18} /> Ver PDF
+            </a>
+          )}
+          {fiscal.qrUrl && (
+            <a
+              href={fiscal.qrUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="m3-state t-label-large inline-flex h-10 items-center gap-2 rounded-full px-3 text-[var(--md-sys-color-primary)]"
+            >
+              <Icon name="open_in_new" size={18} /> Consultar en la DGI
+            </a>
+          )}
+        </div>
+      )}
+
+      {retryError && (
+        <p role="alert" className="t-body-medium mt-3 rounded-lg bg-[var(--md-sys-color-error-container)] px-3 py-2 text-[var(--md-sys-color-on-error-container)]">
+          {retryError}
+        </p>
+      )}
+
+      {canRetry && (
+        <Button variant="tonal" icon={retrying ? undefined : 'refresh'} className="mt-3" disabled={retrying} onClick={retry}>
+          {retrying && <Icon name="progress_activity" size={18} className="animate-spin" />}
+          {retrying ? 'Reintentando…' : 'Reintentar factura'}
+        </Button>
+      )}
+    </section>
   );
 }
 
@@ -226,6 +366,8 @@ function OrderDetailSheet({ order, items, itemsLoading, onClose, onUpdateStatus,
           </dl>
         </section>
 
+        <InvoiceSection order={order} />
+
         <p className="t-body-small break-all text-[var(--md-sys-color-on-surface-variant)]">ID {order.id}</p>
       </div>
     </SideSheet>
@@ -266,6 +408,9 @@ export default function OrdersPage() {
     for (const order of orders) counts[order.status] = (counts[order.status] ?? 0) + 1;
     return counts;
   }, [orders]);
+
+  // Follow the live doc so fiscal updates (Cloud Function / BFF) show up in the open sheet.
+  const liveSelected = selectedOrder ? (orders.find((o) => o.id === selectedOrder.id) ?? selectedOrder) : null;
 
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
@@ -353,7 +498,14 @@ export default function OrdersPage() {
                     </span>
                   </span>
                   <span className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
-                    <StatusChip tone={statusTone(order.status)}>{statusLabel(order.status)}</StatusChip>
+                    <span className="flex items-center gap-1">
+                      {order.fiscal?.status === 'issued' && (
+                        <span title="Factura emitida" aria-label="Factura emitida" className="text-[var(--md-sys-color-primary)]">
+                          <Icon name="receipt" size={18} />
+                        </span>
+                      )}
+                      <StatusChip tone={statusTone(order.status)}>{statusLabel(order.status)}</StatusChip>
+                    </span>
                     <span className="t-title-medium min-w-[4.5rem] text-right">
                       <span className="tabular-nums">{money(order.total)}</span>
                     </span>
@@ -366,9 +518,9 @@ export default function OrdersPage() {
         </Card>
       )}
 
-      {selectedOrder && (
+      {liveSelected && (
         <OrderDetailSheet
-          order={selectedOrder}
+          order={liveSelected}
           items={items}
           itemsLoading={itemsLoading}
           onClose={() => setSelectedOrder(null)}

@@ -67,6 +67,19 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
   isActive: boolean
   createdAt: Timestamp
   ownerId: string               // Firebase Auth UID del dueño
+  fiscal?: {                    // factura electrónica (Panamá, PAC Digifact) — docs/DIGIFACT_EVALUATION.md
+    enabled: boolean            // false = pagos sin factura (orders.fiscal.status "skipped")
+    provider: "digifact"
+    env: "test" | "prod"        // test = ambiente de pruebas de Digifact (sin valor fiscal)
+    ruc: string                 // RUC del emisor
+    dv: string                  // dígito verificador
+    taxIdType: "1" | "2"        // 1 natural, 2 jurídico
+    legalName: string           // razón social (en test Digifact exige su leyenda; el BFF la pone)
+    phone?: string              // 999-9999 / 9999-9999 (obligatorio para la DGI; cae al de la sucursal)
+    defaultCpbsAbr: string      // CPBS abreviado por defecto para productos sin el suyo (p.ej. "50")
+    defaultCpbsCmp: string      // CPBS completo por defecto (p.ej. "5019")
+    defaultTaxCode: "00" | "01" // 00 exento, 01 ITBMS 7 %
+  }
 }
 ```
 
@@ -85,6 +98,17 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
   showProductImagesToWaiters?: boolean  // app del mesero muestra fotos de productos (default false)
   yappyHandle?: string          // Yappy (número o @usuario) al que pagan los pedidos por link — Yappy manual
   allowPayAtPickup?: boolean    // los pedidos por link pueden pagarse al retirar (van directo a cocina)
+  fiscal?: {                    // datos del establecimiento ante la DGI (factura electrónica)
+    branchCode: string          // "0000" casa matriz, "0001"… (debe existir en la DGI para el RUC)
+    billingPoint: string        // punto de facturación "001": cada uno lleva su numeración
+    nextNumber: number          // próximo NumeroDF (10 dígitos, correlativo, sin reinicio); lo incrementa el BFF en transacción
+    codUbi: string              // provincia-distrito-corregimiento "8-8-12" (catálogo DGI)
+    coords: string              // "+8.9213,-79.7068"
+    address: string
+    city: string                // corregimiento
+    district: string            // distrito
+    state: string               // provincia
+  }
   businessHours: {
     monday?: { open: string, close: string }   // "08:00", "22:00"
     tuesday?: { open: string, close: string }
@@ -140,6 +164,11 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
   tags: string[]                // ["vegetariano", "sin_gluten", "picante"]
   modifierGroups: ModifierGroup[]   // embebido — rara vez cambia
   preparationMinutes?: number
+  fiscal?: {                    // factura electrónica; vacío = valores por defecto de la organización
+    cpbsAbr?: string            // CPBS abreviado (2 dígitos)
+    cpbsCmp?: string            // CPBS completo (4 dígitos)
+    taxCode?: "00" | "01"       // 00 exento, 01 ITBMS 7 %
+  }
 }
 
 // Tipos embebidos en Product:

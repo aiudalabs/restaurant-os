@@ -15,7 +15,7 @@ test('plain lines, 7 % tax', () => {
   assert.equal(t.taxAmount, 1.51);
   assert.equal(t.total, 23.01);
   assert.equal(t.itemCount, 3);
-  assert.deepEqual(t.lines[0], { productId: 'pizza', unitPrice: 10, totalPrice: 20 });
+  assert.deepEqual(t.lines[0], { productId: 'pizza', unitPrice: 10, totalPrice: 20, taxAmount: 1.4 });
 });
 
 test('modifiers add to the unit price', () => {
@@ -31,6 +31,15 @@ test('half-up rounding to cents', () => {
   assert.equal(t.subtotal, 2.02);
   assert.equal(t.taxAmount, 0.14);
   assert.equal(t.total, 2.16);
+});
+
+test('tax is computed per line with the product rate (exempt products pay none)', () => {
+  const p = new Map([['pz', { price: 10, taxRate: 0.07 }], ['agua', { price: 1, taxRate: 0 }], ['soda', { price: 1.5 }]]);
+  const t = computeTotals([{ productId: 'pz', quantity: 2 }, { productId: 'agua', quantity: 1 }, { productId: 'soda', quantity: 1 }], p, 0.07);
+  assert.deepEqual(t.lines.map((l) => l.taxAmount), [1.4, 0, 0.11]);
+  assert.equal(t.subtotal, 22.5);
+  assert.equal(t.taxAmount, 1.51);
+  assert.equal(t.total, 24.01);
 });
 
 test('unknown product throws', () => {

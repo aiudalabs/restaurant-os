@@ -22,6 +22,15 @@ service firebase.storage {
       allow delete: if isOrgManager(orgId);
     }
 
+    // orgs/{orgId}/invoices/{file}: electronic invoices (PDF/XML) written by the
+    // BFF (Admin SDK). Public read: the file name is the CUFE, which embeds a
+    // random security code, so the URL is unguessable; the customer's tracking
+    // screen and the staff apps open it directly.
+    match /orgs/{orgId}/invoices/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Everything else is closed.
     match /{allPaths=**} {
       allow read, write: if false;

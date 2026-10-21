@@ -1,3 +1,5 @@
+import type { FiscalTaxCode } from './organization';
+
 export interface ModifierOption {
   id: string;
   name: string;
@@ -13,6 +15,13 @@ export interface ModifierGroup {
   minSelect: number;
   maxSelect: number;
   options: ModifierOption[];
+}
+
+/** Per-product invoicing overrides; empty keys fall back to the organization defaults. */
+export interface ProductFiscal {
+  cpbsAbr?: string;
+  cpbsCmp?: string;
+  taxCode?: FiscalTaxCode;
 }
 
 export interface Product {
@@ -31,4 +40,5 @@ export interface Product {
   tags: string[];
   modifierGroups: ModifierGroup[];
   preparationMinutes?: number;
+  fiscal?: ProductFiscal;
 }
