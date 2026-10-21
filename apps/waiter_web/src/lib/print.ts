@@ -7,10 +7,17 @@
 // The PDF lives in Firebase Storage (another origin), so it is fetched as a
 // blob first (bucket CORS allows GET) and loaded in a hidden same-origin iframe
 // whose window can be printed. Mobile browsers do not render PDFs inside an
-// iframe (Android downloads them, iOS prints blank), so there the PDF is
-// opened in a new tab and the user prints from the viewer.
+// iframe (Android downloads them, iOS prints blank) and Safari/Firefox print a
+// blank page from one without throwing, so the iframe path is taken only on
+// desktop Chromium; everywhere else the PDF opens in a new tab and the user
+// prints from the viewer.
 
-const MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const UA = navigator.userAgent;
+// iPadOS reports itself as a Macintosh; touch points tell it apart.
+const MOBILE = /Android|iPhone|iPad|iPod/i.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+// Chrome, Edge and Opera all carry "Chrome/" and share the PDF viewer.
+const CHROMIUM = /Chrome\//.test(UA);
+const INLINE_PRINT = !MOBILE && CHROMIUM;
 let frame: HTMLIFrameElement | null = null;
 let blobUrl = '';
 
@@ -23,7 +30,7 @@ function release() {
 
 /** Opens the print dialog with the PDF loaded. Resolves once the dialog was requested. */
 export async function printPdf(url: string): Promise<void> {
-  if (MOBILE) {
+  if (!INLINE_PRINT) {
     // Must be synchronous inside the click handler or the popup blocker eats it.
     window.open(url, '_blank', 'noopener');
     return;

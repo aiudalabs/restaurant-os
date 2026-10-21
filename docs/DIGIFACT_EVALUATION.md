@@ -214,8 +214,10 @@ escribir código: resolver dónde vive el contador de numeración, pedir el cat�
 - **El navegador nunca imprime en silencio**: `print()` abre el diálogo del sistema. Para que
   vaya directo a la impresora por defecto sin diálogo, el PC de caja debe correr Chrome con
   `--kiosk-printing` (macOS: `open -a "Google Chrome" --args --kiosk-printing`; Windows: agregar
-  el flag al acceso directo). En Android/iOS no hay equivalente: ahí el botón abre el PDF en
-  una pestaña y se imprime desde el visor.
+  el flag al acceso directo). El flag solo aplica si Chrome estaba **cerrado del todo**: un Chrome
+  ya abierto ignora `--args`. Sin el flag, el botón abre el diálogo de impresión con el PDF cargado.
+  La impresión en línea solo se usa en Chrome/Edge de escritorio; en Android, iPhone/iPad, Safari y
+  Firefox el botón abre el PDF en una pestaña y se imprime desde el visor.
 - Requiere CORS `GET` en el bucket de Storage (`storage.cors.json`, ver `docs/ENVIRONMENTS.md`).
   Aplicado en dev; **pendiente en prod**.
 - El PDF que devuelve Digifact es tamaño carta (612×792 pt). Los formatos disponibles en la
