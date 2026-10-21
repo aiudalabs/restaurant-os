@@ -60,6 +60,15 @@ class Settings(BaseSettings):
     # one. Empty = every call is refused (401). Never commit it. See app/zaveli/.
     zaveli_signing_secrets: str = ""
 
+    # Fiscal (factura electrónica vía Digifact, PAC de la DGI). Las credenciales
+    # de cada org viven en organizations/{orgId}/private/digifact; aquí solo
+    # las URLs de los ambientes y el token con el que las Cloud Functions
+    # llaman a los endpoints internos (/fiscal/...). Ver docs/DIGIFACT_EVALUATION.md.
+    digifact_test_url: str = "https://testnucpa.digifact.com/api"
+    digifact_prod_url: str = "https://nucpa.digifact.com/api"
+    internal_token: str = ""  # empty = internal endpoints refuse every call
+    firebase_storage_bucket: str = ""  # default: <project>.firebasestorage.app
+
     # Server
     host: str = "0.0.0.0"
     port: int = 8000

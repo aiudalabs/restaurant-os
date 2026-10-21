@@ -6,6 +6,7 @@ from app.catalog.router import router as catalog_router
 from app.payments.router import router as payments_router
 from app.ai.router import router as ai_router
 from app.zaveli.router import router as zaveli_router
+from app.fiscal.router import router as fiscal_router
 from app.config import settings
 from app.core.firebase import firebase_ping
 from app.core.odoo import odoo_client
@@ -40,6 +41,7 @@ app.include_router(catalog_router)
 app.include_router(payments_router)
 app.include_router(ai_router)
 app.include_router(zaveli_router)
+app.include_router(fiscal_router)
 
 
 @app.get("/health")
