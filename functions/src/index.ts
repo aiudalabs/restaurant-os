@@ -10,6 +10,7 @@ export { createOperatorUser } from "./users/create-operator-user";
 export { deleteUser } from "./users/delete-user";
 export { syncStaffClaims } from "./users/staff-claims";
 export { createOrganization } from "./organizations/create-organization";
+export { setFiscalCredentials, getFiscalStatus } from "./organizations/fiscal-credentials";
 export { provisionBranch } from "./branches/provision-branch";
 export { deleteBranch } from "./branches/delete-branch";
 export { setStationPin } from "./kds/set-station-pin";
