@@ -17,24 +17,20 @@ interface Props {
 }
 
 export function PaymentSheet({ customerName, total, busy, onPick, onClose }: Props) {
-  const [withRuc, setWithRuc] = useState(false);
-  const [taxId, setTaxId] = useState('');
-  const [dv, setDv] = useState('');
+  const [withData, setWithData] = useState(false);
   const [name, setName] = useState('');
-  const [invalid, setInvalid] = useState(false);
+  const [taxId, setTaxId] = useState('');
 
+  // Every invoice field is optional (DV is resolved server-side). With no data
+  // the invoice goes to consumidor final, so no invoiceRequest is sent.
   const pick = (method: PaymentMethod) => {
-    if (!withRuc) {
+    const n = name.trim();
+    const t = taxId.trim();
+    if (!withData || (!n && !t)) {
       onPick(method);
       return;
     }
-    const req: InvoiceRequest = { receiverType: '01', taxId: taxId.trim(), dv: dv.trim(), name: name.trim() };
-    if (!req.taxId || !req.dv || !req.name) {
-      setInvalid(true);
-      return;
-    }
-    setInvalid(false);
-    onPick(method, req);
+    onPick(method, { receiverType: t ? '01' : '02', taxId: t || 'CF', name: n || 'Consumidor Final' });
   };
 
   return (
@@ -50,44 +46,33 @@ export function PaymentSheet({ customerName, total, busy, onPick, onClose }: Pro
         <div className="mb-4">
           <button
             type="button"
-            onClick={() => {
-              setWithRuc((v) => !v);
-              setInvalid(false);
-            }}
-            aria-expanded={withRuc}
-            className={`btn ${withRuc ? 'btn-filled' : 'btn-outlined'} min-h-[44px]`}
+            onClick={() => setWithData((v) => !v)}
+            aria-expanded={withData}
+            className={`btn ${withData ? 'btn-filled' : 'btn-outlined'} min-h-[44px]`}
           >
-            {withRuc ? '✓ ' : ''}Factura con RUC
+            {withData ? '✓ ' : ''}Datos para la factura (opcional)
           </button>
-          {withRuc && (
+          {withData && (
             <div className="mt-3 space-y-2">
-              <input
-                value={taxId}
-                onChange={(e) => setTaxId(e.target.value)}
-                placeholder="155704849-2-2021"
-                aria-label="RUC"
-                autoComplete="off"
-                className="field"
-              />
-              <input
-                value={dv}
-                onChange={(e) => setDv(e.target.value)}
-                placeholder="32"
-                aria-label="DV"
-                maxLength={2}
-                inputMode="numeric"
-                autoComplete="off"
-                className="field"
-              />
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Nombre o razón social"
-                aria-label="Nombre o razón social"
+                placeholder="Nombre para la factura"
+                aria-label="Nombre para la factura"
                 autoComplete="off"
                 className="field"
               />
-              {invalid && <p className="text-sm text-brand">Completa RUC, DV y nombre para emitir la factura.</p>}
+              <label className="block">
+                <span className="mb-1 block text-xs text-muted">RUC de empresa (opcional)</span>
+                <input
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                  placeholder="155704849-2-2021"
+                  autoComplete="off"
+                  className="field"
+                />
+              </label>
+              <p className="text-xs text-muted">Sin datos, la factura sale a consumidor final.</p>
             </div>
           )}
         </div>

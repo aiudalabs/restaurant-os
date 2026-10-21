@@ -18,24 +18,29 @@ const INPUT_CLS =
   'w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-brand';
 
 interface InvoiceForm {
-  taxId: string;
-  dv: string;
   name: string;
+  taxId: string;
   email: string;
 }
 
-const EMPTY_INVOICE: InvoiceForm = { taxId: '', dv: '', name: '', email: '' };
+const EMPTY_INVOICE: InvoiceForm = { name: '', taxId: '', email: '' };
 
-/** Returns the request to send, or an error message for the customer. */
+/**
+ * Every field is optional: with none filled we send nothing and the server
+ * issues the invoice to consumidor final. With a RUC, the server resolves the
+ * DV and the company name itself (Digifact GetInfoRuc).
+ */
 function buildInvoiceRequest(form: InvoiceForm): { request?: InvoiceRequest; error?: string } {
-  const taxId = form.taxId.trim();
-  const dv = form.dv.trim();
   const name = form.name.trim();
+  const taxId = form.taxId.trim();
   const email = form.email.trim();
-  if (!taxId || !dv || !name) return { error: 'Para la factura con RUC necesitamos RUC, DV y nombre.' };
-  if (!/^\d{1,2}$/.test(dv)) return { error: 'El DV debe tener 1 o 2 dígitos.' };
   if (email && !/^\S+@\S+\.\S+$/.test(email)) return { error: 'Revisa el correo para la factura.' };
-  const request: InvoiceRequest = { receiverType: '01', taxId, dv, name };
+  if (!name && !taxId && !email) return {};
+  const request: InvoiceRequest = {
+    receiverType: taxId ? '01' : '02',
+    taxId: taxId || 'CF',
+    name: name || 'Consumidor Final',
+  };
   if (email) request.email = email;
   return { request };
 }
@@ -49,7 +54,7 @@ export function CartScreen() {
   const [method, setMethod] = useState<PayMethod>('pickup');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [wantsInvoice, setWantsInvoice] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [invoice, setInvoice] = useState<InvoiceForm>(EMPTY_INVOICE);
 
   useEffect(() => {
@@ -73,14 +78,11 @@ export function CartScreen() {
 
   const confirm = async () => {
     if (cart.itemCount === 0 || submitting) return;
-    let invoiceRequest: InvoiceRequest | undefined;
-    if (wantsInvoice) {
-      const built = buildInvoiceRequest(invoice);
-      if (built.error) {
-        setError(built.error);
-        return;
-      }
-      invoiceRequest = built.request;
+    const { request: invoiceRequest, error: invoiceError } = buildInvoiceRequest(invoice);
+    if (invoiceError) {
+      setInvoiceOpen(true);
+      setError(invoiceError);
+      return;
     }
     setSubmitting(true);
     setError('');
@@ -215,61 +217,54 @@ export function CartScreen() {
               className="mt-4 w-full resize-none rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-brand"
             />
 
-            <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <input
-                type="checkbox"
-                checked={wantsInvoice}
-                onChange={(e) => {
-                  setWantsInvoice(e.target.checked);
-                  setError('');
-                }}
-                className="h-5 w-5 accent-brand"
-              />
-              <span className="text-sm font-semibold">Necesito factura con RUC</span>
-            </label>
+            <div className="mt-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setInvoiceOpen((o) => !o)}
+                aria-expanded={invoiceOpen}
+                className="flex w-full items-center justify-between text-left text-sm font-semibold"
+              >
+                <span>Datos para tu factura (opcional)</span>
+                <span className="text-hint" aria-hidden>
+                  {invoiceOpen ? '−' : '+'}
+                </span>
+              </button>
 
-            {wantsInvoice && (
-              <div className="mt-2.5 flex flex-col gap-2.5">
-                <div className="flex gap-2.5">
+              {invoiceOpen && (
+                <div className="mt-3 flex flex-col gap-2.5">
                   <input
-                    value={invoice.taxId}
-                    onChange={(e) => setInvoice({ ...invoice, taxId: e.target.value })}
-                    placeholder="155704849-2-2021"
-                    aria-label="RUC"
-                    autoComplete="off"
-                    className={`${INPUT_CLS} min-w-0 flex-1`}
+                    value={invoice.name}
+                    onChange={(e) => setInvoice({ ...invoice, name: e.target.value })}
+                    placeholder="Nombre para la factura"
+                    aria-label="Nombre para la factura"
+                    autoComplete="name"
+                    className={INPUT_CLS}
                   />
+                  <label className="flex flex-col gap-1">
+                    <span className="px-1 text-xs text-hint">
+                      RUC de empresa (si quieres factura a nombre de una empresa)
+                    </span>
+                    <input
+                      value={invoice.taxId}
+                      onChange={(e) => setInvoice({ ...invoice, taxId: e.target.value })}
+                      placeholder="155704849-2-2021"
+                      autoComplete="off"
+                      className={INPUT_CLS}
+                    />
+                  </label>
                   <input
-                    value={invoice.dv}
-                    onChange={(e) => setInvoice({ ...invoice, dv: e.target.value.replace(/\D/g, '') })}
-                    placeholder="32"
-                    aria-label="DV"
-                    inputMode="numeric"
-                    maxLength={2}
-                    autoComplete="off"
-                    className={`${INPUT_CLS} w-20 shrink-0 text-center`}
+                    type="email"
+                    value={invoice.email}
+                    onChange={(e) => setInvoice({ ...invoice, email: e.target.value })}
+                    placeholder="Correo para recibirla"
+                    aria-label="Correo para recibirla"
+                    autoComplete="email"
+                    className={INPUT_CLS}
                   />
                 </div>
-                <input
-                  value={invoice.name}
-                  onChange={(e) => setInvoice({ ...invoice, name: e.target.value })}
-                  placeholder="Nombre o razón social"
-                  aria-label="Nombre o razón social"
-                  autoComplete="organization"
-                  className={INPUT_CLS}
-                />
-                <input
-                  type="email"
-                  value={invoice.email}
-                  onChange={(e) => setInvoice({ ...invoice, email: e.target.value })}
-                  placeholder="Correo (opcional)"
-                  aria-label="Correo (opcional)"
-                  autoComplete="email"
-                  className={INPUT_CLS}
-                />
-                <p className="px-1 text-xs text-hint">Te mostramos la factura aquí cuando se confirme el pago.</p>
-              </div>
-            )}
+              )}
+              <p className="mt-2 text-xs text-hint">Sin datos, la factura sale a consumidor final.</p>
+            </div>
           </div>
 
           <div className="fixed inset-x-0 bottom-0 mx-auto max-w-md border-t border-black/5 bg-white px-4 pt-4 safe-bottom">
