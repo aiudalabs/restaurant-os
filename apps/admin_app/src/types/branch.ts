@@ -5,6 +5,19 @@ export interface BusinessHoursEntry {
   close: string;
 }
 
+/** Establishment data the DGI needs on every invoice issued by this branch. */
+export interface BranchFiscal {
+  branchCode: string;
+  billingPoint: string;
+  nextNumber: number;
+  codUbi: string;
+  coords: string;
+  address: string;
+  city: string;
+  district: string;
+  state: string;
+}
+
 export interface Branch {
   id: string;
   orgId: string;
@@ -31,4 +44,5 @@ export interface Branch {
     sunday?: BusinessHoursEntry;
   };
   createdAt: Timestamp;
+  fiscal?: BranchFiscal;
 }

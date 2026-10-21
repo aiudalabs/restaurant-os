@@ -15,6 +15,7 @@ import UsersPage from '@/features/users/UsersPage';
 import OrdersPage from '@/features/orders/OrdersPage';
 import ReportsPage from '@/features/reports/ReportsPage';
 import AiAssistantPage from '@/features/ai-assistant/AiAssistantPage';
+import SettingsPage from '@/features/settings/SettingsPage';
 import { auth } from '@/lib/firebase';
 
 function isAuthenticated() {
@@ -99,6 +100,12 @@ const assistantRoute = createRoute({
   component: AiAssistantPage,
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/settings',
+  component: SettingsPage,
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   adminRoute.addChildren([
@@ -111,6 +118,7 @@ const routeTree = rootRoute.addChildren([
     ordersRoute,
     reportsRoute,
     assistantRoute,
+    settingsRoute,
   ]),
 ]);
 

@@ -28,6 +28,32 @@ export interface OrderPayment {
   reviewedBy?: string;
 }
 
+/** Customer data for an invoice with a named receiver (01 = contribuyente, 02 = consumidor final). */
+export interface InvoiceRequest {
+  receiverType: '01' | '02';
+  taxId: string;
+  dv?: string;
+  name: string;
+  email?: string;
+}
+
+export type FiscalStatus = 'pending' | 'issuing' | 'issued' | 'error' | 'skipped';
+
+/** Electronic invoice of the order, written only by the BFF / Cloud Functions. */
+export interface OrderFiscal {
+  status: FiscalStatus;
+  numeroDF?: string;
+  billingPoint?: string;
+  cufe?: string;
+  qrUrl?: string;
+  pdfUrl?: string;
+  pdfPath?: string;
+  xmlUrl?: string;
+  issuedAt?: Timestamp;
+  attempts: number;
+  lastError?: string;
+}
+
 export interface Order {
   id: string;
   orgId: string;
@@ -50,4 +76,6 @@ export interface Order {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   completedAt?: Timestamp;
+  invoiceRequest?: InvoiceRequest;
+  fiscal?: OrderFiscal;
 }
