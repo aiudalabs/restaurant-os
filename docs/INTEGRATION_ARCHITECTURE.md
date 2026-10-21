@@ -196,7 +196,7 @@ KDS escucha onSnapshot en order_items filtrado por stationId
 Cocina despacha → KDS marca item status: 'ready'
   → Flutter (mesero/cliente) ve el cambio en tiempo real
 
-Mesero cobra → Flutter llama POST /payments/charge
+Cliente paga en línea → customer_web llama POST /payments/init (el mesero cobra en persona con el callable recordPayment)
   → FastAPI procesa pago con PagueloFácil
   → PagueloFácil confirma
   → FastAPI actualiza Firestore: order.status = 'paid'
@@ -322,18 +322,18 @@ async def sync_order_to_odoo(order: Order, payment_method: str):
 
 ```
 Cliente/Mesero toca "Pagar"
-  → Flutter POST /payments/charge
+  → customer_web POST /payments/init
       { order_id, amount, method: 'paguelofacil' }
   → FastAPI llama PagueloFácil API:
       POST https://sandbox.paguelofacil.com/rest/main/charge/sale
       { CCLW, amount, email, description }
-  → PagueloFácil redirige a checkout (hosted) o procesa en API
-  → Webhook POST /webhooks/paguelofacil/confirmation
-      { transaction_id, status, amount }
-  → FastAPI verifica firma HMAC
-  → FastAPI update Firestore: order.status = 'paid'
-  → FastAPI sync a Odoo (async)
-  → Flutter recibe push notification (FCM): "Pago confirmado ✓"
+  → PagueloFácil redirige a checkout (hosted, LinkDeamon)
+  → Callback GET/POST /payments/callback  (PARM_1 = order_id; NO viene firmado:
+      ver docs/PAYMENTS.md §3 — verificación server-to-server antes de producción)
+  → FastAPI update Firestore: payment.status = 'paid', status = 'confirmed'
+  → FastAPI sync a Odoo (async, no bloqueante)
+  → Cloud Function onOrderPaid: libera a cocina, audit_log, factura electrónica
+  → La web del cliente ve el cambio por Firestore (onSnapshot)
 ```
 
 ### Yappy (via QR / deep link)
@@ -392,7 +392,7 @@ POST   /orders/{orderId}/add-items  Agrega ítems a orden existente (happy hour)
 ### Payments
 
 ```
-POST   /payments/charge         Inicia pago (PagueloFácil o Yappy)
+POST   /payments/init           Crea el link de pago PagueloFácil (monto desde la orden)
 GET    /payments/{orderId}      Estado del pago
 POST   /webhooks/paguelofacil   Webhook de confirmación PagueloFácil
 POST   /webhooks/yappy          Webhook de confirmación Yappy
