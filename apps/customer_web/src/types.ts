@@ -68,6 +68,30 @@ export type OrderStatus =
   | 'cancelled'
   | 'closed';
 
+/**
+ * Electronic invoice the customer asks for at checkout (Panama DGI).
+ * receiverType '01' = contribuyente with RUC; '02' = consumidor final.
+ */
+export interface InvoiceRequest {
+  receiverType: '01' | '02';
+  taxId: string;
+  dv?: string;
+  name: string;
+  email?: string;
+}
+
+/** Server-written state of the order's electronic invoice (onOrderPaid → BFF). */
+export type FiscalStatus = 'pending' | 'issuing' | 'issued' | 'error' | 'skipped';
+
+export interface FiscalInfo {
+  status: FiscalStatus;
+  numeroDF: string;
+  cufe: string;
+  qrUrl: string;
+  pdfUrl: string;
+  lastError: string;
+}
+
 export interface OrderDoc {
   id: string;
   status: OrderStatus;
@@ -81,6 +105,8 @@ export interface OrderDoc {
   paymentMethod: string | null;
   /** Yappy handle the customer must pay to (copied from the branch at order time). */
   payTo: string;
+  /** Electronic invoice state; null until the server starts issuing one. */
+  fiscal: FiscalInfo | null;
 }
 
 // ItemStatus in FIREBASE_SCHEMA.md.

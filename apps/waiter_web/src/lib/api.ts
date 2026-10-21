@@ -152,6 +152,7 @@ function mapFiscal(f: DocumentData): FiscalInfo {
     numeroDF: f.numeroDF ?? '',
     qrUrl: f.qrUrl ?? '',
     pdfPath: f.pdfPath ?? '',
+    pdfUrl: f.pdfUrl ?? '',
     lastError: f.lastError ?? '',
   };
 }

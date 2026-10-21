@@ -19,6 +19,8 @@ import type {
   CartLine,
   Category,
   CheckoutConfig,
+  FiscalInfo,
+  InvoiceRequest,
   PayMethod,
   OrderDoc,
   OrderItemDoc,
@@ -113,6 +115,8 @@ export interface CreateOrderInput {
   payment: PayMethod;
   /** Yappy handle to pay to (stored on the order so tracking can show it). */
   yappyHandle: string;
+  /** Present only when the customer asked for an invoice with RUC. */
+  invoiceRequest?: InvoiceRequest;
 }
 
 export interface CreatedOrder {
@@ -129,7 +133,7 @@ export interface CreatedOrder {
  */
 export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder> {
   await ensureAnonAuth();
-  const { branch, customerName, lines, notes, taxPercent, payment, yappyHandle } = input;
+  const { branch, customerName, lines, notes, taxPercent, payment, yappyHandle, invoiceRequest } = input;
   const requirePayment = payment !== 'pickup';
   const uid = auth.currentUser?.uid ?? '';
 
@@ -164,6 +168,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
       payment === 'yappy'
         ? { method: 'yappy', status: 'pending', payTo: yappyHandle }
         : { method: null, status: requirePayment ? 'pending' : null },
+    ...(invoiceRequest ? { invoiceRequest: cleanInvoiceRequest(invoiceRequest) } : {}),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -195,6 +200,31 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
   return { orderId: orderRef.id, pickupCode, total };
 }
 
+/** Drops empty optional fields — Firestore rejects `undefined` values. */
+function cleanInvoiceRequest(req: InvoiceRequest): InvoiceRequest {
+  const out: InvoiceRequest = { receiverType: req.receiverType, taxId: req.taxId, name: req.name };
+  if (req.dv) out.dv = req.dv;
+  if (req.email) out.email = req.email;
+  return out;
+}
+
+const FISCAL_STATUSES: FiscalInfo['status'][] = ['pending', 'issuing', 'issued', 'error', 'skipped'];
+
+function mapFiscal(raw: unknown): FiscalInfo | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const f = raw as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === 'string' ? v : '');
+  const status = FISCAL_STATUSES.find((s) => s === f.status) ?? 'pending';
+  return {
+    status,
+    numeroDF: str(f.numeroDF),
+    cufe: str(f.cufe),
+    qrUrl: str(f.qrUrl),
+    pdfUrl: str(f.pdfUrl),
+    lastError: str(f.lastError),
+  };
+}
+
 function mapOrder(id: string, data: Record<string, unknown>): OrderDoc {
   return {
     id,
@@ -207,6 +237,7 @@ function mapOrder(id: string, data: Record<string, unknown>): OrderDoc {
     branchId: (data.branchId as string) ?? '',
     paymentMethod: ((data.payment as { method?: string } | undefined)?.method as string) ?? null,
     payTo: ((data.payment as { payTo?: string } | undefined)?.payTo as string) ?? '',
+    fiscal: mapFiscal(data.fiscal),
   };
 }
 

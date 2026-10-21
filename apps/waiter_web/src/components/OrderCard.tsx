@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { closeOrder, confirmManualPayment, markItemsReady, recordPayment, watchOrderItems } from '../lib/api';
 import { money } from '../lib/format';
 import { PaymentSheet } from './PaymentSheet';
-import type { Order, OrderItem, OrderStatus, PaymentMethod } from '../types';
+import type { FiscalInfo, InvoiceRequest, Order, OrderItem, OrderStatus, PaymentMethod } from '../types';
 
 const KITCHEN_LABEL: Record<OrderStatus, { text: string; cls: string }> = {
   pending_payment: { text: 'Esperando pago', cls: 'bg-violet-50 text-violet-700' },
@@ -68,9 +68,10 @@ export function OrderCard({ order, orgId, now }: Props) {
   const markReady = (ids: string[]) => run(() => markItemsReady(ids));
   const reviewYappy = (received: boolean) => run(() => confirmManualPayment(order.id, received));
 
-  const pay = (method: PaymentMethod) =>
+  // 'already_paid' (double tap / another device) counts as success: close the sheet.
+  const pay = (method: PaymentMethod, invoiceRequest?: InvoiceRequest) =>
     run(async () => {
-      await recordPayment(order.id, method);
+      await recordPayment(order.id, method, invoiceRequest);
       setPaying(false);
     });
 
@@ -94,6 +95,7 @@ export function OrderCard({ order, orgId, now }: Props) {
                 ? 'Yappy por confirmar'
                 : 'Por cobrar'}
           </span>
+          {paid && order.fiscal && <FiscalLine fiscal={order.fiscal} />}
         </div>
       </div>
 
@@ -183,6 +185,28 @@ export function OrderCard({ order, orgId, now }: Props) {
         />
       )}
     </article>
+  );
+}
+
+/** One compact line with the electronic invoice state, shown once the order is paid. */
+function FiscalLine({ fiscal }: { fiscal: FiscalInfo }) {
+  if (fiscal.status === 'skipped') return null;
+  if (fiscal.status === 'error') {
+    return <p className="text-xs text-brand">Factura: error (reintentar desde el admin)</p>;
+  }
+  if (fiscal.status !== 'issued') return <p className="text-xs text-muted">Factura: generando…</p>;
+  return (
+    <p className="text-xs text-muted">
+      Factura N.º {fiscal.numeroDF}
+      {fiscal.pdfUrl && (
+        <>
+          {' · '}
+          <a href={fiscal.pdfUrl} target="_blank" rel="noopener" className="font-bold text-brand underline">
+            Ver PDF
+          </a>
+        </>
+      )}
+    </p>
   );
 }
 

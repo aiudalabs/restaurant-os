@@ -6,13 +6,39 @@ import { money } from '../lib/format';
 import { saveActiveOrder } from '../lib/session';
 import { useCart } from '../store/cart';
 import { useSession } from '../store/session';
-import type { CheckoutConfig, PayMethod } from '../types';
+import type { CheckoutConfig, InvoiceRequest, PayMethod } from '../types';
 
 const METHOD_TEXT: Record<PayMethod, { label: string; hint: string }> = {
   yappy: { label: 'Yappy', hint: 'Pagas ahora por Yappy y lo preparamos al confirmar tu pago.' },
   card: { label: 'Tarjeta', hint: 'Pago seguro con PagueloFácil. Va a cocina al confirmarse el pago.' },
   pickup: { label: 'Al retirar', hint: 'Pagas en el mostrador cuando bajes por tu pedido.' },
 };
+
+const INPUT_CLS =
+  'w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-brand';
+
+interface InvoiceForm {
+  taxId: string;
+  dv: string;
+  name: string;
+  email: string;
+}
+
+const EMPTY_INVOICE: InvoiceForm = { taxId: '', dv: '', name: '', email: '' };
+
+/** Returns the request to send, or an error message for the customer. */
+function buildInvoiceRequest(form: InvoiceForm): { request?: InvoiceRequest; error?: string } {
+  const taxId = form.taxId.trim();
+  const dv = form.dv.trim();
+  const name = form.name.trim();
+  const email = form.email.trim();
+  if (!taxId || !dv || !name) return { error: 'Para la factura con RUC necesitamos RUC, DV y nombre.' };
+  if (!/^\d{1,2}$/.test(dv)) return { error: 'El DV debe tener 1 o 2 dígitos.' };
+  if (email && !/^\S+@\S+\.\S+$/.test(email)) return { error: 'Revisa el correo para la factura.' };
+  const request: InvoiceRequest = { receiverType: '01', taxId, dv, name };
+  if (email) request.email = email;
+  return { request };
+}
 
 export function CartScreen() {
   const navigate = useNavigate();
@@ -23,6 +49,8 @@ export function CartScreen() {
   const [method, setMethod] = useState<PayMethod>('pickup');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [wantsInvoice, setWantsInvoice] = useState(false);
+  const [invoice, setInvoice] = useState<InvoiceForm>(EMPTY_INVOICE);
 
   useEffect(() => {
     if (!session) {
@@ -45,6 +73,15 @@ export function CartScreen() {
 
   const confirm = async () => {
     if (cart.itemCount === 0 || submitting) return;
+    let invoiceRequest: InvoiceRequest | undefined;
+    if (wantsInvoice) {
+      const built = buildInvoiceRequest(invoice);
+      if (built.error) {
+        setError(built.error);
+        return;
+      }
+      invoiceRequest = built.request;
+    }
     setSubmitting(true);
     setError('');
     try {
@@ -61,6 +98,7 @@ export function CartScreen() {
         taxPercent,
         payment: method,
         yappyHandle: config.yappyHandle,
+        invoiceRequest,
       });
       saveActiveOrder({
         orderId,
@@ -137,7 +175,7 @@ export function CartScreen() {
         </div>
       ) : (
         <>
-          <div className="flex-1 px-4 pb-64 pt-3">
+          <div className="flex-1 px-4 pb-80 pt-3">
             <div className="flex flex-col gap-2.5">
               {cart.lines.map((line) => (
                 <div
@@ -176,6 +214,62 @@ export function CartScreen() {
               rows={2}
               className="mt-4 w-full resize-none rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-brand"
             />
+
+            <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
+              <input
+                type="checkbox"
+                checked={wantsInvoice}
+                onChange={(e) => {
+                  setWantsInvoice(e.target.checked);
+                  setError('');
+                }}
+                className="h-5 w-5 accent-brand"
+              />
+              <span className="text-sm font-semibold">Necesito factura con RUC</span>
+            </label>
+
+            {wantsInvoice && (
+              <div className="mt-2.5 flex flex-col gap-2.5">
+                <div className="flex gap-2.5">
+                  <input
+                    value={invoice.taxId}
+                    onChange={(e) => setInvoice({ ...invoice, taxId: e.target.value })}
+                    placeholder="155704849-2-2021"
+                    aria-label="RUC"
+                    autoComplete="off"
+                    className={`${INPUT_CLS} min-w-0 flex-1`}
+                  />
+                  <input
+                    value={invoice.dv}
+                    onChange={(e) => setInvoice({ ...invoice, dv: e.target.value.replace(/\D/g, '') })}
+                    placeholder="32"
+                    aria-label="DV"
+                    inputMode="numeric"
+                    maxLength={2}
+                    autoComplete="off"
+                    className={`${INPUT_CLS} w-20 shrink-0 text-center`}
+                  />
+                </div>
+                <input
+                  value={invoice.name}
+                  onChange={(e) => setInvoice({ ...invoice, name: e.target.value })}
+                  placeholder="Nombre o razón social"
+                  aria-label="Nombre o razón social"
+                  autoComplete="organization"
+                  className={INPUT_CLS}
+                />
+                <input
+                  type="email"
+                  value={invoice.email}
+                  onChange={(e) => setInvoice({ ...invoice, email: e.target.value })}
+                  placeholder="Correo (opcional)"
+                  aria-label="Correo (opcional)"
+                  autoComplete="email"
+                  className={INPUT_CLS}
+                />
+                <p className="px-1 text-xs text-hint">Te mostramos la factura aquí cuando se confirme el pago.</p>
+              </div>
+            )}
           </div>
 
           <div className="fixed inset-x-0 bottom-0 mx-auto max-w-md border-t border-black/5 bg-white px-4 pt-4 safe-bottom">

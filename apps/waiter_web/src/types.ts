@@ -78,6 +78,8 @@ export interface FiscalInfo {
   numeroDF: string;
   qrUrl: string;
   pdfPath: string;
+  /** Public download URL of the invoice PDF ('' until issued). */
+  pdfUrl: string;
   lastError: string;
 }
 

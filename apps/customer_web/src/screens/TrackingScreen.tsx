@@ -9,7 +9,7 @@ import { Spinner } from '../components/Spinner';
 import { InstallCard } from '../components/InstallCard';
 import { loadActiveOrder } from '../lib/session';
 import { loadHome } from '../lib/home';
-import type { OrderDoc, OrderItemDoc, OrderStatus } from '../types';
+import type { FiscalInfo, OrderDoc, OrderItemDoc, OrderStatus } from '../types';
 
 const STEPS: { key: string; label: string; icon: string; statuses: OrderStatus[] }[] = [
   { key: 'received', label: 'Recibido', icon: '📝', statuses: ['pending', 'confirmed'] },
@@ -208,6 +208,8 @@ export function TrackingScreen() {
         </div>
       </div>
 
+      {order.fiscal && order.fiscal.status !== 'skipped' && <InvoiceCard fiscal={order.fiscal} />}
+
       <button
         onClick={startNewOrder}
         className="mt-6 w-full rounded-2xl border border-black/10 bg-white py-3.5 text-sm font-semibold text-ink"
@@ -227,6 +229,58 @@ function ItemBadge({ status }: { status: OrderItemDoc['status'] }) {
   };
   const { label, cls } = map[status] ?? map.queued;
   return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>;
+}
+
+/** Electronic invoice issued server-side once the order is paid. */
+function InvoiceCard({ fiscal }: { fiscal: FiscalInfo }) {
+  return (
+    <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-hint">Factura electrónica</p>
+      {fiscal.status === 'issued' ? (
+        <>
+          <p className="text-sm font-semibold text-ink">N.º {fiscal.numeroDF}</p>
+          {fiscal.cufe && (
+            <p className="mt-0.5 truncate text-xs text-hint" title={fiscal.cufe}>
+              CUFE {fiscal.cufe.slice(0, 20)}…
+            </p>
+          )}
+          {(fiscal.pdfUrl || fiscal.qrUrl) && (
+            <div className="mt-3 flex gap-2">
+              {fiscal.pdfUrl && (
+                <a
+                  href={fiscal.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 rounded-xl bg-brand py-2.5 text-center text-sm font-semibold text-white"
+                >
+                  Descargar PDF
+                </a>
+              )}
+              {fiscal.qrUrl && (
+                <a
+                  href={fiscal.qrUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 rounded-xl border border-black/10 py-2.5 text-center text-sm font-semibold text-ink"
+                >
+                  Verificar en la DGI
+                </a>
+              )}
+            </div>
+          )}
+        </>
+      ) : fiscal.status === 'error' ? (
+        <p className="text-sm text-ink">
+          No pudimos generar tu factura. Pídela en el mostrador con tu número de pedido.
+        </p>
+      ) : (
+        <div className="flex items-center gap-2.5 text-sm text-ink">
+          <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-brand" />
+          Estamos generando tu factura…
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** Manual Yappy instructions; the screen updates by itself once staff confirm. */
