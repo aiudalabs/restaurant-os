@@ -15,7 +15,7 @@ test('plain lines, 7 % tax', () => {
   assert.equal(t.taxAmount, 1.51);
   assert.equal(t.total, 23.01);
   assert.equal(t.itemCount, 3);
-  assert.deepEqual(t.lines[0], { productId: 'pizza', unitPrice: 10, totalPrice: 20 });
+  assert.deepEqual(t.lines[0], { productId: 'pizza', unitPrice: 10, totalPrice: 20, taxAmount: 1.4 });
 });
 
 test('modifiers add to the unit price', () => {
