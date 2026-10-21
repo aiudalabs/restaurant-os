@@ -23,3 +23,14 @@ def require_role(*roles: str):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")
         return user
     return dependency
+
+
+def org_of(user: dict) -> str | None:
+    """Tenant of a verified token. Staff tokens (Firebase custom claims set by
+    syncStaffClaims) carry `orgId`; tokens minted by the BFF's own /auth/login
+    carry `org_id`. Accept both."""
+    return user.get("orgId") or user.get("org_id")
+
+
+def branch_of(user: dict) -> str | None:
+    return user.get("branchId") or user.get("branch_id")

@@ -44,12 +44,14 @@ app.include_router(zaveli_router)
 
 @app.get("/health")
 def health():
-    odoo_ok = odoo_client.ping()
+    # Odoo is optional (per-org backoffice): without an env fallback it is simply
+    # "not_configured", not a degraded service.
+    odoo_state = "not_configured" if not settings.odoo_url else ("ok" if odoo_client.ping() else "unreachable")
     firebase_ok = firebase_ping()
-    status = "ok" if (odoo_ok and firebase_ok) else "degraded"
+    status = "ok" if (firebase_ok and odoo_state != "unreachable") else "degraded"
     return {
         "status": status,
-        "odoo": "ok" if odoo_ok else "unreachable",
+        "odoo": odoo_state,
         "firebase": "ok" if firebase_ok else "unreachable",
         "version": "2.0.0",
     }
