@@ -22,6 +22,7 @@ const PAID_WITH: Record<PaymentMethod, string> = {
   cash: 'Cobrado en efectivo',
   card: 'Cobrado con tarjeta',
   yappy: 'Cobrado con Yappy',
+  transfer: 'Cobrado por transferencia',
 };
 
 function money(n: number) {

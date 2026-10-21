@@ -48,6 +48,11 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
 
 ### Organization
 ```typescript
+// Subcolección SOLO-SERVIDOR: organizations/{orgId}/private/{doc}
+//   private/odoo     { odooUrl, odooDb, odooUser, odooPassword }   ← BFF (app/core/odoo.py)
+//   private/digifact { username, password, token?, tokenExpiresAt? } ← BFF (app/fiscal)
+// Ningún cliente puede leerla ni escribirla (firestore.rules); el admin la configura
+// vía callables. Nunca guardar credenciales en el doc de la organización.
 {
   id: string                    // auto-ID Firestore
   name: string                  // "Cadena El Fogón"
@@ -200,32 +205,72 @@ ModifierOption {
   tipAmount: number
   total: number
   notes?: string
+  source: "qr" | "waiter" | "zaveli"   // quién creó el pedido (customer_web, waiter_web, BFF Zaveli)
+  createdByUid: string          // uid (anónimo o staff) que lo creó; el cliente solo lee sus pedidos
+  customerName?: string         // pedidos por link / mesero: para quién es
+  pickupCode?: string           // "P-ABCD": número de retiro (pedidos por link); "Z-…" en Zaveli
   payment: {
-    method: "cash" | "card" | "yappy" | null
+    method: "cash" | "card" | "yappy" | "transfer" | null
     status: "pending" | "paid" | "failed" | null
     yappyOrderId?: string
-    confirmationNumber?: string
+    confirmationNumber?: string // tarjeta en línea: codOper de PagueloFácil
+    cardType?: string           // tarjeta en línea: tipo reportado por PagueloFácil
     paidAt?: Timestamp
+    recordedBy?: string         // uid del personal que cobró (recordPayment) o "bff" (callback de tarjeta)
     payTo?: string              // Yappy manual: handle al que el cliente debe pagar (copiado de la sucursal)
     reviewedBy?: string         // Yappy manual: uid del personal que confirmó / rechazó el pago
   }
+  invoiceRequest?: {            // factura con RUC pedida por el cliente / capturada por el mesero
+    receiverType: "01" | "02"   // 01 contribuyente (RUC), 02 consumidor final
+    taxId: string               // RUC, o "CF"
+    dv?: string
+    name: string
+    email?: string
+  }
+  fiscal?: {                    // factura electrónica (solo servidor: BFF app/fiscal vía onOrderPaid)
+    status: "pending" | "issuing" | "issued" | "error" | "skipped"
+    numeroDF?: string           // 10 dígitos, correlativo por punto de facturación
+    billingPoint?: string       // "001"
+    codigoSeguridad?: string
+    cufe?: string
+    qrUrl?: string              // consulta en la DGI
+    pdfPath?: string            // Storage: orgs/{orgId}/invoices/{cufe}.pdf
+    xmlPath?: string
+    docGuid?: string
+    issuedAt?: Timestamp
+    attempts: number
+    lastError?: string
+  }
+  zaveli?: { operationId, businessId, conversationId, reply }   // solo pedidos source "zaveli"
   itemCount: number             // desnormalizado — para mostrar sin leer items
   createdAt: Timestamp
   updatedAt: Timestamp
   completedAt?: Timestamp
 }
 
+// Quién escribe qué (firestore.rules lo impone):
+// - Clientes (anónimo / mesero) solo CREAN pedidos en estado pending | pending_payment,
+//   con su propio createdByUid y sin payment.status "paid" ni fiscal. Los totales que
+//   mandan son solo para mostrar: onOrderCreated los recalcula desde products.
+// - payment.* lo escriben solo las Cloud Functions (recordPayment, confirmManualPayment)
+//   y el BFF (callback de tarjeta). Al pasar payment.status a "paid" se dispara onOrderPaid:
+//   libera a cocina (si estaba en pending_payment), escribe audit_log y pide la factura.
+// - El staff (admin/manager/waiter) solo actualiza status, notes, customerName,
+//   tableNumber, invoiceRequest, updatedAt, completedAt.
+
 // OrderStatus valores:
 // "pending_payment"→ pedido del cliente esperando su pago: no va a cocina. Con
 //                    payment.method "yappy" es Yappy manual y lo confirma el personal
 //                    (callable confirmManualPayment); con method null es pago en línea (BFF).
+//                    También se puede cobrar en persona (recordPayment) y pasa a confirmed.
+// "payment_failed" → el pago en línea fue rechazado; el cliente puede reintentar
 // "pending"        → recibido, aún no confirmado
 // "confirmed"      → confirmado y enrutado a estaciones
 // "in_preparation" → al menos un ítem en progreso
 // "ready"          → todos los ítems listos
 // "delivered"      → entregado al cliente
-// "cancelled"
-// "closed"         → cuenta cerrada / pagado
+// "cancelled"      → también lo pone onOrderCreated si un ítem trae un productId inexistente
+// "closed"         → cuenta cerrada
 ```
 
 ### OrderItem
@@ -240,7 +285,8 @@ ModifierOption {
   orderId: string
   stationId: string             // ← índice clave para el KDS
   tableNumber: string           // desnormalizado
-  productId: string
+  createdByUid: string          // igual que en el pedido (el cliente lee solo sus ítems)
+  productId: string             // obligatorio: onOrderCreated toma el precio de products/{productId}
   productName: string           // desnormalizado — el menú puede cambiar
   categoryId: string
   quantity: number

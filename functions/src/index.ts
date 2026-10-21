@@ -17,5 +17,7 @@ export { kdsLogin, kdsStationInfo } from "./kds/kds-login";
 export { setWaiterPin, waiterRoster, waiterLogin } from "./staff/waiter-pin";
 export { yappyWebhook } from "./payments/yappy-webhook";
 export { confirmManualPayment } from "./payments/confirm-manual-payment";
+export { recordPayment } from "./payments/record-payment";
+export { onOrderPaid } from "./payments/on-order-paid";
 export { customerManifest } from "./customer/customer-manifest";
 export { getOrderReports } from "./reports/get-order-reports";

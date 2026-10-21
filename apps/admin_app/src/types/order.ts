@@ -3,7 +3,6 @@ import type { Timestamp } from 'firebase/firestore';
 export type OrderStatus =
   | 'pending_payment'
   | 'payment_failed'
-  | 'paid'
   | 'pending'
   | 'confirmed'
   | 'in_preparation'
@@ -12,7 +11,7 @@ export type OrderStatus =
   | 'cancelled'
   | 'closed';
 
-export type PaymentMethod = 'cash' | 'card' | 'yappy';
+export type PaymentMethod = 'cash' | 'card' | 'yappy' | 'transfer';
 export type PaymentStatus = 'pending' | 'paid' | 'failed';
 
 export interface OrderPayment {
@@ -23,6 +22,10 @@ export interface OrderPayment {
   paidAt?: Timestamp;
   /** Manual Yappy: handle the customer pays to. */
   payTo?: string;
+  /** uid of the staff member who collected, or 'bff' for the card callback. */
+  recordedBy?: string;
+  /** Manual Yappy: uid of the staff member who confirmed / rejected. */
+  reviewedBy?: string;
 }
 
 export interface Order {
@@ -34,7 +37,7 @@ export interface Order {
   /** Waiter and customer-web orders carry who it is for and the pickup number. */
   customerName?: string;
   pickupCode?: string;
-  source?: 'waiter' | 'qr';
+  source?: 'waiter' | 'qr' | 'zaveli';
   status: OrderStatus;
   subtotal: number;
   taxAmount: number;

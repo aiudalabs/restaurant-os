@@ -6,6 +6,7 @@ import type { Order, OrderItem, OrderStatus, PaymentMethod } from '../types';
 
 const KITCHEN_LABEL: Record<OrderStatus, { text: string; cls: string }> = {
   pending_payment: { text: 'Esperando pago', cls: 'bg-violet-50 text-violet-700' },
+  payment_failed: { text: 'Pago rechazado', cls: 'bg-red-50 text-brand' },
   pending: { text: 'Enviando…', cls: 'bg-gray-100 text-gray-600' },
   confirmed: { text: 'En cocina', cls: 'bg-blue-50 text-blue-700' },
   in_preparation: { text: 'Preparando', cls: 'bg-amber-50 text-amber-700' },
@@ -15,7 +16,7 @@ const KITCHEN_LABEL: Record<OrderStatus, { text: string; cls: string }> = {
   closed: { text: 'Cerrado', cls: 'bg-gray-100 text-gray-600' },
 };
 
-const METHOD_LABEL: Record<PaymentMethod, string> = { cash: 'Efectivo', card: 'Tarjeta', yappy: 'Yappy' };
+const METHOD_LABEL: Record<PaymentMethod, string> = { cash: 'Efectivo', card: 'Tarjeta', yappy: 'Yappy', transfer: 'Transferencia' };
 
 interface Props {
   order: Order;

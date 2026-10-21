@@ -18,6 +18,8 @@ import type {
   Branch,
   CartLine,
   Category,
+  FiscalInfo,
+  InvoiceRequest,
   Order,
   OrderItem,
   PaymentMethod,
@@ -143,6 +145,17 @@ export async function createOrder(branch: Branch, customerName: string, lines: C
   return orderRef.id;
 }
 
+function mapFiscal(f: DocumentData): FiscalInfo {
+  return {
+    status: f.status ?? 'pending',
+    cufe: f.cufe ?? '',
+    numeroDF: f.numeroDF ?? '',
+    qrUrl: f.qrUrl ?? '',
+    pdfPath: f.pdfPath ?? '',
+    lastError: f.lastError ?? '',
+  };
+}
+
 const ACTIVE_STATUSES = ['pending_payment', 'pending', 'confirmed', 'in_preparation', 'ready'];
 
 function mapOrder(id: string, d: DocumentData): Order {
@@ -156,6 +169,7 @@ function mapOrder(id: string, d: DocumentData): Order {
     createdAtMs: d.createdAt?.toMillis?.() ?? Date.now(),
     paymentStatus: d.payment?.status ?? null,
     paymentMethod: d.payment?.method ?? null,
+    fiscal: d.fiscal ? mapFiscal(d.fiscal) : null,
   };
 }
 
@@ -215,16 +229,22 @@ export function watchOrderItems(
 }
 
 /**
- * Records a payment collected in person. Does NOT change the order status:
- * the kitchen drives it (onOrderItemUpdated would overwrite it to 'ready').
+ * Records a payment collected in person through the `recordPayment` Cloud
+ * Function: the server validates the order and marks it paid (clients cannot
+ * write payment fields). Everything after the payment (KDS release, audit,
+ * electronic invoice) happens server-side. A double tap returns
+ * 'already_paid' and changes nothing.
  */
-export async function recordPayment(orderId: string, method: PaymentMethod): Promise<void> {
-  await updateDoc(doc(db, paths.orders, orderId), {
-    'payment.method': method,
-    'payment.status': 'paid',
-    'payment.paidAt': serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+export async function recordPayment(
+  orderId: string,
+  method: PaymentMethod,
+  invoiceRequest?: InvoiceRequest,
+): Promise<'paid' | 'already_paid'> {
+  const res = await httpsCallable<
+    { orderId: string; method: PaymentMethod; invoiceRequest?: InvoiceRequest },
+    { status: 'paid' | 'already_paid' }
+  >(functions, 'recordPayment')({ orderId, method, ...(invoiceRequest ? { invoiceRequest } : {}) });
+  return res.data.status;
 }
 
 /**
