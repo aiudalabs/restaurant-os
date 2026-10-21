@@ -59,7 +59,16 @@ await call('recordPayment', 'wA', { orderId: 'o3', method: 'card', invoiceReques
 const o3 = await get('orders/o3');
 check('invoiceRequest stored', o3.invoiceRequest?.taxId === '155704849-2-2021' && o3.invoiceRequest?.dv === '32' && o3.invoiceRequest?.receiverType === '01');
 
-// 4. Closed / cancelled orders cannot be collected.
+// 4. Electronic invoice hook: only orgs with fiscal.enabled get a fiscal block.
+check('org without fiscal config → no fiscal block', (await get('orders/o1')).fiscal === undefined);
+await patch('organizations/F', { name: 'Fiscal org', fiscal: { enabled: true, env: 'test' } });
+await patch('users/wF', { orgId: 'F', role: 'waiter' });
+await patch('orders/o5', { id: 'o5', orgId: 'F', branchId: 'bf', source: 'waiter', status: 'ready', total: 10, tableNumber: 'Zoe', payment: { method: null, status: 'pending' } });
+check('fiscal org: collect', (await call('recordPayment', 'wF', { orderId: 'o5', method: 'cash' }))?.status === 'paid');
+await waitFor('fiscal.status pending (BFF not configured in the emulator)', async () => (await get('orders/o5')).fiscal?.status === 'pending');
+check('fiscal block requested', true);
+
+// 5. Closed / cancelled orders cannot be collected.
 await patch('orders/o4', { id: 'o4', orgId: 'A', branchId: 'b1', status: 'cancelled', total: 5, payment: { method: null, status: 'pending' } });
 check('cancelled order is refused', (await call('recordPayment', 'wA', { orderId: 'o4', method: 'cash' })).error === 'FAILED_PRECONDITION');
 done();

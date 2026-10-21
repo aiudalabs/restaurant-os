@@ -50,6 +50,9 @@ if s.count(a) != 1:
 open(p, "w").write(s.replace(a, b))
 PY
 
+# defineSecret() params need a local value in the emulator (never committed).
+[ -f functions/.secret.local ] || printf 'BFF_INTERNAL_TOKEN=emulator-only\n' > functions/.secret.local
+
 step "Compilando functions"
 (cd functions && npm run build >/dev/null)
 
