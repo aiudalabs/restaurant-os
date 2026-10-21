@@ -12,12 +12,18 @@ export interface TotalsItem {
 
 export interface ProductPrice {
   price: number;
+  /** ITBMS rate of the product (from products/{id}.fiscal.taxCode); undefined = the branch rate. */
+  taxRate?: number;
 }
+
+/** DGI tax codes (E0911) → rate. Mirrors TAX_RATES in the BFF (app/fiscal/nuc.py). */
+export const TAX_RATE_BY_CODE: Record<string, number> = { "00": 0, "01": 0.07, "02": 0.1, "03": 0.15 };
 
 export interface TotalsLine {
   productId: string;
   unitPrice: number;
   totalPrice: number;
+  taxAmount: number;
 }
 
 export interface Totals {
@@ -44,6 +50,7 @@ export function computeTotals(
 ): Totals {
   const lines: TotalsLine[] = [];
   let subtotal = 0;
+  let taxAmount = 0;
   let itemCount = 0;
   for (const item of items) {
     const product = products.get(item.productId);
@@ -52,10 +59,14 @@ export function computeTotals(
     const quantity = Math.max(1, Math.floor(Number(item.quantity) || 1));
     const unitPrice = round2(product.price + extras);
     const totalPrice = round2(unitPrice * quantity);
-    lines.push({ productId: item.productId, unitPrice, totalPrice });
+    // Tax per line, rounded per line: the electronic invoice is built the same
+    // way, so the invoice total always equals what the customer paid.
+    const rate = typeof product.taxRate === "number" ? product.taxRate : Number(taxPercent) || 0;
+    const lineTax = round2(totalPrice * rate);
+    lines.push({ productId: item.productId, unitPrice, totalPrice, taxAmount: lineTax });
     subtotal = round2(subtotal + totalPrice);
+    taxAmount = round2(taxAmount + lineTax);
     itemCount += quantity;
   }
-  const taxAmount = round2(subtotal * (Number(taxPercent) || 0));
   return { subtotal, taxAmount, total: round2(subtotal + taxAmount), itemCount, lines };
 }

@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { kdsTicket, kdsTicketKey } from "./kds-ticket";
-import { computeTotals, UnknownProduct, type ProductPrice, type Totals } from "./totals";
+import { computeTotals, TAX_RATE_BY_CODE, UnknownProduct, type ProductPrice, type Totals } from "./totals";
 
 const db = admin.firestore;
 const rtdb = admin.database;
@@ -75,8 +75,11 @@ async function loadPrices(firestore: FirebaseFirestore.Firestore, ids: string[])
       .where(admin.firestore.FieldPath.documentId(), "in", chunk)
       .get();
     for (const d of snap.docs) {
-      const price = d.data().price;
-      if (typeof price === "number") out.set(d.id, { price });
+      const data = d.data();
+      if (typeof data.price !== "number") continue;
+      const code = data.fiscal?.taxCode as string | undefined;
+      const taxRate = code && code in TAX_RATE_BY_CODE ? TAX_RATE_BY_CODE[code] : undefined;
+      out.set(d.id, { price: data.price, ...(taxRate !== undefined ? { taxRate } : {}) });
     }
   }
   return out;

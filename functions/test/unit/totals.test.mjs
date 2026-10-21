@@ -33,6 +33,15 @@ test('half-up rounding to cents', () => {
   assert.equal(t.total, 2.16);
 });
 
+test('tax is computed per line with the product rate (exempt products pay none)', () => {
+  const p = new Map([['pz', { price: 10, taxRate: 0.07 }], ['agua', { price: 1, taxRate: 0 }], ['soda', { price: 1.5 }]]);
+  const t = computeTotals([{ productId: 'pz', quantity: 2 }, { productId: 'agua', quantity: 1 }, { productId: 'soda', quantity: 1 }], p, 0.07);
+  assert.deepEqual(t.lines.map((l) => l.taxAmount), [1.4, 0, 0.11]);
+  assert.equal(t.subtotal, 22.5);
+  assert.equal(t.taxAmount, 1.51);
+  assert.equal(t.total, 24.01);
+});
+
 test('unknown product throws', () => {
   assert.throws(() => computeTotals([{ productId: 'nope', quantity: 1 }], products, 0), UnknownProduct);
 });
