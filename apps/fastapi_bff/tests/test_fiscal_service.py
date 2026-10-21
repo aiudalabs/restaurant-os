@@ -29,8 +29,8 @@ class FakeRef:
 
 
 class FakeClient:
-    def __init__(self, behaviour="ok", found=None):
-        self.behaviour, self.found = behaviour, found
+    def __init__(self, behaviour="ok", found=None, ruc_info=None):
+        self.behaviour, self.found, self.ruc_info = behaviour, found, ruc_info
         self.token, self.token_expires_at = "T", datetime.now(timezone.utc) + timedelta(days=10)
         self.calls = []
 
@@ -51,6 +51,10 @@ class FakeClient:
 
     def get_document(self, cufe, formats="PDF|XML"):
         return b"%PDF-old", None
+
+    def info_ruc(self, ruc, tipo="2"):
+        self.calls.append(("info_ruc", ruc, tipo))
+        return self.ruc_info or {"Ok": False}
 
 
 @pytest.fixture
@@ -134,3 +138,29 @@ def test_missing_config_is_a_recorded_error_not_an_exception(env):
     org = {"fiscal": {**ORG["fiscal"], "defaultCpbsAbr": "", "defaultCpbsCmp": ""}}
     ref, c, uploads, res = env(paid(), org=org)
     assert res["status"] == "error" and "cpbs" in res["lastError"] and c.calls == []
+
+
+def test_ruc_receiver_gets_dv_and_name_from_the_dgi(env):
+    c = FakeClient(ruc_info={"Ok": True, "Ruc": "155704849-2-2021", "Nombre": "DIGIFACT SERVICIOS, S.A.", "DV": "32", "TipoRuc": "2"})
+    ref, c, uploads, res = env(paid(invoiceRequest={"receiverType": "01", "taxId": "155704849-2-2021", "name": "Consumidor Final"}), client=c)
+    assert res["status"] == "issued"
+    nuc = c.calls[-1][1]
+    assert nuc["Buyer"]["TaxID"] == "155704849-2-2021" and nuc["Buyer"]["Name"] == "DIGIFACT SERVICIOS, S.A."
+    assert {i["Name"]: i["Value"] for i in nuc["Buyer"]["TaxIDAdditionalInfo"]}["DigitoVerificador"] == "32"
+    assert nuc["Buyer"]["TaxIDType"] == "2"
+
+
+def test_unknown_ruc_falls_back_to_consumidor_final_with_note(env):
+    c = FakeClient(ruc_info={"Ok": False})
+    ref, c, uploads, res = env(paid(invoiceRequest={"receiverType": "01", "taxId": "9-9-9", "name": "Ana"}), client=c)
+    assert res["status"] == "issued" and "no encontrado" in res["receiverNote"]
+    nuc = c.calls[-1][1]
+    assert nuc["Buyer"]["TaxID"] == "CF" and nuc["Buyer"]["Name"] == "Ana"
+    assert [k for k, *_ in c.calls].count("info_ruc") == 2
+
+
+def test_name_only_is_consumidor_final_con_nombre(env):
+    ref, c, uploads, res = env(paid(invoiceRequest={"receiverType": "02", "taxId": "CF", "name": "Ivo Pérez"}))
+    nuc = c.calls[-1][1]
+    assert nuc["Buyer"]["TaxID"] == "CF" and nuc["Buyer"]["Name"] == "Ivo Pérez"
+    assert not any(k == "info_ruc" for k, *_ in c.calls)

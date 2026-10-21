@@ -188,6 +188,7 @@ def issue_invoice(
     issued_at = (now or datetime.now(PANAMA_TZ)).astimezone(PANAMA_TZ)
     try:
         client = (client_factory or _client_for)(order["orgId"], org)
+        order, receiver_note = _resolve_receiver(client, order)
         nuc = build_nuc(order, items, org, branch, products, numero_df, codigo, issued_at, env)
         had_token = client.token_valid()
         try:
@@ -227,6 +228,7 @@ def issue_invoice(
         logger.error("Order %s: invoice %s certified but upload failed: %s", order_id, result.cufe, exc)
     issued = {
         "status": "issued",
+        **({"receiverNote": receiver_note} if receiver_note else {}),
         "cufe": result.cufe,
         "qrUrl": result.qr_url,
         "docGuid": result.doc_guid,
@@ -237,6 +239,38 @@ def issue_invoice(
     _write_fiscal(order_ref, issued)
     logger.info("Order %s: invoice %s issued (NumeroDF %s)", order_id, result.cufe, numero_df)
     return {**fiscal, **issued}
+
+
+def _resolve_receiver(client: DigifactClient, order: dict[str, Any]) -> tuple[dict[str, Any], str | None]:
+    """A RUC receiver needs its DV and legal name. Clients only type the RUC: we
+    look it up at the DGI (GetInfoRuc via Digifact). If the RUC is unknown the
+    invoice still goes out, as consumidor final with the name given, and the
+    reason is recorded in fiscal.receiverNote."""
+    req = dict(order.get("invoiceRequest") or {})
+    tax_id = str(req.get("taxId") or "").strip()
+    if req.get("receiverType") != "01" or not tax_id or tax_id.upper() == "CF":
+        return order, None
+    if req.get("dv") and req.get("name") and req.get("name") != "Consumidor Final":
+        return order, None
+    # GetInfoRuc needs the taxpayer type; try jurídico first, then natural.
+    info: dict[str, Any] = {}
+    for t in ("2", "1"):
+        try:
+            info = client.info_ruc(tax_id, t)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("GetInfoRuc %s failed: %s", tax_id, exc)
+            info = {}
+        if info.get("Ok"):
+            break
+    if not info.get("Ok") or not info.get("DV"):
+        note = f"RUC {tax_id} no encontrado en la DGI; factura emitida a consumidor final"
+        logger.warning("Order %s: %s", order.get("id"), note)
+        fallback = {**req, "receiverType": "02", "taxId": "CF"}
+        return {**order, "invoiceRequest": fallback}, note
+    resolved = {**req, "dv": str(info["DV"]), "name": req.get("name") if req.get("name") not in (None, "", "Consumidor Final") else str(info.get("Nombre") or "")}
+    if info.get("TipoRuc") in ("1", "2"):
+        resolved["taxIdType"] = str(info["TipoRuc"])
+    return {**order, "invoiceRequest": resolved}, None
 
 
 def _reconciled(found: dict[str, Any], pdf: bytes | None, xml: bytes | None):

@@ -55,20 +55,22 @@ export function markOrderPaid(
   return "paid";
 }
 
-/** Validates the optional invoice request sent by a client; throws on bad shape. */
+/**
+ * Normalises the optional invoice request sent by a client. Everything is
+ * optional: no data → consumidor final without a name; a name alone →
+ * consumidor final with that name; a RUC → contribuyente (the BFF resolves the
+ * DV and the legal name against the DGI through Digifact before issuing).
+ */
 export function cleanInvoiceRequest(raw: unknown): InvoiceRequest {
   const r = (raw ?? {}) as Record<string, unknown>;
-  const receiverType = r.receiverType === "01" ? "01" : "02";
-  const taxId = typeof r.taxId === "string" ? r.taxId.trim() : "";
+  const taxIdRaw = typeof r.taxId === "string" ? r.taxId.trim() : "";
+  const taxId = taxIdRaw && taxIdRaw.toUpperCase() !== "CF" ? taxIdRaw : "";
   const name = typeof r.name === "string" ? r.name.trim() : "";
   const dv = typeof r.dv === "string" ? r.dv.trim() : "";
   const email = typeof r.email === "string" ? r.email.trim() : "";
-  if (receiverType === "01" && (!taxId || !name)) {
-    throw new Error("Factura con RUC: RUC y nombre son obligatorios.");
-  }
   return {
-    receiverType,
-    taxId: receiverType === "01" ? taxId : "CF",
+    receiverType: taxId ? "01" : "02",
+    taxId: taxId || "CF",
     ...(dv ? { dv } : {}),
     name: name || "Consumidor Final",
     ...(email ? { email } : {}),

@@ -78,7 +78,8 @@ def _buyer(order: dict[str, Any], branch: dict[str, Any]) -> dict[str, Any]:
             raise FiscalConfigError("invoiceRequest.dv")
         buyer: dict[str, Any] = {
             "TaxID": str(req["taxId"]).strip(),
-            "TaxIDType": "2" if "-" in str(req["taxId"]) and str(req["taxId"]).count("-") >= 2 else "1",
+            # Natural (1) / jurídico (2): resolved by GetInfoRuc in the service; default jurídico.
+            "TaxIDType": str(req.get("taxIdType") or "2"),
             "TaxIDAdditionalInfo": [
                 _info("TipoReceptor", "01"),
                 _info("DigitoVerificador", str(req["dv"]).strip()),
@@ -95,7 +96,8 @@ def _buyer(order: dict[str, Any], branch: dict[str, Any]) -> dict[str, Any]:
     buyer = {
         "TaxID": "CF",
         "TaxIDAdditionalInfo": [_info("TipoReceptor", "02"), _info("CodUbi", bf.get("codUbi", ""))],
-        "Name": (req.get("name") or None) if req.get("name") not in (None, "", "Consumidor Final") else None,
+        # Consumidor final con nombre (C05) when the customer gave one.
+        "Name": req.get("name") if req.get("name") not in (None, "", "Consumidor Final") else None,
         "Contact": None,
         "AdditionlInfo": [_info("PaisReceptorFE", "PA")],
         "AddressInfo": address,
