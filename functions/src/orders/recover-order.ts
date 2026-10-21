@@ -6,6 +6,29 @@ interface RecoverOrderRequest {
   branchId?: string;
 }
 
+const MAX_ATTEMPTS = 10;
+const WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * Pickup codes are short (P-XXXX) so recovery is rate-limited per caller:
+ * at most MAX_ATTEMPTS lookups per hour, counted in RTDB (server-only path,
+ * default-deny rules). Throws resource-exhausted when the budget is spent.
+ */
+async function consumeAttempt(uid: string): Promise<void> {
+  const ref = admin.database().ref(`recover_attempts/${uid}`);
+  const now = Date.now();
+  const result = await ref.transaction((cur: { count?: number; windowStart?: number } | null) => {
+    const windowStart = cur?.windowStart ?? 0;
+    const inWindow = now - windowStart < WINDOW_MS;
+    const count = inWindow ? (cur?.count ?? 0) : 0;
+    return { count: count + 1, windowStart: inWindow ? windowStart : now };
+  });
+  const count = (result.snapshot.val() as { count: number } | null)?.count ?? 0;
+  if (count > MAX_ATTEMPTS) {
+    throw new functions.https.HttpsError("resource-exhausted", "Demasiados intentos. Espera una hora.");
+  }
+}
+
 /**
  * recoverOrder — Callable.
  *
@@ -25,6 +48,7 @@ export const recoverOrder = functions.https.onCall(
     if (!pickupCode) {
       throw new functions.https.HttpsError("invalid-argument", "pickupCode required.");
     }
+    await consumeAttempt(uid);
 
     const db = admin.firestore();
     let q = db.collection("orders").where("pickupCode", "==", pickupCode);

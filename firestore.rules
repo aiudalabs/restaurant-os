@@ -30,10 +30,16 @@ service cloud.firestore {
 
     // ─── Organizations ──────────────────────────────────────────────
 
-    // Org doc holds Odoo credentials — readable only by its own staff.
+    // Org doc: public-ish settings of the tenant, readable by its staff.
+    // Credentials (Odoo, Digifact, …) live in organizations/{orgId}/private/*,
+    // which NO client can read or write (Admin SDK only).
     match /organizations/{orgId} {
       allow read: if belongsToMyOrg(orgId);
       allow write: if isAdmin() && belongsToMyOrg(orgId);
+
+      match /private/{doc} {
+        allow read, write: if false;
+      }
     }
 
     // ─── Branches ───────────────────────────────────────────────────
@@ -86,24 +92,61 @@ service cloud.firestore {
 
     // ─── Orders ─────────────────────────────────────────────────────
     // A customer reads ONLY the orders they created (createdByUid).
-    // Staff read orders from their own org (no cross-tenant leak). Only
-    // admin/manager/waiter may update them (payments, closing): KDS operator
-    // accounts cannot — status roll-up is done server-side by Cloud Functions.
+    // Staff read orders from their own org (no cross-tenant leak).
+    //
+    // Clients only ever CREATE orders in an initial state; totals are
+    // recomputed by onOrderCreated and payment/fiscal fields are written by
+    // Cloud Functions / the BFF only (recordPayment, confirmManualPayment,
+    // onOrderPaid). Staff may update the kitchen lifecycle and a few labels.
+
+    function newPaymentOk(d) {
+      let ps = d.get('payment', {}).get('status', null);
+      return ps == null || ps == 'pending';
+    }
+    function validNewOrder() {
+      let d = request.resource.data;
+      return d.createdByUid == uid()
+        && d.orgId is string && d.branchId is string
+        && d.status in ['pending', 'pending_payment']
+        && d.get('source', '') in ['qr', 'waiter']
+        && !('fiscal' in d)
+        && !('invoiceRequest' in d && d.invoiceRequest is map && d.invoiceRequest.get('receiverType', '02') == '01' && d.invoiceRequest.get('taxId', '') == '')
+        && newPaymentOk(d);
+    }
+    function staffOrderUpdate() {
+      let d = request.resource.data;
+      return d.orgId == resource.data.orgId
+        && d.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'updatedAt', 'completedAt', 'notes', 'customerName', 'tableNumber', 'invoiceRequest'])
+        && (d.status == resource.data.status
+            || d.status in ['confirmed', 'in_preparation', 'ready', 'delivered', 'closed', 'cancelled']);
+    }
 
     match /orders/{orderId} {
-      allow create: if canCreateInOrg(request.resource.data.orgId);
+      allow create: if canCreateInOrg(request.resource.data.orgId) && validNewOrder();
       allow read: if belongsToMyOrg(resource.data.orgId)
                   || resource.data.createdByUid == uid();
       allow update: if belongsToMyOrg(resource.data.orgId)
                     && (isManager() || myRole() == 'waiter')
-                    && request.resource.data.orgId == resource.data.orgId;
+                    && staffOrderUpdate();
     }
 
     // ─── Order Items ────────────────────────────────────────────────
     // Same scoping as orders. KDS operators update items of their station.
+    // New items are always 'queued' and unrouted; onOrderCreated assigns the
+    // station and the real prices.
+
+    function validNewItem() {
+      let d = request.resource.data;
+      return d.createdByUid == uid()
+        && d.orgId is string && d.orderId is string
+        && d.productId is string && d.productId.size() > 0
+        && d.status == 'queued'
+        && d.get('stationId', '') == '';
+    }
 
     match /order_items/{itemId} {
-      allow create: if canCreateInOrg(request.resource.data.orgId);
+      allow create: if canCreateInOrg(request.resource.data.orgId) && validNewItem();
       allow read: if belongsToMyOrg(resource.data.orgId)
                   || resource.data.createdByUid == uid();
       allow update: if belongsToMyOrg(resource.data.orgId)

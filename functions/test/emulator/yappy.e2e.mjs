@@ -4,17 +4,21 @@ import { patch, get, rtdb, anon, call, waitFor, check, done } from './helpers.mj
 await patch('users/wA', { orgId: 'A', role: 'waiter' });
 await patch('users/wB', { orgId: 'B', role: 'waiter' });
 await patch('stations/K', { orgId: 'A', branchId: 'b1', name: 'Cocina', isActive: true, categoryIds: ['food'], fcmTokens: [] });
+await patch('branches/b1', { orgId: 'A', name: 'B1', taxPercent: 0.07 });
+await patch('products/P-food', { orgId: 'A', price: 3.5, isActive: true });
+await patch('products/P-drink', { orgId: 'A', price: 1.5, isActive: true });
 
 async function yappyOrder(id) {
   const cust = anon(`anon-${id}`);
-  await patch(`order_items/${id}_0`, { id: `${id}_0`, orgId: 'A', branchId: 'b1', orderId: id, createdByUid: `anon-${id}`, stationId: '', categoryId: 'food', productName: 'Huevos', quantity: 2, status: 'queued', specialInstructions: '' }, cust);
-  await patch(`order_items/${id}_1`, { id: `${id}_1`, orgId: 'A', branchId: 'b1', orderId: id, createdByUid: `anon-${id}`, stationId: '', categoryId: 'drinks', productName: 'Limonada', quantity: 1, status: 'queued', specialInstructions: '' }, cust);
+  await patch(`order_items/${id}_0`, { id: `${id}_0`, orgId: 'A', branchId: 'b1', orderId: id, createdByUid: `anon-${id}`, stationId: '', productId: 'P-food', categoryId: 'food', productName: 'Huevos', quantity: 2, status: 'queued', specialInstructions: '' }, cust);
+  await patch(`order_items/${id}_1`, { id: `${id}_1`, orgId: 'A', branchId: 'b1', orderId: id, createdByUid: `anon-${id}`, stationId: '', productId: 'P-drink', categoryId: 'drinks', productName: 'Limonada', quantity: 1, status: 'queued', specialInstructions: '' }, cust);
   await patch(`orders/${id}`, { id, orgId: 'A', branchId: 'b1', source: 'qr', createdByUid: `anon-${id}`, status: 'pending_payment', tableNumber: '4821', pickupCode: '4821', customerName: 'Ana', tableId: '', total: 8.03, payment: { method: 'yappy', status: 'pending', payTo: '@PickAndEat' } }, cust);
   await waitFor(`${id} pre-routed`, async () => (await get(`order_items/${id}_0`)).stationId === 'K');
 }
 
 await yappyOrder('y1');
 check('awaiting Yappy: order stays pending_payment', (await get('orders/y1')).status === 'pending_payment');
+check('totals recomputed server-side (2×3.5 + 1.5 + 7 %)', (await get('orders/y1')).total === 9.1, String((await get('orders/y1')).total));
 check('awaiting Yappy: nothing on the KDS yet', (await rtdb('order_items/K')) === null);
 check('customer cannot mark it paid', await patch('orders/y1', { status: 'confirmed' }, anon('anon-y1')).then(() => false, () => true));
 check('waiter of another org is refused', (await call('confirmManualPayment', 'wB', { orderId: 'y1', received: true })).error === 'NOT_FOUND');

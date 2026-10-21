@@ -15,6 +15,8 @@ await patch('users/wA', { orgId: 'A', role: 'waiter' });
 await patch('users/wB', { orgId: 'B', role: 'waiter' });
 await patch('users/opK', { orgId: 'A', role: 'operator', stationId: 'K' });
 await patch('stations/K', { orgId: 'A', branchId: 'b1', name: 'Cocina', isActive: true, categoryIds: ['food'], fcmTokens: [] });
+await patch('branches/b1', { orgId: 'A', name: 'B1', taxPercent: 0.07 });
+await patch('products/P-food', { orgId: 'A', price: 4, isActive: true });
 
 // 1. Waiter order already in the kitchen, paid in cash at the counter.
 await patch('orders/o1', { id: 'o1', orgId: 'A', branchId: 'b1', source: 'waiter', status: 'confirmed', total: 21.4, tableNumber: 'Ana', payment: { method: null, status: 'pending' } });
@@ -38,10 +40,11 @@ check('exactly one audit entry', (await auditLogs('o1')) === 1);
 
 // 2. Link order waiting for its payment, collected in cash → released to the KDS by the trigger.
 const cust = token('anon-2', { firebase: { sign_in_provider: 'anonymous' } });
-await patch('order_items/o2_0', { id: 'o2_0', orgId: 'A', branchId: 'b1', orderId: 'o2', createdByUid: 'anon-2', stationId: '', categoryId: 'food', productName: 'Huevos', quantity: 2, status: 'queued', specialInstructions: '' }, cust);
+await patch('order_items/o2_0', { id: 'o2_0', orgId: 'A', branchId: 'b1', orderId: 'o2', createdByUid: 'anon-2', stationId: '', productId: 'P-food', categoryId: 'food', productName: 'Huevos', quantity: 2, status: 'queued', specialInstructions: '' }, cust);
 await patch('orders/o2', { id: 'o2', orgId: 'A', branchId: 'b1', source: 'qr', createdByUid: 'anon-2', status: 'pending_payment', tableNumber: 'P-ABCD', pickupCode: 'P-ABCD', customerName: 'Luis', tableId: '', total: 8.03, payment: { method: null, status: 'pending' } }, cust);
 await waitFor('o2 pre-routed', async () => (await get('order_items/o2_0')).stationId === 'K');
 check('awaiting payment: nothing on the KDS yet', !(await rtdb('order_items/K'))?.o2_o2_0);
+check('client total 8.03 replaced by 2×4 + 7 % = 8.56', (await get('orders/o2')).total === 8.56, String((await get('orders/o2')).total));
 check('online card cannot be forced by staff', (await call('recordPayment', 'wA', { orderId: 'o2', method: 'card' })).error === 'FAILED_PRECONDITION');
 check('cash at the counter is accepted', (await call('recordPayment', 'wA', { orderId: 'o2', method: 'cash' }))?.status === 'paid');
 check('order becomes confirmed', (await get('orders/o2')).status === 'confirmed');
