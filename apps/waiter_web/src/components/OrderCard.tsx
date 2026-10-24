@@ -3,6 +3,7 @@ import { closeOrder, confirmManualPayment, markItemsReady, recordPayment, watchO
 import { money } from '../lib/format';
 import { printPdf } from '../lib/print';
 import { PaymentSheet } from './PaymentSheet';
+import { MemberScanSheet } from './MemberScanSheet';
 import type { FiscalInfo, InvoiceRequest, Order, OrderItem, OrderStatus, PaymentMethod } from '../types';
 
 const KITCHEN_LABEL: Record<OrderStatus, { text: string; cls: string }> = {
@@ -28,6 +29,7 @@ interface Props {
 export function OrderCard({ order, orgId, now }: Props) {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [paying, setPaying] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmReject, setConfirmReject] = useState(false);
@@ -85,6 +87,7 @@ export function OrderCard({ order, orgId, now }: Props) {
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${kitchen.cls}`}>{kitchen.text}</span>
+          {order.hasMember && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">Socio del Club ✓</span>}
           <span
             className={`rounded-full px-2.5 py-1 text-xs font-bold ${
               paid ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-brand'
@@ -152,6 +155,11 @@ export function OrderCard({ order, orgId, now }: Props) {
           </button>
         )}
         {order.status === 'pending_payment' && <p className="text-sm text-muted">Pago en línea en curso…</p>}
+        {!order.pickupCode && !order.hasMember && order.status !== 'pending_payment' && (
+          <button onClick={() => setScanning(true)} disabled={busy} className="btn btn-outlined">
+            Socio del Club
+          </button>
+        )}
         {!paid && order.status !== 'pending_payment' && (
           <button
             onClick={() => setPaying(true)}
@@ -175,6 +183,8 @@ export function OrderCard({ order, orgId, now }: Props) {
       </div>
       )}
       {error && <p className="mt-2 text-sm text-brand">{error}</p>}
+
+      {scanning && <MemberScanSheet orderId={order.id} onClose={() => setScanning(false)} />}
 
       {paying && (
         <PaymentSheet

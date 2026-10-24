@@ -1,7 +1,6 @@
 import * as crypto from "crypto";
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { defineString } from "firebase-functions/params";
 import { memberId, STAMP_GOAL, TIERS, type MemberState } from "./program";
 
 /**
@@ -16,8 +15,8 @@ import { memberId, STAMP_GOAL, TIERS, type MemberState } from "./program";
  * Until all three exist the callable answers "failed-precondition" and the app hides the button.
  */
 
-export const walletIssuerId = defineString("GOOGLE_WALLET_ISSUER_ID", { default: "" });
-export const customerUrl = defineString("CUSTOMER_URL", { default: "" });
+// Read from process.env (functions/.env.<projectId>) rather than defineString: an empty
+// param makes every `firebase deploy` of the project ask for a value.
 
 const CLASS_SUFFIX = "pick_and_eat_club";
 const BRAND_GREEN = "#3F6B2A";
@@ -103,8 +102,8 @@ export const googleWalletLink = functions
     if (!uid) throw new HttpsError("unauthenticated", "Auth required.");
     if (typeof data.orgId !== "string" || !data.orgId) throw new HttpsError("invalid-argument", "orgId es obligatorio.");
 
-    const issuerId = walletIssuerId.value();
-    const siteUrl = customerUrl.value().replace(/\/$/, "");
+    const issuerId = process.env.GOOGLE_WALLET_ISSUER_ID ?? "";
+    const siteUrl = (process.env.CUSTOMER_URL ?? "").replace(/\/$/, "");
     const raw = process.env.GOOGLE_WALLET_KEY ?? "";
     if (!issuerId || !siteUrl || !raw) throw new HttpsError("failed-precondition", "Google Wallet no está configurado.");
 

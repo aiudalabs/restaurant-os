@@ -171,6 +171,7 @@ function mapOrder(id: string, d: DocumentData): Order {
     paymentStatus: d.payment?.status ?? null,
     paymentMethod: d.payment?.method ?? null,
     fiscal: d.fiscal ? mapFiscal(d.fiscal) : null,
+    hasMember: typeof d.loyaltyUid === 'string' && d.loyaltyUid !== '',
   };
 }
 
@@ -314,5 +315,14 @@ export async function useVoucher(code: string, commit: boolean): Promise<{ rewar
     functions,
     'useVoucher',
   )({ code, commit });
+  return res.data;
+}
+
+/** Ties an order the waiter took to the Club member whose QR was scanned (issue #79). */
+export async function attachMember(orderId: string, memberId: string): Promise<{ awarded: boolean; name: string; points: number }> {
+  const res = await httpsCallable<{ orderId: string; memberId: string }, { awarded: boolean; name: string; points: number }>(
+    functions,
+    'attachMember',
+  )({ orderId, memberId });
   return res.data;
 }
