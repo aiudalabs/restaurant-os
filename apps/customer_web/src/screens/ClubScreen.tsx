@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth, ensureAnonAuth } from '../lib/firebase';
 import {
-  CHALLENGES, REWARDS, STAMP_GOAL, challengeProgress, clubOrgId, memberId, tierOf, watchMember,
+  CHALLENGES, REWARDS, googleWalletEnabled, googleWalletUrl, STAMP_GOAL, challengeProgress, clubOrgId, memberId, tierOf, watchMember,
   type Member, EMPTY_MEMBER,
 } from '../lib/club';
 import { loadHome } from '../lib/home';
@@ -20,6 +20,8 @@ export function ClubScreen() {
   const [member, setMember] = useState<Member>(EMPTY_MEMBER);
   const [loaded, setLoaded] = useState(false);
   const [uid, setUid] = useState('');
+  const [walletBusy, setWalletBusy] = useState(false);
+  const [walletError, setWalletError] = useState('');
 
   useEffect(() => {
     ensureAnonAuth().then(() => setUid(auth.currentUser?.uid ?? '')).catch(() => undefined);
@@ -28,6 +30,17 @@ export function ClubScreen() {
       setLoaded(ok);
     });
   }, [orgId]);
+
+  const addToWallet = async () => {
+    setWalletBusy(true);
+    setWalletError('');
+    try {
+      window.location.href = await googleWalletUrl(orgId);
+    } catch (e) {
+      setWalletError(e instanceof Error ? e.message : 'No pudimos abrir Google Wallet.');
+      setWalletBusy(false);
+    }
+  };
 
   if (!loaded) return <Spinner label="Abriendo tu Club…" />;
 
@@ -76,8 +89,20 @@ export function ClubScreen() {
         </div>
         <div className="flex items-center justify-between border-t border-[#5A8443] pt-3">
           <p className="text-[13px] text-brand-mist">Tus puntos se suman solos al pagar</p>
-          <span className="text-[13px] font-semibold text-gold-light/70">Wallet · Próximamente</span>
+          {googleWalletEnabled && member.visits > 0 ? (
+            <button
+              onClick={() => void addToWallet()}
+              disabled={walletBusy}
+              className="inline-flex items-center gap-1 text-[13px] font-semibold text-gold-light disabled:opacity-60"
+            >
+              {walletBusy ? 'Abriendo…' : 'Añadir a Google Wallet'}
+              <Icon name="chevron" size={14} />
+            </button>
+          ) : (
+            <span className="text-[13px] font-semibold text-gold-light/70">Wallet · Próximamente</span>
+          )}
         </div>
+        {walletError && <p className="text-xs text-gold-light">{walletError}</p>}
       </div>
 
       <div className="mx-5 mt-3.5 flex flex-col gap-3 rounded-2xl border border-line bg-white p-4">
