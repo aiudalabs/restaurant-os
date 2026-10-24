@@ -1,7 +1,7 @@
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { paths } from '@/lib/firestore-paths';
-import type { Organization, OrganizationFiscal } from '@/types/organization';
+import type { Organization, OrganizationDiscount, OrganizationFiscal } from '@/types/organization';
 
 /** Live organization doc; `null` when it does not exist or cannot be read. */
 export function watchOrganization(orgId: string, callback: (org: Organization | null) => void): () => void {
@@ -18,4 +18,9 @@ export function watchOrganization(orgId: string, callback: (org: Organization | 
 /** Replaces the whole fiscal map (rules: admins of the org only). */
 export async function updateOrganizationFiscal(orgId: string, fiscal: OrganizationFiscal): Promise<void> {
   await updateDoc(doc(db, paths.organizations, orgId), { fiscal });
+}
+
+/** Replaces the whole discounts list (rules: admins of the org only). */
+export async function updateOrganizationDiscounts(orgId: string, discounts: OrganizationDiscount[]): Promise<void> {
+  await updateDoc(doc(db, paths.organizations, orgId), { discounts });
 }

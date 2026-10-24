@@ -23,11 +23,15 @@ export interface TotalsLine {
   productId: string;
   unitPrice: number;
   totalPrice: number;
+  /** Discount on this line (issue #81); the ITBMS below is computed on totalPrice − discountAmount. */
+  discountAmount: number;
   taxAmount: number;
 }
 
 export interface Totals {
+  /** Gross subtotal (before discount). total = subtotal − discountAmount + taxAmount. */
   subtotal: number;
+  discountAmount: number;
   taxAmount: number;
   total: number;
   itemCount: number;
@@ -47,9 +51,13 @@ export function computeTotals(
   items: TotalsItem[],
   products: Map<string, ProductPrice>,
   taxPercent: number,
+  /** Discount in percent points (25 = 25 %); applied per line. Clamped to 0..100. */
+  discountPercent = 0,
 ): Totals {
+  const pct = Math.min(100, Math.max(0, Number(discountPercent) || 0));
   const lines: TotalsLine[] = [];
   let subtotal = 0;
+  let discountAmount = 0;
   let taxAmount = 0;
   let itemCount = 0;
   for (const item of items) {
@@ -62,11 +70,13 @@ export function computeTotals(
     // Tax per line, rounded per line: the electronic invoice is built the same
     // way, so the invoice total always equals what the customer paid.
     const rate = typeof product.taxRate === "number" ? product.taxRate : Number(taxPercent) || 0;
-    const lineTax = round2(totalPrice * rate);
-    lines.push({ productId: item.productId, unitPrice, totalPrice, taxAmount: lineTax });
+    const lineDiscount = round2((totalPrice * pct) / 100);
+    const lineTax = round2((totalPrice - lineDiscount) * rate);
+    lines.push({ productId: item.productId, unitPrice, totalPrice, discountAmount: lineDiscount, taxAmount: lineTax });
     subtotal = round2(subtotal + totalPrice);
+    discountAmount = round2(discountAmount + lineDiscount);
     taxAmount = round2(taxAmount + lineTax);
     itemCount += quantity;
   }
-  return { subtotal, taxAmount, total: round2(subtotal + taxAmount), itemCount, lines };
+  return { subtotal, discountAmount, taxAmount, total: round2(subtotal - discountAmount + taxAmount), itemCount, lines };
 }

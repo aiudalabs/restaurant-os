@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { money } from '../lib/format';
-import type { InvoiceRequest, PaymentMethod } from '../types';
+import type { DiscountOption, InvoiceRequest, PaymentMethod } from '../types';
 
 const METHODS: { id: PaymentMethod; label: string; icon: string }[] = [
   { id: 'cash', label: 'Efectivo', icon: '💵' },
@@ -11,15 +11,21 @@ const METHODS: { id: PaymentMethod; label: string; icon: string }[] = [
 interface Props {
   customerName: string;
   total: number;
+  discounts: DiscountOption[];
+  applied: { name: string; percent: number; amount: number } | null;
+  /** null removes the discount; the server recomputes the total. */
+  onDiscount: (id: string | null, idNumber?: string) => void;
   busy: boolean;
   onPick: (method: PaymentMethod, invoiceRequest?: InvoiceRequest) => void;
   onClose: () => void;
 }
 
-export function PaymentSheet({ customerName, total, busy, onPick, onClose }: Props) {
+export function PaymentSheet({ customerName, total, discounts, applied, onDiscount, busy, onPick, onClose }: Props) {
   const [withData, setWithData] = useState(false);
   const [name, setName] = useState('');
   const [taxId, setTaxId] = useState('');
+  const [choice, setChoice] = useState<DiscountOption | null>(null);
+  const [idNumber, setIdNumber] = useState('');
 
   // Every invoice field is optional (DV is resolved server-side). With no data
   // the invoice goes to consumidor final, so no invoiceRequest is sent.
@@ -41,7 +47,58 @@ export function PaymentSheet({ customerName, total, busy, onPick, onClose }: Pro
       >
         <div className="sheet-handle sm:hidden" aria-hidden="true" />
         <p className="text-center text-sm text-muted">Cobrar a {customerName}</p>
-        <p className="mb-4 text-center text-3xl font-extrabold tabular-nums">{money(total)}</p>
+        <p className="text-center text-3xl font-extrabold tabular-nums">{money(total)}</p>
+        {applied && (
+          <p className="mb-1 text-center text-sm text-emerald-700">
+            {applied.name} ({applied.percent}%) −{money(applied.amount)}
+          </p>
+        )}
+
+        {(discounts.length > 0 || applied) && (
+          <div className="mb-4 mt-3">
+            {applied ? (
+              <button type="button" onClick={() => onDiscount(null)} disabled={busy} className="btn btn-text w-full">
+                Quitar descuento
+              </button>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {discounts.map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => (d.requiresId ? setChoice(choice?.id === d.id ? null : d) : onDiscount(d.id))}
+                      disabled={busy}
+                      className={`btn ${choice?.id === d.id ? 'btn-filled' : 'btn-outlined'} min-h-[44px]`}
+                    >
+                      {d.name} {d.percent}%
+                    </button>
+                  ))}
+                </div>
+                {choice && (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      value={idNumber}
+                      onChange={(e) => setIdNumber(e.target.value)}
+                      placeholder="Cédula o carné del beneficiario"
+                      aria-label="Cédula o carné del beneficiario"
+                      autoComplete="off"
+                      className="field"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onDiscount(choice.id, idNumber)}
+                      disabled={busy || idNumber.trim().length < 3}
+                      className="btn btn-filled"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         <div className="mb-4">
           <button

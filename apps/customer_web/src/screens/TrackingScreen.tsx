@@ -221,6 +221,12 @@ export function TrackingScreen() {
             ))}
           </div>
         )}
+        {order.discount && (
+          <div className="mt-3 flex justify-between border-t border-line pt-3 text-sm text-brand">
+            <span>{order.discount.name}</span>
+            <span>−{money(order.discount.amount)}</span>
+          </div>
+        )}
         <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold">
           <span>Total</span>
           <span>{money(order.total)}</span>

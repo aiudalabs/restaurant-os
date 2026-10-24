@@ -65,7 +65,7 @@ interface StationData {
  */
 
 /** products/{id}.price for the given ids (chunked `in` queries). */
-async function loadPrices(firestore: FirebaseFirestore.Firestore, ids: string[]): Promise<Map<string, ProductPrice>> {
+export async function loadPrices(firestore: FirebaseFirestore.Firestore, ids: string[]): Promise<Map<string, ProductPrice>> {
   const out = new Map<string, ProductPrice>();
   const unique = Array.from(new Set(ids.filter((id) => typeof id === "string" && id.length > 0)));
   for (let i = 0; i < unique.length; i += 30) {
@@ -86,7 +86,7 @@ async function loadPrices(firestore: FirebaseFirestore.Firestore, ids: string[])
 }
 
 /** Tax rate of the branch (fraction), falling back to the org default, then 0. */
-async function loadTaxPercent(firestore: FirebaseFirestore.Firestore, order: OrderData): Promise<number> {
+export async function loadTaxPercent(firestore: FirebaseFirestore.Firestore, order: OrderData): Promise<number> {
   const branch = (await firestore.collection("branches").doc(order.branchId).get()).data();
   if (typeof branch?.taxPercent === "number") return branch.taxPercent;
   const org = (await firestore.collection("organizations").doc(order.orgId).get()).data();

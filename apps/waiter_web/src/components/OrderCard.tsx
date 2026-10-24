@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { closeOrder, confirmManualPayment, markItemsReady, recordPayment, watchOrderItems } from '../lib/api';
+import { applyDiscount, closeOrder, loadDiscounts, confirmManualPayment, markItemsReady, recordPayment, watchOrderItems } from '../lib/api';
 import { money } from '../lib/format';
 import { printPdf } from '../lib/print';
 import { PaymentSheet } from './PaymentSheet';
 import { MemberScanSheet } from './MemberScanSheet';
-import type { FiscalInfo, InvoiceRequest, Order, OrderItem, OrderStatus, PaymentMethod } from '../types';
+import type { DiscountOption, FiscalInfo, InvoiceRequest, Order, OrderItem, OrderStatus, PaymentMethod } from '../types';
 
 const KITCHEN_LABEL: Record<OrderStatus, { text: string; cls: string }> = {
   pending_payment: { text: 'Esperando pago', cls: 'bg-violet-50 text-violet-700' },
@@ -72,6 +72,14 @@ export function OrderCard({ order, orgId, now }: Props) {
   const reviewYappy = (received: boolean) => run(() => confirmManualPayment(order.id, received));
 
   // 'already_paid' (double tap / another device) counts as success: close the sheet.
+  const [discounts, setDiscounts] = useState<DiscountOption[]>([]);
+  useEffect(() => {
+    if (!paying) return;
+    loadDiscounts(orgId).then(setDiscounts, (e) => console.error('[waiter] discounts', e));
+  }, [paying, orgId]);
+
+  const discount = (id: string | null, idNumber?: string) => run(() => applyDiscount(order.id, id, idNumber));
+
   const pay = (method: PaymentMethod, invoiceRequest?: InvoiceRequest) =>
     run(async () => {
       await recordPayment(order.id, method, invoiceRequest);
@@ -147,7 +155,14 @@ export function OrderCard({ order, orgId, now }: Props) {
         </div>
       ) : (
       <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
-        <p className="text-lg font-extrabold tabular-nums">{money(order.total)}</p>
+        <div>
+          {order.discount && (
+            <p className="text-xs text-emerald-700">
+              {order.discount.name} −{money(order.discount.amount)}
+            </p>
+          )}
+          <p className="text-lg font-extrabold tabular-nums">{money(order.total)}</p>
+        </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
         {counterPending.length > 1 && (
           <button onClick={() => markReady(counterPending.map((it) => it.id))} disabled={busy} className="btn btn-outlined">
@@ -190,6 +205,9 @@ export function OrderCard({ order, orgId, now }: Props) {
         <PaymentSheet
           customerName={order.customerName}
           total={order.total}
+          discounts={discounts}
+          applied={order.discount}
+          onDiscount={discount}
           busy={busy}
           onPick={pay}
           onClose={() => setPaying(false)}

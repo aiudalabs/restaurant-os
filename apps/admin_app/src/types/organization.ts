@@ -22,6 +22,17 @@ export interface OrganizationFiscal {
   defaultTaxCode: FiscalTaxCode;
 }
 
+/** Discount the waiter can apply when collecting (issue #81). `id` is stable; the invoice and audit log refer to it. */
+export interface OrganizationDiscount {
+  id: string;
+  name: string;
+  /** 0 < percent <= 100 */
+  percent: number;
+  active: boolean;
+  /** The waiter must record the beneficiary's cédula / carné (e.g. jubilados). */
+  requiresId: boolean;
+}
+
 export interface Organization {
   id: string;
   name: string;
@@ -37,4 +48,5 @@ export interface Organization {
   createdAt: Timestamp;
   ownerId: string;
   fiscal?: OrganizationFiscal;
+  discounts?: OrganizationDiscount[];
 }

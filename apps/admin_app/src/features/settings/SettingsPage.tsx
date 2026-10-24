@@ -13,6 +13,7 @@ import { useOrganization } from '@/hooks/use-organization';
 import { updateOrganizationFiscal } from '@/services/organization.service';
 import { getFiscalStatus, setFiscalCredentials, type FiscalCredentialsStatus } from '@/services/fiscal.service';
 import type { OrganizationFiscal } from '@/types/organization';
+import { DiscountsCard } from './DiscountsCard';
 import { isBranchFiscalComplete } from './branch-fiscal';
 
 const errorMessage = (e: unknown, fallback: string): string => (e instanceof Error && e.message ? e.message : fallback);
@@ -410,6 +411,8 @@ export default function SettingsPage() {
         // Keyed by org so the form mounts with the loaded config as its initial values.
         <FiscalConfigCard key={orgId} orgId={orgId} initial={organization?.fiscal} canEdit={canEdit} />
       )}
+
+      {!loading && <DiscountsCard key={`d-${orgId}`} orgId={orgId} initial={organization?.discounts} canEdit={canEdit} />}
 
       <CredentialsCard canEdit={canEdit} />
       <BranchesFiscalCard />

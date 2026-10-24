@@ -104,3 +104,9 @@ def test_missing_cpbs_and_branch_fields():
     with pytest.raises(FiscalConfigError) as e2:
         build_nuc(order(), items, ORG, {"fiscal": {**BRANCH["fiscal"], "codUbi": ""}}, PRODUCTS, "1", "2", AT, "test")
     assert e2.value.field == "branch.fiscal.codUbi"
+
+
+def test_discounted_order_fails_clearly_until_nuc_discounts_is_confirmed():
+    items = [{"productId": "pz", "quantity": 2, "unitPrice": 10, "discountAmount": 5}]
+    with pytest.raises(FiscalConfigError, match="discount"):
+        build_nuc(order(discountAmount=5), items, ORG, BRANCH, PRODUCTS, "0000000003", "123456789", AT, "test")

@@ -95,6 +95,8 @@ export interface Order {
   paymentStatus: 'pending' | 'paid' | 'failed' | null;
   paymentMethod: PaymentMethod | null;
   fiscal: FiscalInfo | null;
+  /** Discount applied by staff (issue #81); null when none. */
+  discount: { name: string; percent: number; amount: number } | null;
   /** A Club member is attached (scanned by staff) to this order. */
   hasMember: boolean;
 }
@@ -109,4 +111,12 @@ export interface OrderItem {
   quantity: number;
   specialInstructions: string;
   status: ItemStatus;
+}
+
+/** organizations/{orgId}.discounts[] entry, configured in the admin (issue #81). */
+export interface DiscountOption {
+  id: string;
+  name: string;
+  percent: number;
+  requiresId: boolean;
 }

@@ -19,6 +19,7 @@ export { setWaiterPin, waiterRoster, waiterLogin } from "./staff/waiter-pin";
 export { yappyWebhook } from "./payments/yappy-webhook";
 export { confirmManualPayment } from "./payments/confirm-manual-payment";
 export { recordPayment } from "./payments/record-payment";
+export { applyDiscount } from "./payments/apply-discount";
 export { onOrderPaid } from "./payments/on-order-paid";
 export { redeemReward, useVoucher } from "./loyalty/vouchers";
 export { attachMember } from "./loyalty/attach-member";

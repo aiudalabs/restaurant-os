@@ -165,6 +165,11 @@ def build_nuc(
 ) -> dict[str, Any]:
     if not items:
         raise FiscalConfigError("items")
+    # Issue #81: discounted orders need the NUC `Discounts` block, whose structure
+    # is pending confirmation from Digifact. Fail with a clear reason instead of a
+    # gross-vs-net FiscalTotalsMismatch after the customer already paid.
+    if money(order.get("discountAmount")) > 0 or any(money(it.get("discountAmount")) > 0 for it in items):
+        raise FiscalConfigError("discount: estructura NUC Discounts pendiente (issue #81)")
     of = org.get("fiscal") or {}
     bf = branch.get("fiscal") or {}
     billing_point = _require(bf, "billingPoint", "branch.fiscal.billingPoint")

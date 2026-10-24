@@ -99,6 +99,8 @@ export interface OrderDoc {
   customerName: string;
   tableNumber: string;
   total: number;
+  /** Discount the waiter applied (issue #81). */
+  discount: { name: string; amount: number } | null;
   itemCount: number;
   branchId: string;
   /** 'yappy' for manual Yappy orders; null otherwise. */

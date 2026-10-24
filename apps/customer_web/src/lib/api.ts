@@ -225,6 +225,11 @@ function mapFiscal(raw: unknown): FiscalInfo | null {
   };
 }
 
+function mapDiscount(raw: unknown): { name: string; amount: number } | null {
+  const d = raw as { name?: unknown; amount?: unknown } | undefined;
+  return d && typeof d.amount === 'number' ? { name: String(d.name ?? 'Descuento'), amount: d.amount } : null;
+}
+
 function mapOrder(id: string, data: Record<string, unknown>): OrderDoc {
   return {
     id,
@@ -233,6 +238,7 @@ function mapOrder(id: string, data: Record<string, unknown>): OrderDoc {
     customerName: (data.customerName as string) ?? 'Cliente',
     tableNumber: (data.tableNumber as string) ?? '',
     total: (data.total as number) ?? 0,
+    discount: mapDiscount(data.discount),
     itemCount: (data.itemCount as number) ?? 0,
     branchId: (data.branchId as string) ?? '',
     paymentMethod: ((data.payment as { method?: string } | undefined)?.method as string) ?? null,

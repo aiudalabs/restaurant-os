@@ -66,6 +66,13 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
   defaultCurrency: string       // "USD"
   defaultTaxPercent: number     // 0.07 = 7%
   defaultTipOptions: number[]   // [0.10, 0.15, 0.20]
+  discounts?: {                 // descuentos que el mesero aplica al cobrar (issue #81); los administra el admin
+    id: string                  // estable (slug); lo citan el pedido, la factura y audit_log
+    name: string                // "Jubilados"
+    percent: number             // 0 < percent <= 100 (25 = 25 %)
+    active: boolean
+    requiresId: boolean         // exige cédula/carné del beneficiario
+  }[]
   timezone: string              // "America/Panama"
   isActive: boolean
   createdAt: Timestamp
@@ -249,8 +256,14 @@ productos gratis: nunca modifican el total del pedido ni la factura.
   tableId: string
   tableNumber: string           // desnormalizado para mostrar sin join
   status: OrderStatus
-  subtotal: number
-  taxAmount: number
+  subtotal: number              // bruto (antes del descuento). total = subtotal − discountAmount + taxAmount
+  discountAmount?: number       // suma de los descuentos por línea (0/ausente = sin descuento)
+  discount?: {                  // un solo descuento por pedido; solo lo escribe la callable applyDiscount
+    id: string; name: string; percent: number; amount: number
+    appliedBy: string; appliedAt: Timestamp
+    idNumber?: string           // cédula/carné, solo si el descuento lo exige
+  }
+  taxAmount: number             // ITBMS sobre la base ya descontada, por línea
   taxPercent: number
   tipAmount: number
   total: number

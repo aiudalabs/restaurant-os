@@ -19,6 +19,7 @@ import type {
   CartLine,
   Category,
   FiscalInfo,
+  DiscountOption,
   InvoiceRequest,
   Order,
   OrderItem,
@@ -171,6 +172,9 @@ function mapOrder(id: string, d: DocumentData): Order {
     paymentStatus: d.payment?.status ?? null,
     paymentMethod: d.payment?.method ?? null,
     fiscal: d.fiscal ? mapFiscal(d.fiscal) : null,
+    discount: d.discount && typeof d.discount.amount === 'number'
+      ? { name: String(d.discount.name ?? ''), percent: Number(d.discount.percent) || 0, amount: d.discount.amount }
+      : null,
     hasMember: typeof d.loyaltyUid === 'string' && d.loyaltyUid !== '',
   };
 }
@@ -325,4 +329,22 @@ export async function attachMember(orderId: string, memberId: string): Promise<{
     'attachMember',
   )({ orderId, memberId });
   return res.data;
+}
+
+/** Active discounts the organization configured (issue #81). */
+export async function loadDiscounts(orgId: string): Promise<DiscountOption[]> {
+  const snap = await getDoc(doc(db, 'organizations', orgId));
+  const list: unknown = snap.data()?.discounts;
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((d) => d && typeof d.id === 'string' && d.active !== false && typeof d.percent === 'number' && d.percent > 0)
+    .map((d) => ({ id: d.id, name: String(d.name ?? d.id), percent: d.percent, requiresId: d.requiresId === true }));
+}
+
+/** Applies (or, with null, removes) a discount; the server recomputes the order total. */
+export async function applyDiscount(orderId: string, discountId: string | null, idNumber?: string): Promise<void> {
+  await httpsCallable<{ orderId: string; discountId: string | null; idNumber?: string }, unknown>(
+    functions,
+    'applyDiscount',
+  )({ orderId, discountId, ...(idNumber ? { idNumber } : {}) });
 }
