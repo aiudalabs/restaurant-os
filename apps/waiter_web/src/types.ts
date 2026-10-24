@@ -95,6 +95,8 @@ export interface Order {
   paymentStatus: 'pending' | 'paid' | 'failed' | null;
   paymentMethod: PaymentMethod | null;
   fiscal: FiscalInfo | null;
+  /** A Club member is attached (scanned by staff) to this order. */
+  hasMember: boolean;
 }
 
 export type ItemStatus = 'queued' | 'in_progress' | 'done' | 'cancelled';

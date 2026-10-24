@@ -7,18 +7,23 @@ import { newVoucherRef } from "./vouchers";
  * awardLoyalty — called from onOrderPaid. Gives the order's points / stamp /
  * challenge progress to the customer who placed it.
  *
- * - Only customer orders: staff-created orders carry the waiter's uid (a users/{uid}
- *   doc exists) and earn nothing.
+ * - Staff-created orders carry the waiter's uid (a users/{uid} doc exists) and earn
+ *   nothing, unless the waiter attached a member (order.loyaltyUid, attachMember).
  * - Idempotent: the earn event id is the order id, created inside the transaction.
  * - Never throws into the payment flow (the caller catches).
  */
 export async function awardLoyalty(orderId: string, order: FirebaseFirestore.DocumentData): Promise<void> {
-  const uid = order.createdByUid;
   const total = Number(order.total);
-  if (typeof uid !== "string" || !uid || typeof order.orgId !== "string" || !(total > 0)) return;
+  if (typeof order.orgId !== "string" || !(total > 0)) return;
 
   const db = admin.firestore();
-  if ((await db.collection("users").doc(uid).get()).exists) return;
+  // A member attached by staff (attachMember) wins; otherwise the customer who placed the order.
+  let uid = typeof order.loyaltyUid === "string" ? order.loyaltyUid : "";
+  if (!uid) {
+    uid = typeof order.createdByUid === "string" ? order.createdByUid : "";
+    if (!uid) return;
+    if ((await db.collection("users").doc(uid).get()).exists) return;
+  }
 
   const itemsSnap = await db.collection("order_items").where("orderId", "==", orderId).get();
   const productIds = itemsSnap.docs.map((d) => String(d.data().productId ?? "")).filter(Boolean);
@@ -32,7 +37,7 @@ export async function awardLoyalty(orderId: string, order: FirebaseFirestore.Doc
     const [eventSnap, memberSnap] = await Promise.all([tx.get(eventRef), tx.get(memberRef)]);
     if (eventSnap.exists) return null;
 
-    const prev = memberSnap.exists ? ({ ...EMPTY_MEMBER, ...memberSnap.data() } as MemberState) : EMPTY_MEMBER;
+    const prev = memberSnap.exists ? ({ ...EMPTY_MEMBER, ...memberSnap.data() } as MemberState & { name?: string }) : (EMPTY_MEMBER as MemberState & { name?: string });
     const award = applyOrder(prev, { total, productIds, at: now.toDate() });
     const bonusPoints = award.bonuses.reduce((s, b) => s + b.points, 0);
 
@@ -40,8 +45,8 @@ export async function awardLoyalty(orderId: string, order: FirebaseFirestore.Doc
     const memberData = {
       ...award.member,
       orgId: order.orgId,
-      uid,
-      ...(name ? { name } : {}),
+      uid: uid,
+      ...(name && !prev.name ? { name } : {}),
       ...(memberSnap.exists ? {} : { createdAt: now }),
       updatedAt: now,
     };

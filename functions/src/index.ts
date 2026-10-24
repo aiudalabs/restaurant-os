@@ -21,6 +21,7 @@ export { confirmManualPayment } from "./payments/confirm-manual-payment";
 export { recordPayment } from "./payments/record-payment";
 export { onOrderPaid } from "./payments/on-order-paid";
 export { redeemReward, useVoucher } from "./loyalty/vouchers";
+export { attachMember } from "./loyalty/attach-member";
 export { googleWalletLink } from "./loyalty/google-wallet";
 export { customerManifest } from "./customer/customer-manifest";
 export { getOrderReports } from "./reports/get-order-reports";
