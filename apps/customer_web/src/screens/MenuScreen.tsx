@@ -44,11 +44,20 @@ export function MenuScreen() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-10 border-b border-line bg-surface/90 px-5 py-4 backdrop-blur safe-top">
-        <p className="text-xs font-medium uppercase tracking-wide text-hint">
-          {session?.branchName}
-        </p>
-        <h1 className="font-display text-[26px] font-semibold">Menú</h1>
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface/90 px-5 py-4 backdrop-blur safe-top">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-hint">
+            {session?.branchName}
+          </p>
+          <h1 className="font-display text-[26px] font-semibold">Menú</h1>
+        </div>
+        <button
+          onClick={() => navigate('/club')}
+          className="inline-flex items-center gap-1.5 rounded-full bg-gold-tint px-3 py-2 text-[13px] font-semibold text-gold-ink"
+        >
+          <Icon name="star" size={14} />
+          Mi Club
+        </button>
       </header>
 
       <div className="flex-1 px-4 pb-28 pt-2">

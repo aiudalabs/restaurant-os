@@ -32,6 +32,9 @@ order_items
 users
 integrations
 audit_log
+loyalty_members ← server-only (Club): saldo, sellos y nivel por cliente y organización
+loyalty_events  ← server-only: libro de movimientos de puntos (solo se agrega)
+loyalty_vouchers← server-only: cupones de producto gratis
 kds_pins        ← server-only: PIN hasheado por estación (KDS)
 staff_pins      ← server-only: PIN hasheado por mesero (waiter_web)
 ```
@@ -218,6 +221,24 @@ ModifierOption {
   isActive: boolean
 }
 ```
+
+### LoyaltyMember / LoyaltyEvent / LoyaltyVoucher (Club, issue #75)
+```typescript
+// loyalty_members/{orgId}_{uid} — se crea solo al pagarse el primer pedido del cliente (uid anónimo)
+{ orgId, uid, name?, points, stamps /*0..7, a los 8 se emite un cupón*/, lifetimeSpend, visits,
+  tier: "bronce"|"plata"|"oro", weekIndex, weekVisits, streakWeeks, monthKey, monthProducts: string[],
+  createdAt, updatedAt }
+// loyalty_events/{id} — "earn_{orderId}" (idempotente por pedido) o id automático para canjes
+{ orgId, uid, memberId, type: "earn"|"redeem", points, orderId?, total?, bonusPoints?,
+  bonuses?: {key,label,points}[], stampsAfter?, stampCompleted?, tierAfter?, rewardId?, voucherCode?, createdAt }
+// loyalty_vouchers/{orgId}_{CODE} — CODE de 6 caracteres sin 0/O/1/I/L
+{ orgId, uid, memberId, rewardId, rewardName, source: "points"|"stamps", cost?, code,
+  status: "active"|"used", createdAt, usedBy?, usedAt? }
+```
+Las reglas del programa (niveles, recompensas, retos) viven en `functions/src/loyalty/program.ts`.
+Clientes: lectura solo de lo propio (`uid == auth.uid`); ninguna escritura desde clientes.
+Los canjes pasan por `redeemReward` (cliente) y `useVoucher` (personal). Los cupones son
+productos gratis: nunca modifican el total del pedido ni la factura.
 
 ### Order
 ```typescript

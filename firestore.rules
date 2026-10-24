@@ -198,6 +198,23 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ─── Club (loyalty, issue #75) ──────────────────────────────────
+    // Written only by Cloud Functions (onOrderPaid, redeemReward, useVoucher).
+    // A customer reads only their own member doc, ledger events and vouchers.
+
+    match /loyalty_members/{id} {
+      allow read: if isAuthed() && resource.data.uid == uid();
+      allow write: if false;
+    }
+    match /loyalty_events/{id} {
+      allow read: if isAuthed() && resource.data.uid == uid();
+      allow write: if false;
+    }
+    match /loyalty_vouchers/{id} {
+      allow read: if isAuthed() && resource.data.uid == uid();
+      allow write: if false;
+    }
+
     // ─── Audit Log ──────────────────────────────────────────────────
     // Read-only for managers. Writes only from Cloud Functions.
 

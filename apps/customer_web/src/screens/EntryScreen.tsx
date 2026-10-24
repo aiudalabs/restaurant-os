@@ -1,3 +1,4 @@
+import { Icon } from '../components/Icon';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { loadBranch } from '../lib/api';
@@ -124,8 +125,15 @@ export function EntryScreen() {
           </button>
         )}
         <button
+          onClick={() => navigate('/club')}
+          className="mt-3 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-brand bg-white text-base font-semibold text-brand"
+        >
+          <Icon name="star" size={18} />
+          Mi Club
+        </button>
+        <button
           onClick={() => navigate('/recover')}
-          className="mt-3 w-full py-2 text-sm font-medium text-hint"
+          className="mt-2 w-full py-2 text-sm font-medium text-hint"
         >
           Recuperar un pedido con mi número
         </button>

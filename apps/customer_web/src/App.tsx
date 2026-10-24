@@ -6,6 +6,9 @@ import { MenuScreen } from './screens/MenuScreen';
 import { CartScreen } from './screens/CartScreen';
 import { TrackingScreen } from './screens/TrackingScreen';
 import { RecoverScreen } from './screens/RecoverScreen';
+import { ClubScreen } from './screens/ClubScreen';
+import { RewardsScreen } from './screens/RewardsScreen';
+import { ChallengesScreen } from './screens/ChallengesScreen';
 
 export function App() {
   return (
@@ -18,6 +21,9 @@ export function App() {
             <Route path="/cart" element={<CartScreen />} />
             <Route path="/order/:orderId" element={<TrackingScreen />} />
             <Route path="/recover" element={<RecoverScreen />} />
+            <Route path="/club" element={<ClubScreen />} />
+            <Route path="/club/rewards" element={<RewardsScreen />} />
+            <Route path="/club/challenges" element={<ChallengesScreen />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

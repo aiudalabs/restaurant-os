@@ -4,6 +4,7 @@ import * as admin from "firebase-admin";
 import { releaseToKds } from "../orders/kds-ticket";
 import { requestInvoice } from "./request-invoice";
 import { bffInternalToken } from "./config";
+import { awardLoyalty } from "../loyalty/award";
 
 /**
  * onOrderPaid — fires once per order, when payment.status flips to 'paid'
@@ -12,7 +13,8 @@ import { bffInternalToken } from "./config";
  * 1. A link order that was waiting for its payment is released to the kitchen
  *    (its items were pre-routed by onOrderCreated but not mirrored to RTDB).
  * 2. The payment is recorded in audit_log.
- * 3. The electronic invoice is requested (request-invoice.ts).
+ * 3. Club points / stamps / challenges go to the customer (loyalty/award.ts).
+ * 4. The electronic invoice is requested (request-invoice.ts).
  *
  * Idempotent by construction: the flip happens once; the RTDB keys are stable.
  */
@@ -47,6 +49,13 @@ export const onOrderPaid = onDocumentUpdated({ document: "orders/{orderId}", sec
     by: after.payment?.recordedBy ?? "bff",
     at: admin.firestore.Timestamp.now(),
   });
+
+  // Club points (issue #75). The order IS paid: a loyalty failure must not fail the payment.
+  try {
+    await awardLoyalty(orderId, after);
+  } catch (e) {
+    functions.logger.error(`Order ${orderId} paid but loyalty award failed`, e);
+  }
 
   await requestInvoice(orderId, after);
 });

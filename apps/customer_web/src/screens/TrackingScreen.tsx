@@ -8,6 +8,7 @@ import { useSession } from '../store/session';
 import { Spinner } from '../components/Spinner';
 import { InstallCard } from '../components/InstallCard';
 import { Icon, IconBadge } from '../components/Icon';
+import { STAMP_GOAL, watchEarn, type EarnEvent } from '../lib/club';
 import { loadActiveOrder } from '../lib/session';
 import { loadHome } from '../lib/home';
 import type { FiscalInfo, OrderDoc, OrderItemDoc, OrderStatus } from '../types';
@@ -32,6 +33,7 @@ export function TrackingScreen() {
   const [items, setItems] = useState<OrderItemDoc[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [earn, setEarn] = useState<EarnEvent | null>(null);
 
   useEffect(() => {
     if (!orderId) return;
@@ -45,6 +47,9 @@ export function TrackingScreen() {
     });
     return unsub;
   }, [orderId]);
+
+  // Club points show up a moment after the payment is confirmed.
+  useEffect(() => (orderId ? watchEarn(orderId, setEarn) : undefined), [orderId]);
 
   if (!loaded) return <Spinner label="Buscando tu pedido…" />;
 
@@ -181,6 +186,24 @@ export function TrackingScreen() {
         </ol>
       )}
 
+      {earn && (
+        <div className="mt-5 flex items-center gap-3.5 rounded-[18px] bg-gold-tint p-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-gold text-ink">
+            <Icon name="star" size={24} />
+          </span>
+          <div className="flex flex-col gap-0.5">
+            <p className="text-base font-bold">+{earn.points + (earn.bonusPoints ?? 0)} puntos ganados</p>
+            <p className="text-[13px] text-gold-ink">
+              {earn.stampCompleted
+                ? '¡Completaste la tarjeta! Tu Bowl gratis te espera en Canjear'
+                : `Sello ${earn.stampsAfter} de ${STAMP_GOAL} · ${
+                    STAMP_GOAL - earn.stampsAfter === 1 ? 'un pedido más y el Bowl es gratis' : `${STAMP_GOAL - earn.stampsAfter} pedidos más para un Bowl gratis`
+                  }`}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Items */}
       <div className="mt-6 rounded-2xl bg-white p-4 border border-line">
         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-hint">Tu pedido</p>
@@ -207,8 +230,15 @@ export function TrackingScreen() {
       {order.fiscal && order.fiscal.status !== 'skipped' && <InvoiceCard fiscal={order.fiscal} />}
 
       <button
+        onClick={() => navigate('/club')}
+        className="mt-6 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-brand text-base font-semibold text-white"
+      >
+        <Icon name="star" size={18} />
+        Ir a Mi Club
+      </button>
+      <button
         onClick={startNewOrder}
-        className="mt-6 h-[52px] w-full rounded-xl bg-brand text-base font-semibold text-white"
+        className="mt-2.5 h-[52px] w-full rounded-xl border-[1.5px] border-brand bg-white text-base font-semibold text-brand"
       >
         Hacer otro pedido
       </button>
