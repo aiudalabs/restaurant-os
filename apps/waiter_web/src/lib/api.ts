@@ -303,3 +303,16 @@ export async function closeOrder(orderId: string): Promise<void> {
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
+
+/**
+ * Club voucher at the counter (issue #75). commit=false looks it up; true marks it
+ * used once the product has been handed over. Free products only: the order
+ * total and its invoice are not touched.
+ */
+export async function useVoucher(code: string, commit: boolean): Promise<{ rewardName: string; used: boolean }> {
+  const res = await httpsCallable<{ code: string; commit: boolean }, { rewardName: string; used: boolean }>(
+    functions,
+    'useVoucher',
+  )({ code, commit });
+  return res.data;
+}
