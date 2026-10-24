@@ -171,3 +171,12 @@ export async function redeemReward(orgId: string, rewardId: string): Promise<{ c
   )({ orgId, rewardId });
   return res.data;
 }
+
+/** Google Wallet is shown only once the project has its issuer configured (VITE_GOOGLE_WALLET=1). */
+export const googleWalletEnabled = import.meta.env.VITE_GOOGLE_WALLET === '1';
+
+export async function googleWalletUrl(orgId: string): Promise<string> {
+  await ensureAnonAuth();
+  const res = await httpsCallable<{ orgId: string }, { url: string }>(functions, 'googleWalletLink')({ orgId });
+  return res.data.url;
+}
