@@ -7,15 +7,16 @@ import { clearActiveOrder } from '../lib/session';
 import { useSession } from '../store/session';
 import { Spinner } from '../components/Spinner';
 import { InstallCard } from '../components/InstallCard';
+import { Icon, IconBadge } from '../components/Icon';
 import { loadActiveOrder } from '../lib/session';
 import { loadHome } from '../lib/home';
 import type { FiscalInfo, OrderDoc, OrderItemDoc, OrderStatus } from '../types';
 
-const STEPS: { key: string; label: string; icon: string; statuses: OrderStatus[] }[] = [
-  { key: 'received', label: 'Recibido', icon: '📝', statuses: ['pending', 'confirmed'] },
-  { key: 'preparing', label: 'En preparación', icon: '👨‍🍳', statuses: ['in_preparation'] },
-  { key: 'ready', label: 'Listo para retirar', icon: '🔔', statuses: ['ready'] },
-  { key: 'done', label: 'Entregado', icon: '✅', statuses: ['delivered', 'closed'] },
+const STEPS: { key: string; label: string; statuses: OrderStatus[] }[] = [
+  { key: 'received', label: 'Recibido', statuses: ['pending', 'confirmed'] },
+  { key: 'preparing', label: 'En cocina', statuses: ['in_preparation'] },
+  { key: 'ready', label: 'Listo', statuses: ['ready'] },
+  { key: 'done', label: 'Entregado', statuses: ['delivered', 'closed'] },
 ];
 
 function stepIndex(status: OrderStatus): number {
@@ -49,12 +50,12 @@ export function TrackingScreen() {
 
   if (!order) {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center gap-4 p-8 text-center">
-        <div className="text-5xl">🔍</div>
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+        <IconBadge name="search" />
         <p className="text-sm text-hint">No encontramos este pedido.</p>
         <button
           onClick={() => navigate('/recover')}
-          className="rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white"
+          className="h-11 rounded-xl bg-brand px-5 text-sm font-semibold text-white"
         >
           Buscar con mi número
         </button>
@@ -88,23 +89,28 @@ export function TrackingScreen() {
   };
 
   return (
-    <div className="flex min-h-full flex-col px-5 pb-10 safe-top">
-      <header className="py-4 text-center">
-        <p className="text-xs font-medium uppercase tracking-wide text-hint">Tu número de pedido</p>
+    <div className="flex flex-1 flex-col px-5 pb-10 safe-top">
+      <header className="pt-5 text-center">
+        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-hint">Tu número</p>
       </header>
 
       {/* The number the customer must keep to pick up the order */}
-      <div
-        className={`rounded-3xl p-7 text-center text-white shadow-xl ${
-          isReady
-            ? 'bg-emerald-500 shadow-emerald-500/30'
-            : paymentPending
-              ? 'bg-ink/80 shadow-black/20'
-              : 'bg-brand shadow-brand/25'
-        }`}
-      >
-        <div className="font-display text-6xl font-bold tracking-tight">{order.pickupCode}</div>
-        <p className="mt-2 text-sm text-white/80">
+      <div className="mt-1.5 flex flex-col items-center gap-1.5 text-center">
+        <div
+          className="font-display font-semibold leading-none text-brand"
+          style={{ fontSize: `min(96px, calc((100vw - 40px) / ${Math.max(order.pickupCode.length, 3) * 0.62}))` }}
+        >
+          {order.pickupCode}
+        </div>
+        <span
+          className={`mt-1 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[15px] font-semibold ${
+            paymentPending || cancelled ? 'bg-ink text-white' : 'bg-brand text-white'
+          }`}
+        >
+          {isReady && <Icon name="bell" size={18} />}
+          {cancelled ? 'Cancelado' : paymentPending ? 'Esperando pago' : isReady ? 'Listo para retirar' : STEPS[active].label}
+        </span>
+        <p className="mt-1 max-w-xs text-sm text-hint">
           {paymentPending
             ? yappy
               ? 'Reservado — lo preparamos al confirmar tu Yappy'
@@ -119,7 +125,7 @@ export function TrackingScreen() {
 
       {/* Payment gate — order is held until paid */}
       {paymentPending && !yappy && (
-        <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+        <div className="mt-4 rounded-2xl border border-line bg-white p-4 border border-line">
           <p className="text-center text-sm font-semibold text-ink">
             {paymentFailed ? 'Tu pago fue rechazado' : 'Falta completar el pago'}
           </p>
@@ -129,7 +135,7 @@ export function TrackingScreen() {
           <button
             onClick={payNow}
             disabled={paying}
-            className="mt-3 w-full rounded-2xl bg-brand py-3.5 text-sm font-semibold text-white active:scale-[0.99] disabled:opacity-60"
+            className="mt-3 w-full rounded-xl bg-brand py-3.5 text-sm font-semibold text-white active:scale-[0.99] disabled:opacity-60"
           >
             {paying ? 'Redirigiendo…' : paymentFailed ? 'Reintentar pago' : `Pagar ${money(order.total)}`}
           </button>
@@ -139,54 +145,44 @@ export function TrackingScreen() {
       <InstallFor orderBranchId={order.branchId} sessionBranch={session} />
 
       {isReady && (
-        <div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-700">
-          🔔 ¡Tu pedido está listo! Acércate al mostrador con tu número.
+        <div className="mt-4 rounded-2xl bg-gold-tint px-4 py-3 text-center text-sm font-semibold text-gold-ink">
+          Tu pedido está listo. Pasa a retirarlo en el mostrador.
         </div>
       )}
       {cancelled && (
-        <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-600">
+        <div className="mt-4 rounded-2xl bg-[#FBE9E7] px-4 py-3 text-center text-sm font-semibold text-danger">
           {yappy
             ? 'Pedido cancelado: no nos llegó tu Yappy. Si pagaste, muéstrale el comprobante al personal.'
             : 'Este pedido fue cancelado. Consulta con el personal.'}
         </div>
       )}
 
-      {/* Status stepper */}
+      {/* Status stepper: four bars, gold on the current step */}
       {!cancelled && !paymentPending && (
-        <div className="mt-7">
+        <ol className="mt-6 grid grid-cols-4 gap-1.5">
           {STEPS.map((step, i) => {
             const state = i < active ? 'done' : i === active ? 'current' : 'todo';
             return (
-              <div key={step.key} className="flex items-center gap-3.5 py-2">
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-full text-lg transition ${
-                    state === 'todo'
-                      ? 'bg-black/5 grayscale'
-                      : state === 'current'
-                        ? 'bg-brand/10 ring-2 ring-brand'
-                        : 'bg-emerald-50'
-                  }`}
-                >
-                  {state === 'done' ? '✓' : step.icon}
-                </div>
+              <li
+                key={step.key}
+                className={`flex flex-col items-center gap-1.5 text-center text-[11px] ${
+                  state === 'todo' ? 'font-medium text-hint' : state === 'current' ? 'font-bold text-brand' : 'font-semibold text-brand'
+                }`}
+              >
                 <span
-                  className={`text-sm ${
-                    state === 'todo' ? 'text-hint' : 'font-semibold text-ink'
+                  className={`h-1 w-full rounded-full ${
+                    state === 'todo' ? 'bg-[#EFEAE0]' : state === 'current' ? 'bg-gold' : 'bg-brand'
                   }`}
-                >
-                  {step.label}
-                </span>
-                {state === 'current' && (
-                  <span className="ml-auto h-2 w-2 animate-pulse rounded-full bg-brand" />
-                )}
-              </div>
+                />
+                {step.label}
+              </li>
             );
           })}
-        </div>
+        </ol>
       )}
 
       {/* Items */}
-      <div className="mt-6 rounded-2xl bg-white p-4 shadow-sm">
+      <div className="mt-6 rounded-2xl bg-white p-4 border border-line">
         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-hint">Tu pedido</p>
         {items.length === 0 ? (
           <p className="text-sm text-hint">Cargando artículos…</p>
@@ -202,7 +198,7 @@ export function TrackingScreen() {
             ))}
           </div>
         )}
-        <div className="mt-3 flex justify-between border-t border-black/5 pt-3 font-semibold">
+        <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold">
           <span>Total</span>
           <span>{money(order.total)}</span>
         </div>
@@ -212,7 +208,7 @@ export function TrackingScreen() {
 
       <button
         onClick={startNewOrder}
-        className="mt-6 w-full rounded-2xl border border-black/10 bg-white py-3.5 text-sm font-semibold text-ink"
+        className="mt-6 h-[52px] w-full rounded-xl bg-brand text-base font-semibold text-white"
       >
         Hacer otro pedido
       </button>
@@ -222,10 +218,10 @@ export function TrackingScreen() {
 
 function ItemBadge({ status }: { status: OrderItemDoc['status'] }) {
   const map: Record<OrderItemDoc['status'], { label: string; cls: string }> = {
-    queued: { label: 'En cola', cls: 'bg-black/5 text-hint' },
-    in_progress: { label: 'Preparando', cls: 'bg-amber-100 text-amber-700' },
-    done: { label: 'Listo', cls: 'bg-emerald-100 text-emerald-700' },
-    cancelled: { label: 'Cancelado', cls: 'bg-red-100 text-red-600' },
+    queued: { label: 'En cola', cls: 'bg-[#EFEAE0] text-hint' },
+    in_progress: { label: 'Preparando', cls: 'bg-gold-tint text-gold-ink' },
+    done: { label: 'Listo', cls: 'bg-brand-tint text-brand-dark' },
+    cancelled: { label: 'Cancelado', cls: 'bg-[#FBE9E7] text-danger' },
   };
   const { label, cls } = map[status] ?? map.queued;
   return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>;
@@ -234,7 +230,7 @@ function ItemBadge({ status }: { status: OrderItemDoc['status'] }) {
 /** Electronic invoice issued server-side once the order is paid. */
 function InvoiceCard({ fiscal }: { fiscal: FiscalInfo }) {
   return (
-    <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+    <div className="mt-4 rounded-2xl bg-white p-4 border border-line">
       <p className="mb-2 text-xs font-medium uppercase tracking-wide text-hint">Factura electrónica</p>
       {fiscal.status === 'issued' ? (
         <>
@@ -251,9 +247,9 @@ function InvoiceCard({ fiscal }: { fiscal: FiscalInfo }) {
                   href={fiscal.pdfUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 rounded-xl bg-brand py-2.5 text-center text-sm font-semibold text-white"
+                  className="flex-1 rounded-xl border-[1.5px] border-brand py-2.5 text-center text-sm font-semibold text-brand"
                 >
-                  Descargar PDF
+                  Ver PDF
                 </a>
               )}
               {fiscal.qrUrl && (
@@ -261,7 +257,7 @@ function InvoiceCard({ fiscal }: { fiscal: FiscalInfo }) {
                   href={fiscal.qrUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 rounded-xl border border-black/10 py-2.5 text-center text-sm font-semibold text-ink"
+                  className="flex-1 rounded-xl border border-line py-2.5 text-center text-sm font-semibold text-ink"
                 >
                   Verificar en la DGI
                 </a>
@@ -292,10 +288,10 @@ function YappySteps({ order }: { order: OrderDoc }) {
     window.setTimeout(() => setCopied(''), 2000);
   };
   return (
-    <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+    <div className="mt-4 rounded-2xl border border-line bg-white p-4 border border-line">
       <p className="text-center text-sm font-semibold text-ink">Paga con Yappy para que lo preparemos</p>
-      <p className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-center text-xs text-emerald-800">
-        💚 Sabemos que copiar datos en Yappy no es lo más cómodo. Estamos trabajando para que muy pronto pagues con un
+      <p className="mt-2 rounded-xl bg-brand-tint px-3 py-2 text-center text-xs text-brand-dark">
+        Sabemos que copiar datos en Yappy no es lo más cómodo. Estamos trabajando para que muy pronto pagues con un
         solo toque. ¡Gracias por tu paciencia!
       </p>
       <ol className="mt-3 space-y-3 text-sm">
@@ -304,7 +300,7 @@ function YappySteps({ order }: { order: OrderDoc }) {
           <span className="min-w-0 flex-1">
             Envía <b>{money(order.total)}</b> a <b className="break-all">{order.payTo}</b>
           </span>
-          <button onClick={() => copy('to', order.payTo)} className="rounded-lg border border-black/10 px-2.5 py-1.5 text-xs font-semibold">
+          <button onClick={() => copy('to', order.payTo)} className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold">
             {copied === 'to' ? 'Copiado' : 'Copiar'}
           </button>
         </li>
@@ -313,7 +309,7 @@ function YappySteps({ order }: { order: OrderDoc }) {
           <span className="min-w-0 flex-1">
             En el mensaje escribe <b className="tabular-nums">{order.pickupCode}</b>
           </span>
-          <button onClick={() => copy('code', order.pickupCode)} className="rounded-lg border border-black/10 px-2.5 py-1.5 text-xs font-semibold">
+          <button onClick={() => copy('code', order.pickupCode)} className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold">
             {copied === 'code' ? 'Copiado' : 'Copiar'}
           </button>
         </li>

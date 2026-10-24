@@ -1,3 +1,4 @@
+import { Icon } from '../components/Icon';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loadMenu, type MenuData } from '../lib/api';
@@ -30,7 +31,7 @@ export function MenuScreen() {
 
   if (error) {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center gap-4 p-8 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
         <p className="text-sm text-hint">{error}</p>
         <button onClick={() => navigate('/')} className="text-sm font-semibold text-brand">
           Volver
@@ -42,12 +43,12 @@ export function MenuScreen() {
   if (!data) return <Spinner label="Cargando menú…" />;
 
   return (
-    <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-10 border-b border-black/5 bg-white/90 px-5 py-4 backdrop-blur safe-top">
+    <div className="flex flex-1 flex-col">
+      <header className="sticky top-0 z-10 border-b border-line bg-surface/90 px-5 py-4 backdrop-blur safe-top">
         <p className="text-xs font-medium uppercase tracking-wide text-hint">
           {session?.branchName}
         </p>
-        <h1 className="font-display text-2xl font-semibold">Menú</h1>
+        <h1 className="font-display text-[26px] font-semibold">Menú</h1>
       </header>
 
       <div className="flex-1 px-4 pb-28 pt-2">
@@ -71,7 +72,7 @@ export function MenuScreen() {
         <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md px-4 safe-bottom">
           <button
             onClick={() => navigate('/cart')}
-            className="flex w-full items-center justify-between rounded-2xl bg-brand px-5 py-4 text-white shadow-xl shadow-brand/30 active:scale-[0.99]"
+            className="flex w-full items-center justify-between rounded-xl bg-brand px-5 py-4 text-white active:scale-[0.99]"
           >
             <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-white/25 px-2 text-sm font-bold">
               {cart.itemCount}
@@ -90,7 +91,7 @@ function ProductRow({ product }: { product: Product }) {
   const qty = cart.quantityOf(product.id);
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
+    <div className="flex items-center gap-3 rounded-2xl bg-white p-3 border border-line">
       {product.imageUrl ? (
         <img
           src={product.imageUrl}
@@ -99,8 +100,8 @@ function ProductRow({ product }: { product: Product }) {
           className="h-16 w-16 flex-shrink-0 rounded-xl object-cover"
         />
       ) : (
-        <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-surface text-2xl">
-          🍴
+        <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand">
+          <Icon name="bowl" />
         </div>
       )}
 

@@ -1,3 +1,4 @@
+import { BackButton, IconBadge } from '../components/Icon';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createOrder, loadCheckoutConfig } from '../lib/api';
@@ -15,7 +16,7 @@ const METHOD_TEXT: Record<PayMethod, { label: string; hint: string }> = {
 };
 
 const INPUT_CLS =
-  'w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-brand';
+  'w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-brand';
 
 interface InvoiceForm {
   name: string;
@@ -139,7 +140,7 @@ export function CartScreen() {
   // its empty state while we create the order and fetch the payment link.
   if (submitting) {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center gap-5 px-8 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-5 px-8 text-center">
         <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-brand border-t-transparent" />
         <div>
           <p className="font-display text-xl font-semibold">
@@ -156,17 +157,15 @@ export function CartScreen() {
   }
 
   return (
-    <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-black/5 bg-white/90 px-4 py-4 backdrop-blur safe-top">
-        <button onClick={() => navigate(-1)} className="text-xl" aria-label="Volver">
-          ←
-        </button>
-        <h1 className="font-display text-xl font-semibold">Mi pedido</h1>
+    <div className="flex flex-1 flex-col">
+      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-line bg-surface/90 px-4 py-4 backdrop-blur safe-top">
+        <BackButton onClick={() => navigate(-1)} />
+        <h1 className="font-display text-[26px] font-semibold">Mi pedido</h1>
       </header>
 
       {cart.itemCount === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-          <div className="text-5xl">🛒</div>
+          <IconBadge name="bag" />
           <p className="text-sm text-hint">Tu carrito está vacío.</p>
           <button
             onClick={() => navigate('/menu')}
@@ -182,7 +181,7 @@ export function CartScreen() {
               {cart.lines.map((line) => (
                 <div
                   key={line.productId}
-                  className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm"
+                  className="flex items-center gap-3 rounded-2xl bg-white p-3 border border-line"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{line.productName}</p>
@@ -214,10 +213,10 @@ export function CartScreen() {
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Notas para la cocina (opcional)"
               rows={2}
-              className="mt-4 w-full resize-none rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-brand"
+              className="mt-4 w-full resize-none rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-brand"
             />
 
-            <div className="mt-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
+            <div className="mt-3 rounded-2xl bg-white px-4 py-3 border border-line">
               <button
                 type="button"
                 onClick={() => setInvoiceOpen((o) => !o)}
@@ -267,7 +266,7 @@ export function CartScreen() {
             </div>
           </div>
 
-          <div className="fixed inset-x-0 bottom-0 mx-auto max-w-md border-t border-black/5 bg-white px-4 pt-4 safe-bottom">
+          <div className="fixed inset-x-0 bottom-0 mx-auto max-w-md border-t border-line bg-white px-4 pt-4 safe-bottom">
             <div className="flex justify-between text-sm text-hint">
               <span>Subtotal</span>
               <span>{money(cart.subtotal)}</span>
@@ -294,7 +293,7 @@ export function CartScreen() {
                       aria-checked={method === m}
                       onClick={() => setMethod(m)}
                       className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold ${
-                        method === m ? 'border-brand bg-brand/5 text-brand' : 'border-black/10 text-ink'
+                        method === m ? 'border-brand bg-brand/5 text-brand' : 'border-line text-ink'
                       }`}
                     >
                       {METHOD_TEXT[m].label}
@@ -304,12 +303,12 @@ export function CartScreen() {
               </div>
             )}
 
-            {error && <p className="mt-2 text-center text-sm text-brand">{error}</p>}
+            {error && <p className="mt-2 text-center text-sm text-danger">{error}</p>}
 
             <button
               onClick={confirm}
               disabled={submitting}
-              className="mt-3 w-full rounded-2xl bg-brand py-4 text-base font-semibold text-white shadow-lg shadow-brand/25 active:scale-[0.99] disabled:opacity-60"
+              className="mt-3 h-[52px] w-full rounded-xl bg-brand text-base font-semibold text-white active:scale-[0.99] disabled:opacity-60"
             >
               {submitting
                 ? method === 'card'

@@ -59,12 +59,10 @@ export function EntryScreen() {
   if (status === 'loading') return <Spinner label="Cargando restaurante…" />;
 
   return (
-    <div className="flex min-h-full flex-col justify-between px-6 pb-10 safe-top">
+    <div className="flex flex-1 flex-col justify-between px-6 pb-10 safe-top">
       <div />
       <div className="flex flex-col items-center text-center">
-        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-brand text-4xl shadow-lg shadow-brand/20">
-          🍽️
-        </div>
+        <img src="/brand/logo.png" alt="Pick & Eat" className="mb-6 h-36 w-auto object-contain" />
 
         {status === 'error' ? (
           <>
@@ -106,7 +104,7 @@ export function EntryScreen() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Tu nombre (opcional)"
                 autoComplete="given-name"
-                className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3.5 text-center text-base outline-none focus:border-brand"
+                className="w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-center text-base outline-none focus:border-brand"
               />
             </div>
             <div className="w-full text-left">
@@ -120,7 +118,7 @@ export function EntryScreen() {
         {status === 'ready' && (
           <button
             onClick={beginOrder}
-            className="w-full rounded-2xl bg-brand py-4 text-base font-semibold text-white shadow-lg shadow-brand/25 active:scale-[0.99]"
+            className="h-[52px] w-full rounded-xl bg-brand text-base font-semibold text-white active:scale-[0.99]"
           >
             Ver el menú
           </button>

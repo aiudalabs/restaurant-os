@@ -11,7 +11,7 @@ export function App() {
   return (
     <SessionProvider>
       <CartProvider>
-        <div className="mx-auto flex min-h-full max-w-md flex-col bg-surface">
+        <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col bg-surface">
           <Routes>
             <Route path="/" element={<EntryScreen />} />
             <Route path="/menu" element={<MenuScreen />} />
