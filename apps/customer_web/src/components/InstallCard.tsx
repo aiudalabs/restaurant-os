@@ -33,7 +33,7 @@ export function InstallCard({ orgId, branchId, branchName }: Props) {
 
   return (
     <>
-      <div className="mt-4 flex items-center gap-3 rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+      <div className="mt-4 flex items-center gap-3 rounded-2xl border border-line bg-white p-4 border border-line">
         <img src="/icons/icon-192.png" alt="" className="h-11 w-11 shrink-0 rounded-xl" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-ink">Instala {name} para tus próximos pedidos</p>
@@ -72,7 +72,7 @@ export function InstallCard({ orgId, branchId, branchName }: Props) {
                 </span>
               </li>
             </ol>
-            <button onClick={() => setIosSteps(false)} className="mt-5 w-full rounded-2xl border border-black/10 py-3 text-sm font-semibold">
+            <button onClick={() => setIosSteps(false)} className="mt-5 w-full rounded-2xl border border-line py-3 text-sm font-semibold">
               Entendido
             </button>
           </div>
