@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { cartSubtotal } from '../lib/totals';
 import type { CartLine, Product } from '../types';
 
 interface CartContextValue {
@@ -50,7 +51,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return {
       lines,
       itemCount: lines.reduce((s, l) => s + l.quantity, 0),
-      subtotal: lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0),
+      subtotal: cartSubtotal(lines),
       add,
       setQuantity,
       quantityOf,
