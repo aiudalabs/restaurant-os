@@ -1,7 +1,7 @@
 # AI Assistant — "Arma tu restaurante hablando" (propuesta)
 
-> Estado: **propuesta / no implementado**. Fuente de verdad del flujo Odoo↔Firebase sigue
-> siendo `INTEGRATION_ARCHITECTURE.md`. Este doc define cómo añadir una capa de IA
+> Estado: **implementado** (`apps/fastapi_bff/app/ai`; el modelo nunca escribe en la DB).
+> Este doc define cómo añadir una capa de IA
 > conversacional para construir la configuración (sucursales, estaciones, menús,
 > categorías, productos) desde un chat.
 

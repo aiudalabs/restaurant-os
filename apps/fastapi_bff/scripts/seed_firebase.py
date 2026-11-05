@@ -133,7 +133,7 @@ def main():
     ok("Demo table '1' upserted")
 
     print(f"\n{GREEN}Firebase seed complete.{RESET}")
-    print(f"  Next: POST /admin/sync-catalog to populate products from Odoo.\n")
+    print(f"  Next: create the menu from the admin app (or the AI assistant).\n")
 
 
 if __name__ == "__main__":

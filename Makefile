@@ -2,7 +2,7 @@
 # Web siempre se construye contra dev: el guard de vite rechaza `production`.
 DEV_MODE := restaurant-os-dev-49096
 WEB_APPS := admin_app customer_web waiter_web kitchen_web
-BFF_TESTS := --ignore=tests/test_auth.py --ignore=tests/test_catalog_sync.py
+BFF_TESTS :=
 
 .PHONY: check verify e2e web-% functions bff
 

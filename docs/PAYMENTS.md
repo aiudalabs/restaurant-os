@@ -49,7 +49,6 @@ customer_web (carrito)
   ▼
   PagueloFácil → GET/POST {BFF}/payments/callback  (PARM_1 = order_id)
   │  BFF: verifica (ver §3) → payment.status='paid', status='confirmed'
-  │       → _sync_to_odoo()  (crea pos.order, no bloqueante)
   │  Cloud Function onOrderPaid (orders/{id} pasa a payment.status='paid'):
   │       → releaseToKds()  (espeja al RTDB → KDS lo ve)   ✅ recién ahora cocina
   │       → audit_log, factura electrónica (docs/DIGIFACT_EVALUATION.md)
@@ -74,7 +73,7 @@ de la orden en Firestore (recalculado por `onOrderCreated`), nunca del navegador
 - `apps/customer_web/src/screens/CartScreen.tsx` — crea la orden y redirige al pago.
 - `apps/customer_web/src/lib/payments.ts` / `config.ts` — llama al BFF; flag `VITE_PAYMENTS_ENABLED`.
 - `apps/customer_web/src/screens/TrackingScreen.tsx` — estados `pending_payment` / `payment_failed` con botón "Pagar / Reintentar".
-- `apps/fastapi_bff/app/payments/*` — `POST /payments/init` (link) y `/payments/callback` (confirmación + routing + Odoo).
+- `apps/fastapi_bff/app/payments/*` — `POST /payments/init` (link) y `/payments/callback` (confirmación + routing).
 - `functions/src/orders/on-order-created.ts` — para `source:'qr'` con `status:'pending_payment'` asigna `stationId` pero **no** espeja al RTDB; el BFF lo hace al pagar.
 
 **Retrocompatibilidad:** con `VITE_PAYMENTS_ENABLED` apagado (default), la web app crea

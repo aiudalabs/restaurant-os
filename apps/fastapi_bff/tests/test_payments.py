@@ -56,7 +56,6 @@ def fake(monkeypatch):
     def make(docs):
         fdb = FakeDB(docs)
         monkeypatch.setattr(service, "db", lambda: fdb)
-        monkeypatch.setattr(service, "_sync_to_odoo", lambda *a, **k: fdb.store.setdefault("__odoo__", []).append(a))
         return fdb
     return make
 
@@ -98,7 +97,6 @@ def test_callback_approved_writes_paid_card(fake):
     assert o["payment"]["recordedBy"] == "bff"
     assert o["payment"]["confirmationNumber"] == "ABC123"
     assert o["status"] == "confirmed"
-    assert fdb.store["__odoo__"] == [("o1", "ABC123")]
 
 
 def test_callback_rejected_writes_failed(fake):
@@ -106,7 +104,6 @@ def test_callback_rejected_writes_failed(fake):
     service.handle_callback({"PARM_1": "o1", "Estado": "Rechazada", "CodOper": "X"})
     o = fdb.store["orders/o1"]
     assert o["payment"]["status"] == "failed" and o["status"] == "payment_failed"
-    assert "__odoo__" not in fdb.store
 
 
 def test_callback_ignores_already_paid(fake):
@@ -127,12 +124,3 @@ def test_callback_without_order_id_is_noop(fake):
     fdb = fake({})
     assert service.handle_callback({"Estado": "Aprobada"}) is None
     assert "__updates__" not in fdb.store
-
-
-def test_odoo_client_none_without_config(monkeypatch):
-    from app.core import odoo
-
-    monkeypatch.setattr(odoo, "resolve_odoo_config", lambda org_id: None)
-    monkeypatch.setattr(odoo.settings, "odoo_url", "")
-    monkeypatch.setattr(odoo.settings, "odoo_db", "")
-    assert odoo.odoo_client_for_org("org-x") is None
