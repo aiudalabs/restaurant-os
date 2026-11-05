@@ -1,4 +1,10 @@
+# Uploaded by `gcloud run deploy --source` (scripts/deploy-bff.sh). With this file
+# present gcloud does NOT read .gitignore: every local secret must be listed here.
 serviceAccountKey.json
 .env
+.zaveli-dev/
 .venv
 tests
+.pytest_cache/
+__pycache__/
+.DS_Store
