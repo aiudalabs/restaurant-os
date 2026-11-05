@@ -18,6 +18,9 @@ import type {
   Branch,
   CartLine,
   Category,
+  FiscalInfo,
+  DiscountOption,
+  InvoiceRequest,
   Order,
   OrderItem,
   PaymentMethod,
@@ -143,6 +146,18 @@ export async function createOrder(branch: Branch, customerName: string, lines: C
   return orderRef.id;
 }
 
+function mapFiscal(f: DocumentData): FiscalInfo {
+  return {
+    status: f.status ?? 'pending',
+    cufe: f.cufe ?? '',
+    numeroDF: f.numeroDF ?? '',
+    qrUrl: f.qrUrl ?? '',
+    pdfPath: f.pdfPath ?? '',
+    pdfUrl: f.pdfUrl ?? '',
+    lastError: f.lastError ?? '',
+  };
+}
+
 const ACTIVE_STATUSES = ['pending_payment', 'pending', 'confirmed', 'in_preparation', 'ready'];
 
 function mapOrder(id: string, d: DocumentData): Order {
@@ -156,6 +171,11 @@ function mapOrder(id: string, d: DocumentData): Order {
     createdAtMs: d.createdAt?.toMillis?.() ?? Date.now(),
     paymentStatus: d.payment?.status ?? null,
     paymentMethod: d.payment?.method ?? null,
+    fiscal: d.fiscal ? mapFiscal(d.fiscal) : null,
+    discount: d.discount && typeof d.discount.amount === 'number'
+      ? { name: String(d.discount.name ?? ''), percent: Number(d.discount.percent) || 0, amount: d.discount.amount }
+      : null,
+    hasMember: typeof d.loyaltyUid === 'string' && d.loyaltyUid !== '',
   };
 }
 
@@ -215,16 +235,22 @@ export function watchOrderItems(
 }
 
 /**
- * Records a payment collected in person. Does NOT change the order status:
- * the kitchen drives it (onOrderItemUpdated would overwrite it to 'ready').
+ * Records a payment collected in person through the `recordPayment` Cloud
+ * Function: the server validates the order and marks it paid (clients cannot
+ * write payment fields). Everything after the payment (KDS release, audit,
+ * electronic invoice) happens server-side. A double tap returns
+ * 'already_paid' and changes nothing.
  */
-export async function recordPayment(orderId: string, method: PaymentMethod): Promise<void> {
-  await updateDoc(doc(db, paths.orders, orderId), {
-    'payment.method': method,
-    'payment.status': 'paid',
-    'payment.paidAt': serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+export async function recordPayment(
+  orderId: string,
+  method: PaymentMethod,
+  invoiceRequest?: InvoiceRequest,
+): Promise<'paid' | 'already_paid'> {
+  const res = await httpsCallable<
+    { orderId: string; method: PaymentMethod; invoiceRequest?: InvoiceRequest },
+    { status: 'paid' | 'already_paid' }
+  >(functions, 'recordPayment')({ orderId, method, ...(invoiceRequest ? { invoiceRequest } : {}) });
+  return res.data.status;
 }
 
 /**
@@ -281,4 +307,44 @@ export async function closeOrder(orderId: string): Promise<void> {
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+/**
+ * Club voucher at the counter (issue #75). commit=false looks it up; true marks it
+ * used once the product has been handed over. Free products only: the order
+ * total and its invoice are not touched.
+ */
+export async function useVoucher(code: string, commit: boolean): Promise<{ rewardName: string; used: boolean }> {
+  const res = await httpsCallable<{ code: string; commit: boolean }, { rewardName: string; used: boolean }>(
+    functions,
+    'useVoucher',
+  )({ code, commit });
+  return res.data;
+}
+
+/** Ties an order the waiter took to the Club member whose QR was scanned (issue #79). */
+export async function attachMember(orderId: string, memberId: string): Promise<{ awarded: boolean; name: string; points: number }> {
+  const res = await httpsCallable<{ orderId: string; memberId: string }, { awarded: boolean; name: string; points: number }>(
+    functions,
+    'attachMember',
+  )({ orderId, memberId });
+  return res.data;
+}
+
+/** Active discounts the organization configured (issue #81). */
+export async function loadDiscounts(orgId: string): Promise<DiscountOption[]> {
+  const snap = await getDoc(doc(db, 'organizations', orgId));
+  const list: unknown = snap.data()?.discounts;
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((d) => d && typeof d.id === 'string' && d.active !== false && typeof d.percent === 'number' && d.percent > 0)
+    .map((d) => ({ id: d.id, name: String(d.name ?? d.id), percent: d.percent, requiresId: d.requiresId === true }));
+}
+
+/** Applies (or, with null, removes) a discount; the server recomputes the order total. */
+export async function applyDiscount(orderId: string, discountId: string | null, idNumber?: string): Promise<void> {
+  await httpsCallable<{ orderId: string; discountId: string | null; idNumber?: string }, unknown>(
+    functions,
+    'applyDiscount',
+  )({ orderId, discountId, ...(idNumber ? { idNumber } : {}) });
 }

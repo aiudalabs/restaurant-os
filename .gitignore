@@ -22,3 +22,7 @@ deploy/env/*.secrets.env
 
 # Local Zaveli endpoint state (scripts/zaveli-endpoint.sh): .env with the signing secret, pid, logs
 apps/fastapi_bff/.zaveli-dev/
+
+# Cloud Functions local secrets / params (never commit)
+functions/.secret.local
+functions/.env.local

@@ -1,0 +1,34 @@
+<title>Escanéame · Pedir</title>
+<style>
+  :root{--bg:#F5F2EC;--card:#fff;--ink:#1C1C1E;--muted:#7C736C;--brand:#E23744;--line:#E7E1D8}
+  @media (prefers-color-scheme:dark){:root{--bg:#17140F;--card:#211D18;--ink:#F3EDE4;--muted:#A79C90;--line:#332C24}}
+  :root[data-theme=light]{--bg:#F5F2EC;--card:#fff;--ink:#1C1C1E;--muted:#7C736C;--line:#E7E1D8}
+  :root[data-theme=dark]{--bg:#17140F;--card:#211D18;--ink:#F3EDE4;--muted:#A79C90;--line:#332C24}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    display:flex;align-items:center;justify-content:center;padding:28px 18px}
+  .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);
+    border-radius:26px;padding:30px 28px 26px;text-align:center;
+    box-shadow:0 24px 50px -28px rgba(0,0,0,.35)}
+  .eyebrow{margin:0;font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--brand)}
+  h1{margin:8px 0 2px;font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:27px}
+  .sub{margin:0 0 20px;font-size:14px;color:var(--muted)}
+  .qr{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;display:inline-block;line-height:0}
+  .qr img{width:min(300px,72vw);height:auto;border-radius:8px}
+  .hint{margin:18px 0 0;font-size:13px;color:var(--muted)}
+  .link{display:block;margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;
+    font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:12px;color:var(--ink);word-break:break-all;text-decoration:none}
+  .link:hover{border-color:var(--brand);color:var(--brand)}
+  .tag{display:inline-block;margin-top:14px;font-size:12px;color:var(--muted);background:color-mix(in srgb,var(--brand) 8%,transparent);
+    border-radius:999px;padding:5px 12px}
+</style>
+<div class="card">
+  <p class="eyebrow">Boda Lucas</p>
+  <h1>Escanea para pedir</h1>
+  <p class="sub">Apunta la cámara del celular al código</p>
+  <div class="qr"><img src="data:image/png;base64,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" alt="QR para abrir la app de pedidos"/></div>
+  <p class="hint">Se abre en el navegador — sin descargar nada.</p>
+  <a class="link" href="https://restaurant-os-pedir.web.app/?org=demo-org&amp;branch=demo-branch">restaurant-os-pedir.web.app/?org=demo-org&amp;branch=demo-branch</a>
+  <span class="tag">Pago sandbox activo · tarjeta 4059310181757001</span>
+</div>

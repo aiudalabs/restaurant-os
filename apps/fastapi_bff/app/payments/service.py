@@ -5,8 +5,7 @@ from datetime import datetime, timezone
 import httpx
 
 from app.config import settings
-from app.core.firebase import get_rtdb
-from app.core.firestore import ORDERS, ORDER_ITEMS, STATIONS, db
+from app.core.firestore import ORDERS, ORDER_ITEMS, db
 from app.core.odoo import OdooClient, odoo_client_for_org
 
 logger = logging.getLogger(__name__)
@@ -17,9 +16,32 @@ _PF_URLS = {
 }
 
 
-def create_payment_link(order_id: str, amount: float, description: str) -> dict:
+class OrderNotPayable(Exception):
+    """The order cannot start an online payment (missing, wrong state, already paid)."""
+
+
+def create_payment_link(order_id: str) -> dict:
+    """Creates a PagueloFácil hosted payment link for an order.
+
+    The amount is the order's total as stored in Firestore (recomputed server-side
+    by onOrderCreated); the browser never decides what it pays. Only orders waiting
+    for their online payment can start one.
+    """
+    snap = db().collection(ORDERS).document(order_id).get()
+    if not snap.exists:
+        raise OrderNotPayable("Pedido no encontrado.")
+    order = snap.to_dict() or {}
+    if order.get("status") != "pending_payment":
+        raise OrderNotPayable(f"El pedido no espera pago en línea (estado {order.get('status')}).")
+    if (order.get("payment") or {}).get("status") == "paid":
+        raise OrderNotPayable("El pedido ya está pagado.")
+    amount = float(order.get("total") or 0)
+    if amount <= 0:
+        raise OrderNotPayable("El pedido no tiene un total válido.")
+
     callback_url = f"{settings.bff_base_url}/payments/callback"
     url = _PF_URLS.get(settings.paguelofacil_env, _PF_URLS["sandbox"])
+    description = f"Pedido {order.get('pickupCode') or order_id[:8]}"
 
     payload = {
         "CCLW": settings.paguelofacil_cclw,
@@ -52,7 +74,7 @@ def _verify_with_paguelofacil(cod_oper: str, expected_amount: float) -> bool:
     loud warning and trust the callback — DO NOT run production without this.
 
     TODO(go-live): confirm PagueloFácil's REST status endpoint + request/response
-    schema (from their official Postman collection) and implement the real call.
+    schema (from their official Postman collection) and map the real fields.
     """
     if not settings.paguelofacil_verify_url or not settings.paguelofacil_access_token:
         logger.warning(
@@ -73,7 +95,11 @@ def _verify_with_paguelofacil(cod_oper: str, expected_amount: float) -> bool:
         data = resp.json()
         # TODO(go-live): map the real fields returned by PagueloFácil.
         status_ok = str(data.get("status", "")).lower().startswith("aprob")
-        return status_ok
+        amount = data.get("amount")
+        amount_ok = amount is None or abs(float(amount) - expected_amount) < 0.01
+        if not amount_ok:
+            logger.error("codOper %s approved for %s but the order total is %s", cod_oper, amount, expected_amount)
+        return status_ok and amount_ok
     except Exception as exc:
         logger.error("PagueloFácil verification failed for codOper %s: %s", cod_oper, exc)
         return False
@@ -81,7 +107,13 @@ def _verify_with_paguelofacil(cod_oper: str, expected_amount: float) -> bool:
 
 def handle_callback(form: dict) -> str | None:
     """Process the callback PagueloFácil sends after payment. Returns the order_id
-    (so the HTTP layer can redirect the browser back to the app)."""
+    (so the HTTP layer can redirect the browser back to the app).
+
+    Writes payment.status 'paid' (approved) or 'failed' (rejected). Everything that
+    follows a payment (KDS release, audit, invoice) is done by the onOrderPaid
+    Cloud Function, the same as for cash or Yappy. The Odoo sync stays here
+    because the Odoo client lives in the BFF; it is non-blocking.
+    """
     # PF field names vary; normalise to lowercase for safety
     f = {k.lower(): v for k, v in form.items()}
 
@@ -90,8 +122,6 @@ def handle_callback(form: dict) -> str | None:
         logger.warning("PagueloFácil callback missing order_id (PARM_1)")
         return None
 
-    # Idempotency: PagueloFácil may hit the callback more than once (browser
-    # redirect + webhook). Never route to the kitchen or sync Odoo twice.
     try:
         snap = db().collection(ORDERS).document(order_id).get()
     except Exception as exc:
@@ -101,8 +131,16 @@ def handle_callback(form: dict) -> str | None:
         logger.warning("PagueloFácil callback for unknown order %s", order_id)
         return order_id
     current = snap.to_dict() or {}
-    if (current.get("payment") or {}).get("status") == "approved":
-        logger.info("Order %s already paid — ignoring duplicate callback", order_id)
+
+    # Only an order still waiting for its online payment can be settled by the
+    # callback. Anything else (already paid at the counter, cancelled, closed,
+    # a duplicate callback) is ignored: a forged or late callback must never
+    # flip an order's state.
+    if (current.get("payment") or {}).get("status") == "paid":
+        logger.info("Order %s already paid — ignoring callback", order_id)
+        return order_id
+    if current.get("status") != "pending_payment":
+        logger.warning("Order %s is %s, not pending_payment — ignoring callback", order_id, current.get("status"))
         return order_id
 
     # "Aprobada" = approved, anything else = rejected
@@ -110,89 +148,45 @@ def handle_callback(form: dict) -> str | None:
     approved = "aprob" in estado.lower()
 
     cod_oper = f.get("codoper") or f.get("cod_oper") or f.get("noaprobacion") or ""
-    card_type = f.get("tipotarjeta") or f.get("tarjeta") or "card"
+    card_type = f.get("tipotarjeta") or f.get("tarjeta") or ""
 
     # Re-verify approvals server-to-server before trusting them.
     if approved and not _verify_with_paguelofacil(cod_oper, float(current.get("total", 0))):
         logger.error("Order %s: callback said approved but verification failed", order_id)
         approved = False
 
-    payment_status = "approved" if approved else "rejected"
     now = datetime.now(timezone.utc)
-
-    update: dict = {
-        "payment.status": payment_status,
-        "payment.method": card_type,
-        "payment.confirmationNumber": cod_oper,
-        "updatedAt": now,
-    }
     if approved:
-        # Payment state lives in payment.*; order.status is the KITCHEN lifecycle.
-        # An approved prepaid order becomes a normal 'confirmed' order that the
-        # admin, KDS and tracking all understand (paid info stays in payment.*).
-        update["payment.paidAt"] = now
-        update["status"] = "confirmed"
+        update: dict = {
+            "payment.method": "card",
+            "payment.status": "paid",
+            "payment.paidAt": now,
+            "payment.recordedBy": "bff",
+            "payment.confirmationNumber": cod_oper,
+            "payment.cardType": card_type,
+            # Payment state lives in payment.*; order.status is the KITCHEN lifecycle.
+            "status": "confirmed",
+            "updatedAt": now,
+        }
     else:
-        update["status"] = "payment_failed"
+        update = {
+            "payment.status": "failed",
+            "payment.confirmationNumber": cod_oper,
+            "status": "payment_failed",
+            "updatedAt": now,
+        }
 
     try:
         db().collection(ORDERS).document(order_id).update(update)
     except Exception as exc:
         logger.error("Failed to update order %s in Firestore: %s", order_id, exc)
         return order_id
-    logger.info("Order %s payment → %s (codOper=%s)", order_id, payment_status, cod_oper)
+    logger.info("Order %s payment → %s (codOper=%s)", order_id, "paid" if approved else "failed", cod_oper)
 
     if approved:
-        _route_to_kds(order_id)
         _sync_to_odoo(order_id, cod_oper)
 
     return order_id
-
-
-def _route_to_kds(order_id: str) -> None:
-    """Mirror paid client-order items to RTDB so KDS tablets see them."""
-    try:
-        order_doc = db().collection(ORDERS).document(order_id).get()
-        if not order_doc.exists:
-            return
-        order = order_doc.to_dict() or {}
-        table_number = order.get("tableNumber", "?")
-
-        items = [
-            {"id": d.id, **(d.to_dict() or {})}
-            for d in db().collection(ORDER_ITEMS)
-            .where("orderId", "==", order_id)
-            .stream()
-        ]
-        if not items:
-            return
-
-        rtdb_module = get_rtdb()
-        updates: dict = {}
-        for item in items:
-            station_id = item.get("stationId")
-            if not station_id:
-                logger.warning("Item %s has no stationId — skipping KDS mirror", item["id"])
-                continue
-            key = f"order_items/{station_id}/{order_id}_{item['id']}"
-            updates[key] = {
-                "status": "queued",
-                "updatedAt": {".sv": "timestamp"},
-                # Fixed at routing time: the KDS orders tickets FIFO by it.
-                "sentToStationAt": {".sv": "timestamp"},
-                "tableNumber": table_number,
-                "productName": item.get("productName", ""),
-                "quantity": item.get("quantity", 1),
-                "specialInstructions": item.get("specialInstructions", ""),
-                "orderId": order_id,
-            }
-
-        if updates:
-            rtdb_module.reference("/").update(updates)
-            logger.info("Routed %d items to KDS for order %s", len(updates), order_id)
-
-    except Exception as exc:
-        logger.error("KDS routing failed for order %s: %s", order_id, exc)
 
 
 def _ascii_name(name: str) -> str:
@@ -224,6 +218,14 @@ def _sync_to_odoo(order_id: str, cod_oper: str) -> None:
             return
         order = order_doc.to_dict() or {}
 
+        # Use THIS order's org Odoo connection (multi-tenant). A tenant without
+        # Odoo configured simply skips the sync — the order stays paid in Firebase.
+        client = odoo_client_for_org(order.get("orgId"))
+        if client is None:
+            logger.info("No Odoo configured for org %s — skipping sync for order %s",
+                        order.get("orgId"), order_id)
+            return
+
         items = [
             d.to_dict()
             for d in db().collection(ORDER_ITEMS)
@@ -233,13 +235,6 @@ def _sync_to_odoo(order_id: str, cod_oper: str) -> None:
         if not items:
             return
 
-        # Use THIS order's org Odoo connection (multi-tenant). A tenant without
-        # Odoo configured simply skips the sync — the order stays paid in Firebase.
-        client = odoo_client_for_org(order.get("orgId"))
-        if client is None:
-            logger.info("No Odoo configured for org %s — skipping sync for order %s",
-                        order.get("orgId"), order_id)
-            return
         client.authenticate()
 
         sessions = client.search_read(
@@ -295,7 +290,9 @@ def _sync_to_odoo(order_id: str, cod_oper: str) -> None:
             "amount_tax": float(order.get("taxAmount", 0)),
             "amount_paid": float(order.get("total", 0)),
             "amount_return": 0,
-            "to_invoice": True,
+            # The fiscal document is the PAC's (see docs/DIGIFACT_EVALUATION.md);
+            # the pos.order is an accounting record, not the invoice.
+            "to_invoice": False,
             "state": "done",
             "note": f"RestaurantOS #{order_id[:8]} | PF:{cod_oper}",
         })

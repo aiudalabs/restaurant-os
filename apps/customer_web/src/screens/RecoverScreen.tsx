@@ -1,3 +1,4 @@
+import { BackButton, IconBadge } from '../components/Icon';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { findOrderByPickupCode } from '../lib/api';
@@ -37,16 +38,14 @@ export function RecoverScreen() {
   };
 
   return (
-    <div className="flex min-h-full flex-col px-6 pb-10 safe-top">
+    <div className="flex flex-1 flex-col px-6 pb-10 safe-top">
       <header className="flex items-center gap-3 py-4">
-        <button onClick={() => navigate('/')} className="text-xl" aria-label="Volver">
-          ←
-        </button>
-        <h1 className="font-display text-xl font-semibold">Recuperar pedido</h1>
+        <BackButton onClick={() => navigate('/')} />
+        <h1 className="font-display text-[26px] font-semibold">Recuperar pedido</h1>
       </header>
 
       <div className="mt-6 flex flex-1 flex-col items-center text-center">
-        <div className="text-5xl">🎟️</div>
+        <IconBadge name="ticket" />
         <p className="mt-4 max-w-xs text-sm text-hint">
           Escribe el número de pedido que te dimos (por ejemplo <b>P-K7QX</b>) para ver su
           estado.
@@ -62,11 +61,11 @@ export function RecoverScreen() {
           placeholder="P-XXXX"
           autoCapitalize="characters"
           autoComplete="off"
-          className="mt-7 w-full rounded-2xl border border-black/10 bg-white px-4 py-4 text-center font-display text-2xl font-semibold uppercase tracking-widest outline-none focus:border-brand"
+          className="mt-7 w-full rounded-2xl border border-line bg-white px-4 py-4 text-center font-display text-2xl font-semibold uppercase tracking-widest outline-none focus:border-brand"
         />
 
         {status === 'notfound' && (
-          <p className="mt-3 text-sm text-brand">
+          <p className="mt-3 text-sm text-danger">
             No encontramos un pedido con ese número. Revísalo e intenta de nuevo.
           </p>
         )}
@@ -75,7 +74,7 @@ export function RecoverScreen() {
       <button
         onClick={search}
         disabled={status === 'searching' || !code.trim()}
-        className="w-full rounded-2xl bg-brand py-4 text-base font-semibold text-white shadow-lg shadow-brand/25 active:scale-[0.99] disabled:opacity-60"
+        className="h-[52px] w-full rounded-xl bg-brand text-base font-semibold text-white active:scale-[0.99] disabled:opacity-60"
       >
         {status === 'searching' ? 'Buscando…' : 'Buscar mi pedido'}
       </button>

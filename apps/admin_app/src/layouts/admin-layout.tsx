@@ -23,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/tables', label: 'Mesas', icon: 'table_restaurant' },
   { to: '/users', label: 'Equipo', icon: 'group' },
   { to: '/branches', label: 'Sucursales', icon: 'storefront' },
+  { to: '/settings', label: 'Facturación', icon: 'receipt' },
 ];
 const ASSISTANT: NavItem = { to: '/assistant', label: 'Asistente', icon: 'auto_awesome' };
 const ALL_ITEMS = [...NAV_ITEMS, ASSISTANT];

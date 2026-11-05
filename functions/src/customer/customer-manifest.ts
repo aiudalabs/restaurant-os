@@ -27,8 +27,8 @@ function manifest(name: string, startUrl: string, id: string) {
     start_url: startUrl,
     scope: "/",
     display: "standalone",
-    background_color: "#F7F6F3",
-    theme_color: "#E23744",
+    background_color: "#FAF8F2",
+    theme_color: "#FAF8F2",
     icons: ICONS,
   };
 }
@@ -39,7 +39,7 @@ export const customerManifest = functions.https.onRequest(async (req, res) => {
 
   const org = String(req.query.org ?? "");
   const branch = String(req.query.branch ?? "");
-  const generic = manifest("Pedir", "/", "/");
+  const generic = manifest("Pick & Eat", "/", "/");
   if (!ID.test(org) || !ID.test(branch)) {
     res.send(generic);
     return;
@@ -52,7 +52,7 @@ export const customerManifest = functions.https.onRequest(async (req, res) => {
       res.send(generic);
       return;
     }
-    const name = String(b.name || "Pedir").trim();
+    const name = String(b.name || "Pick & Eat").trim();
     res.send(manifest(name, `/?org=${org}&branch=${branch}`, `/?branch=${branch}`));
   } catch (e) {
     functions.logger.error("customerManifest failed", e);

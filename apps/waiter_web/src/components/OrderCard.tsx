@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { closeOrder, confirmManualPayment, markItemsReady, recordPayment, watchOrderItems } from '../lib/api';
+import { applyDiscount, closeOrder, loadDiscounts, confirmManualPayment, markItemsReady, recordPayment, watchOrderItems } from '../lib/api';
 import { money } from '../lib/format';
+import { printPdf } from '../lib/print';
 import { PaymentSheet } from './PaymentSheet';
-import type { Order, OrderItem, OrderStatus, PaymentMethod } from '../types';
+import { MemberScanSheet } from './MemberScanSheet';
+import type { DiscountOption, FiscalInfo, InvoiceRequest, Order, OrderItem, OrderStatus, PaymentMethod } from '../types';
 
 const KITCHEN_LABEL: Record<OrderStatus, { text: string; cls: string }> = {
   pending_payment: { text: 'Esperando pago', cls: 'bg-violet-50 text-violet-700' },
+  payment_failed: { text: 'Pago rechazado', cls: 'bg-red-50 text-brand' },
   pending: { text: 'Enviando…', cls: 'bg-gray-100 text-gray-600' },
   confirmed: { text: 'En cocina', cls: 'bg-blue-50 text-blue-700' },
   in_preparation: { text: 'Preparando', cls: 'bg-amber-50 text-amber-700' },
@@ -15,7 +18,7 @@ const KITCHEN_LABEL: Record<OrderStatus, { text: string; cls: string }> = {
   closed: { text: 'Cerrado', cls: 'bg-gray-100 text-gray-600' },
 };
 
-const METHOD_LABEL: Record<PaymentMethod, string> = { cash: 'Efectivo', card: 'Tarjeta', yappy: 'Yappy' };
+const METHOD_LABEL: Record<PaymentMethod, string> = { cash: 'Efectivo', card: 'Tarjeta', yappy: 'Yappy', transfer: 'Transferencia' };
 
 interface Props {
   order: Order;
@@ -26,6 +29,7 @@ interface Props {
 export function OrderCard({ order, orgId, now }: Props) {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [paying, setPaying] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmReject, setConfirmReject] = useState(false);
@@ -67,9 +71,18 @@ export function OrderCard({ order, orgId, now }: Props) {
   const markReady = (ids: string[]) => run(() => markItemsReady(ids));
   const reviewYappy = (received: boolean) => run(() => confirmManualPayment(order.id, received));
 
-  const pay = (method: PaymentMethod) =>
+  // 'already_paid' (double tap / another device) counts as success: close the sheet.
+  const [discounts, setDiscounts] = useState<DiscountOption[]>([]);
+  useEffect(() => {
+    if (!paying) return;
+    loadDiscounts(orgId).then(setDiscounts, (e) => console.error('[waiter] discounts', e));
+  }, [paying, orgId]);
+
+  const discount = (id: string | null, idNumber?: string) => run(() => applyDiscount(order.id, id, idNumber));
+
+  const pay = (method: PaymentMethod, invoiceRequest?: InvoiceRequest) =>
     run(async () => {
-      await recordPayment(order.id, method);
+      await recordPayment(order.id, method, invoiceRequest);
       setPaying(false);
     });
 
@@ -82,6 +95,7 @@ export function OrderCard({ order, orgId, now }: Props) {
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${kitchen.cls}`}>{kitchen.text}</span>
+          {order.hasMember && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">Socio del Club ✓</span>}
           <span
             className={`rounded-full px-2.5 py-1 text-xs font-bold ${
               paid ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-brand'
@@ -93,6 +107,7 @@ export function OrderCard({ order, orgId, now }: Props) {
                 ? 'Yappy por confirmar'
                 : 'Por cobrar'}
           </span>
+          {paid && order.fiscal && <FiscalLine fiscal={order.fiscal} />}
         </div>
       </div>
 
@@ -140,7 +155,14 @@ export function OrderCard({ order, orgId, now }: Props) {
         </div>
       ) : (
       <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
-        <p className="text-lg font-extrabold tabular-nums">{money(order.total)}</p>
+        <div>
+          {order.discount && (
+            <p className="text-xs text-emerald-700">
+              {order.discount.name} −{money(order.discount.amount)}
+            </p>
+          )}
+          <p className="text-lg font-extrabold tabular-nums">{money(order.total)}</p>
+        </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
         {counterPending.length > 1 && (
           <button onClick={() => markReady(counterPending.map((it) => it.id))} disabled={busy} className="btn btn-outlined">
@@ -148,6 +170,11 @@ export function OrderCard({ order, orgId, now }: Props) {
           </button>
         )}
         {order.status === 'pending_payment' && <p className="text-sm text-muted">Pago en línea en curso…</p>}
+        {!order.pickupCode && !order.hasMember && order.status !== 'pending_payment' && (
+          <button onClick={() => setScanning(true)} disabled={busy} className="btn btn-outlined">
+            Socio del Club
+          </button>
+        )}
         {!paid && order.status !== 'pending_payment' && (
           <button
             onClick={() => setPaying(true)}
@@ -172,16 +199,65 @@ export function OrderCard({ order, orgId, now }: Props) {
       )}
       {error && <p className="mt-2 text-sm text-brand">{error}</p>}
 
+      {scanning && <MemberScanSheet orderId={order.id} onClose={() => setScanning(false)} />}
+
       {paying && (
         <PaymentSheet
           customerName={order.customerName}
           total={order.total}
+          discounts={discounts}
+          applied={order.discount}
+          onDiscount={discount}
           busy={busy}
           onPick={pay}
           onClose={() => setPaying(false)}
         />
       )}
     </article>
+  );
+}
+
+/** One compact line with the electronic invoice state, shown once the order is paid. */
+function FiscalLine({ fiscal }: { fiscal: FiscalInfo }) {
+  const [printing, setPrinting] = useState(false);
+  const [printError, setPrintError] = useState('');
+  if (fiscal.status === 'skipped') return null;
+  if (fiscal.status === 'error') {
+    return <p className="text-xs text-brand">Factura: error (reintentar desde el admin)</p>;
+  }
+  if (fiscal.status !== 'issued') return <p className="text-xs text-muted">Factura: generando…</p>;
+  return (
+    <p className="text-xs text-muted">
+      Factura N.º {fiscal.numeroDF}
+      {fiscal.pdfUrl && (
+        <>
+          {' · '}
+          <a href={fiscal.pdfUrl} target="_blank" rel="noopener" className="font-bold text-brand underline">
+            Ver PDF
+          </a>
+          {' · '}
+          <button
+            type="button"
+            disabled={printing}
+            onClick={async () => {
+              setPrintError('');
+              setPrinting(true);
+              try {
+                await printPdf(fiscal.pdfUrl as string);
+              } catch (e) {
+                setPrintError(e instanceof Error ? e.message : 'No se pudo imprimir');
+              } finally {
+                setPrinting(false);
+              }
+            }}
+            className="font-bold text-brand underline disabled:opacity-50"
+          >
+            {printing ? 'Imprimiendo…' : 'Imprimir'}
+          </button>
+          {printError && <span className="text-brand"> · {printError}</span>}
+        </>
+      )}
+    </p>
   );
 }
 

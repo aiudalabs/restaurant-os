@@ -54,13 +54,12 @@ export interface CartLine {
 
 // Order lifecycle used by the tracking screen. Mirrors OrderStatus in
 // FIREBASE_SCHEMA.md, plus the payment states the BFF sets:
-//   pending_payment → (customer pays) → paid → confirmed → in_preparation → …
+//   pending_payment → (customer pays) → confirmed → in_preparation → …
 //   pending_payment → (declined)      → payment_failed
 // Without prepayment, onOrderCreated flips 'pending' → 'confirmed' directly.
 export type OrderStatus =
   | 'pending_payment'
   | 'payment_failed'
-  | 'paid'
   | 'pending'
   | 'confirmed'
   | 'in_preparation'
@@ -69,6 +68,30 @@ export type OrderStatus =
   | 'cancelled'
   | 'closed';
 
+/**
+ * Electronic invoice the customer asks for at checkout (Panama DGI).
+ * receiverType '01' = contribuyente with RUC; '02' = consumidor final.
+ */
+export interface InvoiceRequest {
+  receiverType: '01' | '02';
+  taxId: string;
+  dv?: string;
+  name: string;
+  email?: string;
+}
+
+/** Server-written state of the order's electronic invoice (onOrderPaid → BFF). */
+export type FiscalStatus = 'pending' | 'issuing' | 'issued' | 'error' | 'skipped';
+
+export interface FiscalInfo {
+  status: FiscalStatus;
+  numeroDF: string;
+  cufe: string;
+  qrUrl: string;
+  pdfUrl: string;
+  lastError: string;
+}
+
 export interface OrderDoc {
   id: string;
   status: OrderStatus;
@@ -76,12 +99,16 @@ export interface OrderDoc {
   customerName: string;
   tableNumber: string;
   total: number;
+  /** Discount the waiter applied (issue #81). */
+  discount: { name: string; amount: number } | null;
   itemCount: number;
   branchId: string;
   /** 'yappy' for manual Yappy orders; null otherwise. */
   paymentMethod: string | null;
   /** Yappy handle the customer must pay to (copied from the branch at order time). */
   payTo: string;
+  /** Electronic invoice state; null until the server starts issuing one. */
+  fiscal: FiscalInfo | null;
 }
 
 // ItemStatus in FIREBASE_SCHEMA.md.

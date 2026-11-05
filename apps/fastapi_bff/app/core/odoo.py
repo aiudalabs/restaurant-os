@@ -156,19 +156,26 @@ odoo_client = OdooClient()
 
 
 def resolve_odoo_config(org_id: str | None) -> OdooConfig | None:
-    """Reads a tenant's Odoo connection from organizations/{orgId}.
+    """Reads a tenant's Odoo connection from organizations/{orgId}/private/odoo.
 
-    Only Cloud Functions / the BFF (Admin SDK) can read the org doc, which holds
-    these credentials. Returns None if the org has no Odoo configured (a brand-new
-    tenant that hasn't connected Odoo yet) — callers then skip Odoo gracefully.
+    Only the Admin SDK (BFF / Cloud Functions) can read that document. Returns
+    None if the org has no Odoo configured (a brand-new tenant that hasn't
+    connected Odoo yet) — callers then skip Odoo gracefully.
     """
     if not org_id:
         return None
     # Local import avoids a circular import at module load.
     from app.core.firestore import db
 
+    org_ref = db().collection("organizations").document(org_id)
     try:
-        snap = db().collection("organizations").document(org_id).get()
+        # Credentials live in the server-only subcollection private/odoo
+        # (firestore.rules denies every client). The legacy location (fields on
+        # the org doc itself) is still read until tools/migrate_org_private.py
+        # has moved them.
+        snap = org_ref.collection("private").document("odoo").get()
+        if not snap.exists:
+            snap = org_ref.get()
     except Exception as exc:  # noqa: BLE001
         logger.warning("Could not read org %s for Odoo config: %s", org_id, exc)
         return None

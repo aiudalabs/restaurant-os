@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { watchActiveOrders } from '../lib/api';
 import { OrderCard } from '../components/OrderCard';
 import { Spinner } from '../components/Spinner';
+import { VoucherSheet } from '../components/VoucherSheet';
 import type { Branch, Order, Session } from '../types';
 import type { OrderDraft } from '../lib/draft';
 
@@ -25,6 +26,7 @@ export function OrdersScreen({ session, branch, branches, onChangeBranch, draft,
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState('');
   const [now, setNow] = useState(() => Date.now());
+  const [voucherOpen, setVoucherOpen] = useState(false);
 
   useEffect(() => {
     setOrders(null);
@@ -72,6 +74,9 @@ export function OrdersScreen({ session, branch, branches, onChangeBranch, draft,
             >
               {newOrderLabel}
             </button>
+            <button onClick={() => setVoucherOpen(true)} className="btn btn-outlined">
+              Cupón
+            </button>
             <button onClick={onLogout} className="btn btn-outlined">
               Salir
             </button>
@@ -107,6 +112,7 @@ export function OrdersScreen({ session, branch, branches, onChangeBranch, draft,
           <p className="mt-2 text-center text-xs text-muted">Esta sucursal no tiene menú asignado.</p>
         )}
       </div>
+      {voucherOpen && <VoucherSheet onClose={() => setVoucherOpen(false)} />}
     </div>
   );
 }

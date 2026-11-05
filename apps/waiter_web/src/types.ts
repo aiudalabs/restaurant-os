@@ -51,6 +51,7 @@ export interface CartLine {
 // onOrderItemUpdated; the waiter only sets 'closed' after delivering.
 export type OrderStatus =
   | 'pending_payment' // customer order waiting for its payment (manual Yappy / online)
+  | 'payment_failed' // online payment declined (the customer can retry from tracking)
   | 'pending'
   | 'confirmed'
   | 'in_preparation'
@@ -59,7 +60,28 @@ export type OrderStatus =
   | 'cancelled'
   | 'closed';
 
-export type PaymentMethod = 'cash' | 'card' | 'yappy';
+export type PaymentMethod = 'cash' | 'card' | 'yappy' | 'transfer';
+
+/** Who the electronic invoice is for (01 = RUC, 02 = consumidor final). */
+export interface InvoiceRequest {
+  receiverType: '01' | '02';
+  taxId: string;
+  dv?: string;
+  name: string;
+  email?: string;
+}
+
+/** Electronic invoice state written server-side (orders/{id}.fiscal). */
+export interface FiscalInfo {
+  status: 'pending' | 'issuing' | 'issued' | 'error' | 'skipped';
+  cufe: string;
+  numeroDF: string;
+  qrUrl: string;
+  pdfPath: string;
+  /** Public download URL of the invoice PDF ('' until issued). */
+  pdfUrl: string;
+  lastError: string;
+}
 
 export interface Order {
   id: string;
@@ -70,8 +92,13 @@ export interface Order {
   total: number;
   itemCount: number;
   createdAtMs: number;
-  paymentStatus: 'pending' | 'paid' | null;
+  paymentStatus: 'pending' | 'paid' | 'failed' | null;
   paymentMethod: PaymentMethod | null;
+  fiscal: FiscalInfo | null;
+  /** Discount applied by staff (issue #81); null when none. */
+  discount: { name: string; percent: number; amount: number } | null;
+  /** A Club member is attached (scanned by staff) to this order. */
+  hasMember: boolean;
 }
 
 export type ItemStatus = 'queued' | 'in_progress' | 'done' | 'cancelled';
@@ -84,4 +111,12 @@ export interface OrderItem {
   quantity: number;
   specialInstructions: string;
   status: ItemStatus;
+}
+
+/** organizations/{orgId}.discounts[] entry, configured in the admin (issue #81). */
+export interface DiscountOption {
+  id: string;
+  name: string;
+  percent: number;
+  requiresId: boolean;
 }

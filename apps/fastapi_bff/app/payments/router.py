@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 
 from app.config import settings
 from app.payments.models import PaymentInitRequest, PaymentInitResponse
-from app.payments.service import create_payment_link, handle_callback
+from app.payments.service import OrderNotPayable, create_payment_link, handle_callback
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -15,14 +15,11 @@ def _app_return_url(order_id: str | None) -> str:
 
 @router.post("/init", response_model=PaymentInitResponse)
 def init_payment(req: PaymentInitRequest):
-    """Create a PagueloFácil payment link for an order."""
+    """Create a PagueloFácil payment link for an order (amount from the order)."""
     try:
-        result = create_payment_link(
-            order_id=req.order_id,
-            amount=req.amount,
-            description=req.description,
-        )
-        return PaymentInitResponse(**result)
+        return PaymentInitResponse(**create_payment_link(order_id=req.order_id))
+    except OrderNotPayable as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:

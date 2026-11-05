@@ -6,6 +6,7 @@ from app.catalog.router import router as catalog_router
 from app.payments.router import router as payments_router
 from app.ai.router import router as ai_router
 from app.zaveli.router import router as zaveli_router
+from app.fiscal.router import router as fiscal_router
 from app.config import settings
 from app.core.firebase import firebase_ping
 from app.core.odoo import odoo_client
@@ -40,16 +41,19 @@ app.include_router(catalog_router)
 app.include_router(payments_router)
 app.include_router(ai_router)
 app.include_router(zaveli_router)
+app.include_router(fiscal_router)
 
 
 @app.get("/health")
 def health():
-    odoo_ok = odoo_client.ping()
+    # Odoo is optional (per-org backoffice): without an env fallback it is simply
+    # "not_configured", not a degraded service.
+    odoo_state = "not_configured" if not settings.odoo_url else ("ok" if odoo_client.ping() else "unreachable")
     firebase_ok = firebase_ping()
-    status = "ok" if (odoo_ok and firebase_ok) else "degraded"
+    status = "ok" if (firebase_ok and odoo_state != "unreachable") else "degraded"
     return {
         "status": status,
-        "odoo": "ok" if odoo_ok else "unreachable",
+        "odoo": odoo_state,
         "firebase": "ok" if firebase_ok else "unreachable",
         "version": "2.0.0",
     }

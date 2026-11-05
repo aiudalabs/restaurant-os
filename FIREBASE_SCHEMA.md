@@ -32,6 +32,9 @@ order_items
 users
 integrations
 audit_log
+loyalty_members ← server-only (Club): saldo, sellos y nivel por cliente y organización
+loyalty_events  ← server-only: libro de movimientos de puntos (solo se agrega)
+loyalty_vouchers← server-only: cupones de producto gratis
 kds_pins        ← server-only: PIN hasheado por estación (KDS)
 staff_pins      ← server-only: PIN hasheado por mesero (waiter_web)
 ```
@@ -48,6 +51,11 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
 
 ### Organization
 ```typescript
+// Subcolección SOLO-SERVIDOR: organizations/{orgId}/private/{doc}
+//   private/odoo     { odooUrl, odooDb, odooUser, odooPassword }   ← BFF (app/core/odoo.py)
+//   private/digifact { username, password, token?, tokenExpiresAt? } ← BFF (app/fiscal)
+// Ningún cliente puede leerla ni escribirla (firestore.rules); el admin la configura
+// vía callables. Nunca guardar credenciales en el doc de la organización.
 {
   id: string                    // auto-ID Firestore
   name: string                  // "Cadena El Fogón"
@@ -58,10 +66,30 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
   defaultCurrency: string       // "USD"
   defaultTaxPercent: number     // 0.07 = 7%
   defaultTipOptions: number[]   // [0.10, 0.15, 0.20]
+  discounts?: {                 // descuentos que el mesero aplica al cobrar (issue #81); los administra el admin
+    id: string                  // estable (slug); lo citan el pedido, la factura y audit_log
+    name: string                // "Jubilados"
+    percent: number             // 0 < percent <= 100 (25 = 25 %)
+    active: boolean
+    requiresId: boolean         // exige cédula/carné del beneficiario
+  }[]
   timezone: string              // "America/Panama"
   isActive: boolean
   createdAt: Timestamp
   ownerId: string               // Firebase Auth UID del dueño
+  fiscal?: {                    // factura electrónica (Panamá, PAC Digifact) — docs/DIGIFACT_EVALUATION.md
+    enabled: boolean            // false = pagos sin factura (orders.fiscal.status "skipped")
+    provider: "digifact"
+    env: "test" | "prod"        // test = ambiente de pruebas de Digifact (sin valor fiscal)
+    ruc: string                 // RUC del emisor
+    dv: string                  // dígito verificador
+    taxIdType: "1" | "2"        // 1 natural, 2 jurídico
+    legalName: string           // razón social (en test Digifact exige su leyenda; el BFF la pone)
+    phone?: string              // 999-9999 / 9999-9999 (obligatorio para la DGI; cae al de la sucursal)
+    defaultCpbsAbr: string      // CPBS abreviado por defecto para productos sin el suyo (p.ej. "50")
+    defaultCpbsCmp: string      // CPBS completo por defecto (p.ej. "5019")
+    defaultTaxCode: "00" | "01" // 00 exento, 01 ITBMS 7 %
+  }
 }
 ```
 
@@ -80,6 +108,17 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
   showProductImagesToWaiters?: boolean  // app del mesero muestra fotos de productos (default false)
   yappyHandle?: string          // Yappy (número o @usuario) al que pagan los pedidos por link — Yappy manual
   allowPayAtPickup?: boolean    // los pedidos por link pueden pagarse al retirar (van directo a cocina)
+  fiscal?: {                    // datos del establecimiento ante la DGI (factura electrónica)
+    branchCode: string          // "0000" casa matriz, "0001"… (debe existir en la DGI para el RUC)
+    billingPoint: string        // punto de facturación "001": cada uno lleva su numeración
+    nextNumber: number          // próximo NumeroDF (10 dígitos, correlativo, sin reinicio); lo incrementa el BFF en transacción
+    codUbi: string              // provincia-distrito-corregimiento "8-8-12" (catálogo DGI)
+    coords: string              // "+8.9213,-79.7068"
+    address: string
+    city: string                // corregimiento
+    district: string            // distrito
+    state: string               // provincia
+  }
   businessHours: {
     monday?: { open: string, close: string }   // "08:00", "22:00"
     tuesday?: { open: string, close: string }
@@ -135,6 +174,11 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
   tags: string[]                // ["vegetariano", "sin_gluten", "picante"]
   modifierGroups: ModifierGroup[]   // embebido — rara vez cambia
   preparationMinutes?: number
+  fiscal?: {                    // factura electrónica; vacío = valores por defecto de la organización
+    cpbsAbr?: string            // CPBS abreviado (2 dígitos)
+    cpbsCmp?: string            // CPBS completo (4 dígitos)
+    taxCode?: "00" | "01"       // 00 exento, 01 ITBMS 7 %
+  }
 }
 
 // Tipos embebidos en Product:
@@ -185,6 +229,24 @@ ModifierOption {
 }
 ```
 
+### LoyaltyMember / LoyaltyEvent / LoyaltyVoucher (Club, issue #75)
+```typescript
+// loyalty_members/{orgId}_{uid} — se crea solo al pagarse el primer pedido del cliente (uid anónimo)
+{ orgId, uid, name?, points, stamps /*0..7, a los 8 se emite un cupón*/, lifetimeSpend, visits,
+  tier: "bronce"|"plata"|"oro", weekIndex, weekVisits, streakWeeks, monthKey, monthProducts: string[],
+  createdAt, updatedAt }
+// loyalty_events/{id} — "earn_{orderId}" (idempotente por pedido) o id automático para canjes
+{ orgId, uid, memberId, type: "earn"|"redeem", points, orderId?, total?, bonusPoints?,
+  bonuses?: {key,label,points}[], stampsAfter?, stampCompleted?, tierAfter?, rewardId?, voucherCode?, createdAt }
+// loyalty_vouchers/{orgId}_{CODE} — CODE de 6 caracteres sin 0/O/1/I/L
+{ orgId, uid, memberId, rewardId, rewardName, source: "points"|"stamps", cost?, code,
+  status: "active"|"used", createdAt, usedBy?, usedAt? }
+```
+Las reglas del programa (niveles, recompensas, retos) viven en `functions/src/loyalty/program.ts`.
+Clientes: lectura solo de lo propio (`uid == auth.uid`); ninguna escritura desde clientes.
+Los canjes pasan por `redeemReward` (cliente) y `useVoucher` (personal). Los cupones son
+productos gratis: nunca modifican el total del pedido ni la factura.
+
 ### Order
 ```typescript
 {
@@ -194,38 +256,84 @@ ModifierOption {
   tableId: string
   tableNumber: string           // desnormalizado para mostrar sin join
   status: OrderStatus
-  subtotal: number
-  taxAmount: number
+  subtotal: number              // bruto (antes del descuento). total = subtotal − discountAmount + taxAmount
+  discountAmount?: number       // suma de los descuentos por línea (0/ausente = sin descuento)
+  discount?: {                  // un solo descuento por pedido; solo lo escribe la callable applyDiscount
+    id: string; name: string; percent: number; amount: number
+    appliedBy: string; appliedAt: Timestamp
+    idNumber?: string           // cédula/carné, solo si el descuento lo exige
+  }
+  taxAmount: number             // ITBMS sobre la base ya descontada, por línea
   taxPercent: number
   tipAmount: number
   total: number
   notes?: string
+  source: "qr" | "waiter" | "zaveli"   // quién creó el pedido (customer_web, waiter_web, BFF Zaveli)
+  createdByUid: string          // uid (anónimo o staff) que lo creó; el cliente solo lee sus pedidos
+  customerName?: string         // pedidos por link / mesero: para quién es
+  pickupCode?: string           // "P-ABCD": número de retiro (pedidos por link); "Z-…" en Zaveli
   payment: {
-    method: "cash" | "card" | "yappy" | null
+    method: "cash" | "card" | "yappy" | "transfer" | null
     status: "pending" | "paid" | "failed" | null
     yappyOrderId?: string
-    confirmationNumber?: string
+    confirmationNumber?: string // tarjeta en línea: codOper de PagueloFácil
+    cardType?: string           // tarjeta en línea: tipo reportado por PagueloFácil
     paidAt?: Timestamp
+    recordedBy?: string         // uid del personal que cobró (recordPayment) o "bff" (callback de tarjeta)
     payTo?: string              // Yappy manual: handle al que el cliente debe pagar (copiado de la sucursal)
     reviewedBy?: string         // Yappy manual: uid del personal que confirmó / rechazó el pago
   }
+  invoiceRequest?: {            // factura con RUC pedida por el cliente / capturada por el mesero
+    receiverType: "01" | "02"   // 01 contribuyente (RUC), 02 consumidor final
+    taxId: string               // RUC, o "CF"
+    dv?: string
+    name: string
+    email?: string
+  }
+  fiscal?: {                    // factura electrónica (solo servidor: BFF app/fiscal vía onOrderPaid)
+    status: "pending" | "issuing" | "issued" | "error" | "skipped"
+    numeroDF?: string           // 10 dígitos, correlativo por punto de facturación
+    billingPoint?: string       // "001"
+    codigoSeguridad?: string
+    cufe?: string
+    qrUrl?: string              // consulta en la DGI
+    pdfPath?: string            // Storage: orgs/{orgId}/invoices/{cufe}.pdf
+    xmlPath?: string
+    docGuid?: string
+    issuedAt?: Timestamp
+    attempts: number
+    lastError?: string
+  }
+  zaveli?: { operationId, businessId, conversationId, reply }   // solo pedidos source "zaveli"
   itemCount: number             // desnormalizado — para mostrar sin leer items
   createdAt: Timestamp
   updatedAt: Timestamp
   completedAt?: Timestamp
 }
 
+// Quién escribe qué (firestore.rules lo impone):
+// - Clientes (anónimo / mesero) solo CREAN pedidos en estado pending | pending_payment,
+//   con su propio createdByUid y sin payment.status "paid" ni fiscal. Los totales que
+//   mandan son solo para mostrar: onOrderCreated los recalcula desde products.
+// - payment.* lo escriben solo las Cloud Functions (recordPayment, confirmManualPayment)
+//   y el BFF (callback de tarjeta). Al pasar payment.status a "paid" se dispara onOrderPaid:
+//   libera a cocina (si estaba en pending_payment), escribe audit_log y pide la factura.
+// - El staff (admin/manager/waiter) solo actualiza status, notes, customerName,
+//   tableNumber, invoiceRequest, updatedAt, completedAt.
+
 // OrderStatus valores:
 // "pending_payment"→ pedido del cliente esperando su pago: no va a cocina. Con
 //                    payment.method "yappy" es Yappy manual y lo confirma el personal
 //                    (callable confirmManualPayment); con method null es pago en línea (BFF).
+//                    También se puede cobrar en persona (recordPayment) y pasa a confirmed.
+// "payment_failed" → el pago en línea fue rechazado; el cliente puede reintentar
 // "pending"        → recibido, aún no confirmado
 // "confirmed"      → confirmado y enrutado a estaciones
 // "in_preparation" → al menos un ítem en progreso
 // "ready"          → todos los ítems listos
 // "delivered"      → entregado al cliente
-// "cancelled"
-// "closed"         → cuenta cerrada / pagado
+// "cancelled"      → también lo pone onOrderCreated si un ítem trae un productId inexistente
+// "closed"         → cuenta cerrada
 ```
 
 ### OrderItem
@@ -240,7 +348,8 @@ ModifierOption {
   orderId: string
   stationId: string             // ← índice clave para el KDS
   tableNumber: string           // desnormalizado
-  productId: string
+  createdByUid: string          // igual que en el pedido (el cliente lee solo sus ítems)
+  productId: string             // obligatorio: onOrderCreated toma el precio de products/{productId}
   productName: string           // desnormalizado — el menú puede cambiar
   categoryId: string
   quantity: number

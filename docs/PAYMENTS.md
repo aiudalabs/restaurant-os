@@ -48,13 +48,27 @@ customer_web (carrito)
   │  el cliente paga con tarjeta / Clave
   ▼
   PagueloFácil → GET/POST {BFF}/payments/callback  (PARM_1 = order_id)
-  │  BFF: verifica (ver §3) → order.status='paid'
-  │       → _route_to_kds()  (espeja al RTDB → KDS lo ve)   ✅ recién ahora cocina
-  │       → _sync_to_odoo()  (crea pos.order)
+  │  BFF: verifica (ver §3) → payment.status='paid', status='confirmed'
+  │       → _sync_to_odoo()  (crea pos.order, no bloqueante)
+  │  Cloud Function onOrderPaid (orders/{id} pasa a payment.status='paid'):
+  │       → releaseToKds()  (espeja al RTDB → KDS lo ve)   ✅ recién ahora cocina
+  │       → audit_log, factura electrónica (docs/DIGIFACT_EVALUATION.md)
   ▼
   BFF redirige el browser → {customer_app}/order/{order_id}
   │  TrackingScreen ya está suscrito a Firestore → pasa a "Recibido" en vivo
 ```
+
+**Un solo evento de pago.** Todas las formas de cobro terminan en `payment.status = 'paid'`
+escrito por el servidor, y `onOrderPaid` hace lo que sigue al pago:
+
+| Origen | Quién escribe `paid` |
+|---|---|
+| Cobrar en `waiter_web` (efectivo, tarjeta física, Yappy en persona, transferencia) | callable `recordPayment` (`functions/src/payments/record-payment.ts`) |
+| Yappy manual de un pedido por link | callable `confirmManualPayment` |
+| Tarjeta en línea (PagueloFácil) | BFF `handle_callback` |
+
+Los clientes no pueden escribir `payment.*` (reglas). `POST /payments/init` toma el monto
+de la orden en Firestore (recalculado por `onOrderCreated`), nunca del navegador.
 
 **Piezas en el código:**
 - `apps/customer_web/src/screens/CartScreen.tsx` — crea la orden y redirige al pago.
@@ -116,4 +130,4 @@ Mitigaciones ya implementadas en `payments/service.py`:
 - [ ] Verificación server-to-server real (go-live)
 - [ ] Yappy Botón de Pago (Banco General) como segundo método
 - [ ] Apple Pay vía Tilopay (opcional)
-- [ ] Nota fiscal en Odoo tras el pago (`docs/NEXT_STEPS.md`)
+- [ ] Factura electrónica vía PAC (Digifact) al pagar — issue #68, `docs/DIGIFACT_EVALUATION.md`

@@ -7,8 +7,9 @@ from app.core.exceptions import OdooRPCError
 from app.core.firestore import CATEGORIES, PRODUCTS, STATIONS, batch_write, db
 from app.core.odoo import odoo_client_for_org
 
-# Simple in-process cache: (timestamp, data)
-_products_cache: tuple[float, list] | None = None
+# Simple in-process cache PER ORG: org_id -> (timestamp, data). Multi-tenant:
+# one tenant's menu must never be served to another.
+_products_cache: dict[str, tuple[float, list]] = {}
 _CACHE_TTL = 60  # seconds
 
 
@@ -127,19 +128,18 @@ def sync_catalog(org_id: str | None = None, branch_id: str | None = None) -> Syn
         deleted = len(gone)
 
     # Invalidate cache
-    global _products_cache
-    _products_cache = None
+    _products_cache.pop(org_id, None)
 
     return SyncStats(synced=len(synced_ids), created=created, updated=updated, deleted=deleted)
 
 
 def get_products(org_id: str | None = None) -> list[dict[str, Any]]:
-    global _products_cache
-    now = time.time()
-    if _products_cache and (now - _products_cache[0]) < _CACHE_TTL:
-        return _products_cache[1]
-
     org_id = org_id or settings.org_id
+    now = time.time()
+    cached = _products_cache.get(org_id)
+    if cached and (now - cached[0]) < _CACHE_TTL:
+        return cached[1]
+
     docs = (
         db()
         .collection(PRODUCTS)
@@ -148,5 +148,5 @@ def get_products(org_id: str | None = None) -> list[dict[str, Any]]:
         .stream()
     )
     result = [{"id": d.id, **d.to_dict()} for d in docs]
-    _products_cache = (now, result)
+    _products_cache[org_id] = (now, result)
     return result

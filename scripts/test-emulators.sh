@@ -3,7 +3,7 @@
 # rules and Cloud Functions. Never touches dev or prod (project demo-ros-test).
 #
 #   scripts/test-emulators.sh            # every suite
-#   scripts/test-emulators.sh yappy      # one suite: rules | counter | yappy
+#   scripts/test-emulators.sh yappy      # one suite: rules | counter | yappy | payment
 #
 # Needs a JDK ≥ 21 (Firestore emulator). Uses a private, patched copy of
 # firebase-tools: its functions emulator wraps admin.firestore with .bind() and
@@ -50,17 +50,21 @@ if s.count(a) != 1:
 open(p, "w").write(s.replace(a, b))
 PY
 
+# defineSecret() params need a local value in the emulator (never committed).
+[ -f functions/.secret.local ] || printf 'BFF_INTERNAL_TOKEN=emulator-only\n' > functions/.secret.local
+
 step "Compilando functions"
 (cd functions && npm run build >/dev/null)
 
-SUITES="${1:-rules counter yappy}"
+SUITES="${1:-rules counter yappy payment}"
 failed=""
 for suite in $SUITES; do
   case "$suite" in
     rules) only="firestore"; file="rules.test.mjs" ;;
     counter) only="auth,firestore,database,functions"; file="counter.e2e.mjs" ;;
     yappy) only="auth,firestore,database,functions"; file="yappy.e2e.mjs" ;;
-    *) die "Suite desconocida: $suite (rules | counter | yappy)" ;;
+    payment) only="auth,firestore,database,functions"; file="payment.e2e.mjs" ;;
+    *) die "Suite desconocida: $suite (rules | counter | yappy | payment)" ;;
   esac
   step "Suite $suite"
   log="$(mktemp)"

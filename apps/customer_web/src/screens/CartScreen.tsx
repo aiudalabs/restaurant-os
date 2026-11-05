@@ -1,3 +1,4 @@
+import { BackButton, IconBadge } from '../components/Icon';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createOrder, loadCheckoutConfig } from '../lib/api';
@@ -6,13 +7,44 @@ import { money } from '../lib/format';
 import { saveActiveOrder } from '../lib/session';
 import { useCart } from '../store/cart';
 import { useSession } from '../store/session';
-import type { CheckoutConfig, PayMethod } from '../types';
+import type { CheckoutConfig, InvoiceRequest, PayMethod } from '../types';
 
 const METHOD_TEXT: Record<PayMethod, { label: string; hint: string }> = {
   yappy: { label: 'Yappy', hint: 'Pagas ahora por Yappy y lo preparamos al confirmar tu pago.' },
   card: { label: 'Tarjeta', hint: 'Pago seguro con PagueloFácil. Va a cocina al confirmarse el pago.' },
   pickup: { label: 'Al retirar', hint: 'Pagas en el mostrador cuando bajes por tu pedido.' },
 };
+
+const INPUT_CLS =
+  'w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-brand';
+
+interface InvoiceForm {
+  name: string;
+  taxId: string;
+  email: string;
+}
+
+const EMPTY_INVOICE: InvoiceForm = { name: '', taxId: '', email: '' };
+
+/**
+ * Every field is optional: with none filled we send nothing and the server
+ * issues the invoice to consumidor final. With a RUC, the server resolves the
+ * DV and the company name itself (Digifact GetInfoRuc).
+ */
+function buildInvoiceRequest(form: InvoiceForm): { request?: InvoiceRequest; error?: string } {
+  const name = form.name.trim();
+  const taxId = form.taxId.trim();
+  const email = form.email.trim();
+  if (email && !/^\S+@\S+\.\S+$/.test(email)) return { error: 'Revisa el correo para la factura.' };
+  if (!name && !taxId && !email) return {};
+  const request: InvoiceRequest = {
+    receiverType: taxId ? '01' : '02',
+    taxId: taxId || 'CF',
+    name: name || 'Consumidor Final',
+  };
+  if (email) request.email = email;
+  return { request };
+}
 
 export function CartScreen() {
   const navigate = useNavigate();
@@ -23,6 +55,8 @@ export function CartScreen() {
   const [method, setMethod] = useState<PayMethod>('pickup');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [invoice, setInvoice] = useState<InvoiceForm>(EMPTY_INVOICE);
 
   useEffect(() => {
     if (!session) {
@@ -45,6 +79,12 @@ export function CartScreen() {
 
   const confirm = async () => {
     if (cart.itemCount === 0 || submitting) return;
+    const { request: invoiceRequest, error: invoiceError } = buildInvoiceRequest(invoice);
+    if (invoiceError) {
+      setInvoiceOpen(true);
+      setError(invoiceError);
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
@@ -61,6 +101,7 @@ export function CartScreen() {
         taxPercent,
         payment: method,
         yappyHandle: config.yappyHandle,
+        invoiceRequest,
       });
       saveActiveOrder({
         orderId,
@@ -99,7 +140,7 @@ export function CartScreen() {
   // its empty state while we create the order and fetch the payment link.
   if (submitting) {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center gap-5 px-8 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-5 px-8 text-center">
         <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-brand border-t-transparent" />
         <div>
           <p className="font-display text-xl font-semibold">
@@ -116,17 +157,15 @@ export function CartScreen() {
   }
 
   return (
-    <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-black/5 bg-white/90 px-4 py-4 backdrop-blur safe-top">
-        <button onClick={() => navigate(-1)} className="text-xl" aria-label="Volver">
-          ←
-        </button>
-        <h1 className="font-display text-xl font-semibold">Mi pedido</h1>
+    <div className="flex flex-1 flex-col">
+      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-line bg-surface/90 px-4 py-4 backdrop-blur safe-top">
+        <BackButton onClick={() => navigate(-1)} />
+        <h1 className="font-display text-[26px] font-semibold">Mi pedido</h1>
       </header>
 
       {cart.itemCount === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-          <div className="text-5xl">🛒</div>
+          <IconBadge name="bag" />
           <p className="text-sm text-hint">Tu carrito está vacío.</p>
           <button
             onClick={() => navigate('/menu')}
@@ -137,12 +176,12 @@ export function CartScreen() {
         </div>
       ) : (
         <>
-          <div className="flex-1 px-4 pb-64 pt-3">
+          <div className="flex-1 px-4 pb-80 pt-3">
             <div className="flex flex-col gap-2.5">
               {cart.lines.map((line) => (
                 <div
                   key={line.productId}
-                  className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm"
+                  className="flex items-center gap-3 rounded-2xl bg-white p-3 border border-line"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{line.productName}</p>
@@ -174,11 +213,60 @@ export function CartScreen() {
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Notas para la cocina (opcional)"
               rows={2}
-              className="mt-4 w-full resize-none rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-brand"
+              className="mt-4 w-full resize-none rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-brand"
             />
+
+            <div className="mt-3 rounded-2xl bg-white px-4 py-3 border border-line">
+              <button
+                type="button"
+                onClick={() => setInvoiceOpen((o) => !o)}
+                aria-expanded={invoiceOpen}
+                className="flex w-full items-center justify-between text-left text-sm font-semibold"
+              >
+                <span>Datos para tu factura (opcional)</span>
+                <span className="text-hint" aria-hidden>
+                  {invoiceOpen ? '−' : '+'}
+                </span>
+              </button>
+
+              {invoiceOpen && (
+                <div className="mt-3 flex flex-col gap-2.5">
+                  <input
+                    value={invoice.name}
+                    onChange={(e) => setInvoice({ ...invoice, name: e.target.value })}
+                    placeholder="Nombre para la factura"
+                    aria-label="Nombre para la factura"
+                    autoComplete="name"
+                    className={INPUT_CLS}
+                  />
+                  <label className="flex flex-col gap-1">
+                    <span className="px-1 text-xs text-hint">
+                      RUC de empresa (si quieres factura a nombre de una empresa)
+                    </span>
+                    <input
+                      value={invoice.taxId}
+                      onChange={(e) => setInvoice({ ...invoice, taxId: e.target.value })}
+                      placeholder="155704849-2-2021"
+                      autoComplete="off"
+                      className={INPUT_CLS}
+                    />
+                  </label>
+                  <input
+                    type="email"
+                    value={invoice.email}
+                    onChange={(e) => setInvoice({ ...invoice, email: e.target.value })}
+                    placeholder="Correo para recibirla"
+                    aria-label="Correo para recibirla"
+                    autoComplete="email"
+                    className={INPUT_CLS}
+                  />
+                </div>
+              )}
+              <p className="mt-2 text-xs text-hint">Sin datos, la factura sale a consumidor final.</p>
+            </div>
           </div>
 
-          <div className="fixed inset-x-0 bottom-0 mx-auto max-w-md border-t border-black/5 bg-white px-4 pt-4 safe-bottom">
+          <div className="fixed inset-x-0 bottom-0 mx-auto max-w-md border-t border-line bg-white px-4 pt-4 safe-bottom">
             <div className="flex justify-between text-sm text-hint">
               <span>Subtotal</span>
               <span>{money(cart.subtotal)}</span>
@@ -205,7 +293,7 @@ export function CartScreen() {
                       aria-checked={method === m}
                       onClick={() => setMethod(m)}
                       className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold ${
-                        method === m ? 'border-brand bg-brand/5 text-brand' : 'border-black/10 text-ink'
+                        method === m ? 'border-brand bg-brand/5 text-brand' : 'border-line text-ink'
                       }`}
                     >
                       {METHOD_TEXT[m].label}
@@ -215,12 +303,12 @@ export function CartScreen() {
               </div>
             )}
 
-            {error && <p className="mt-2 text-center text-sm text-brand">{error}</p>}
+            {error && <p className="mt-2 text-center text-sm text-danger">{error}</p>}
 
             <button
               onClick={confirm}
               disabled={submitting}
-              className="mt-3 w-full rounded-2xl bg-brand py-4 text-base font-semibold text-white shadow-lg shadow-brand/25 active:scale-[0.99] disabled:opacity-60"
+              className="mt-3 h-[52px] w-full rounded-xl bg-brand text-base font-semibold text-white active:scale-[0.99] disabled:opacity-60"
             >
               {submitting
                 ? method === 'card'

@@ -7,9 +7,10 @@ class Settings(BaseSettings):
     # Odoo — SINGLE-TENANT FALLBACK only. In multi-tenant, each org's Odoo
     # connection is read from organizations/{orgId} (odooUrl/odooDb/odooUser/
     # odooPassword) via app.core.odoo.odoo_client_for_org(). These env values are
-    # used when an org has no Odoo configured (dev / one-tenant deploy).
-    odoo_url: str = "http://localhost:8069"
-    odoo_db: str = "restaurantes_demo"
+    # used when an org has no Odoo configured (dev / one-tenant deploy). Empty by
+    # default: a tenant without Odoo simply skips the sync (ODOO_ROLE.md).
+    odoo_url: str = ""
+    odoo_db: str = ""
     odoo_user: str = "admin"
     odoo_password: str = "admin"
 
@@ -58,6 +59,15 @@ class Settings(BaseSettings):
     # event calls, comma-separated: during a rotation the new one and the previous
     # one. Empty = every call is refused (401). Never commit it. See app/zaveli/.
     zaveli_signing_secrets: str = ""
+
+    # Fiscal (factura electrónica vía Digifact, PAC de la DGI). Las credenciales
+    # de cada org viven en organizations/{orgId}/private/digifact; aquí solo
+    # las URLs de los ambientes y el token con el que las Cloud Functions
+    # llaman a los endpoints internos (/fiscal/...). Ver docs/DIGIFACT_EVALUATION.md.
+    digifact_test_url: str = "https://testnucpa.digifact.com/api"
+    digifact_prod_url: str = "https://nucpa.digifact.com/api"
+    internal_token: str = ""  # empty = internal endpoints refuse every call
+    firebase_storage_bucket: str = ""  # default: <project>.firebasestorage.app
 
     # Server
     host: str = "0.0.0.0"

@@ -4,11 +4,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { Input, Textarea } from '@/components/ui/input';
+import { Input, Select, Textarea } from '@/components/ui/input';
 import { Dialog } from '@/components/ui/dialog';
 import ModifierGroupEditor from './ModifierGroupEditor';
 import { uploadProductImage } from '@/services/storage.service';
-import type { Product, ModifierGroup } from '@/types/product';
+import type { Product, ModifierGroup, ProductFiscal } from '@/types/product';
 
 const modifierOptionSchema = z.object({
   id: z.string(),
@@ -48,6 +48,10 @@ const productSchema = z.object({
   ),
   imageUrl: z.string().url('URL inválida').optional().or(z.literal('')),
   modifierGroups: z.array(modifierGroupSchema),
+  // Invoicing overrides; empty = use the organization's default.
+  cpbsAbr: z.string().trim().optional(),
+  cpbsCmp: z.string().trim().optional(),
+  taxCode: z.enum(['', '00', '01']).optional(),
 });
 
 type ProductFormInput = z.input<typeof productSchema>;
@@ -92,6 +96,9 @@ export default function ProductFormDialog({
       preparationMinutes: undefined,
       imageUrl: '',
       modifierGroups: [],
+      cpbsAbr: '',
+      cpbsCmp: '',
+      taxCode: '',
     },
   });
   const imageUrl = useWatch({ control, name: 'imageUrl' });
@@ -126,6 +133,9 @@ export default function ProductFormDialog({
         preparationMinutes: product.preparationMinutes,
         imageUrl: product.imageUrl ?? '',
         modifierGroups: product.modifierGroups ?? [],
+        cpbsAbr: product.fiscal?.cpbsAbr ?? '',
+        cpbsCmp: product.fiscal?.cpbsCmp ?? '',
+        taxCode: product.fiscal?.taxCode ?? '',
       });
     }
   }, [product, reset]);
@@ -152,6 +162,12 @@ export default function ProductFormDialog({
     fields.waiterNote = (values.waiterNote ?? '').trim();
     if (values.preparationMinutes != null) fields.preparationMinutes = values.preparationMinutes;
     if (values.imageUrl) fields.imageUrl = values.imageUrl;
+    // Always written (possibly empty) so clearing an override removes it.
+    const fiscal: ProductFiscal = {};
+    if (values.cpbsAbr) fiscal.cpbsAbr = values.cpbsAbr;
+    if (values.cpbsCmp) fiscal.cpbsCmp = values.cpbsCmp;
+    if (values.taxCode) fiscal.taxCode = values.taxCode;
+    fields.fiscal = fiscal;
 
     try {
       if (isEditing) {
@@ -242,6 +258,31 @@ export default function ProductFormDialog({
           supporting="Separados por coma"
           {...register('tags')}
         />
+
+        <section className="space-y-5">
+          <h3 className="t-title-medium text-[var(--md-sys-color-on-surface)]">Facturación</h3>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Input
+              id="cpbsAbr"
+              label="CPBS (segmento)"
+              placeholder="50"
+              supporting="Vacío = usa el valor por defecto de la organización"
+              {...register('cpbsAbr')}
+            />
+            <Input
+              id="cpbsCmp"
+              label="CPBS (familia)"
+              placeholder="5019"
+              supporting="Vacío = usa el valor por defecto de la organización"
+              {...register('cpbsCmp')}
+            />
+          </div>
+          <Select id="taxCode" label="Impuesto" {...register('taxCode')}>
+            <option value="">Por defecto de la organización</option>
+            <option value="00">Exento</option>
+            <option value="01">ITBMS 7 %</option>
+          </Select>
+        </section>
 
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
