@@ -26,6 +26,9 @@ jobs:
           cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
       - run: npm ci
         working-directory: apps/${{ matrix.app }}
+      # Las apps sin script `test` (admin_app, kitchen_web) se saltan.
+      - run: npm run --if-present test
+        working-directory: apps/${{ matrix.app }}
       # Siempre se construye contra dev: el guard de vite rechaza `production`.
       - run: npm run build -- --mode restaurant-os-dev-49096
         working-directory: apps/${{ matrix.app }}

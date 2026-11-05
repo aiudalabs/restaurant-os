@@ -23,4 +23,4 @@ bff:
 	cd apps/fastapi_bff && python3.12 -m pytest -q $(BFF_TESTS)
 
 web-%:
-	cd apps/$* && npm run build -- --mode $(DEV_MODE)
+	cd apps/$* && npm run --if-present test && npm run build -- --mode $(DEV_MODE)

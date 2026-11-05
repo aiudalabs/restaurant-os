@@ -14,6 +14,7 @@ import { auth, db, ensureAnonAuth, functions } from './firebase';
 import { paths } from './paths';
 import { generatePickupCode } from './pickup';
 import { paymentsEnabled } from './config';
+import { orderAmounts } from './totals';
 import type {
   Branch,
   CartLine,
@@ -138,9 +139,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
   const uid = auth.currentUser?.uid ?? '';
 
   const pickupCode = generatePickupCode();
-  const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
-  const taxAmount = subtotal * taxPercent;
-  const total = subtotal + taxAmount;
+  const { subtotal, taxAmount, total } = orderAmounts(lines, taxPercent);
   const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
 
   const batch = writeBatch(db);
