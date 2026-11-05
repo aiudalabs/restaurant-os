@@ -215,3 +215,32 @@ rama feat/issue-N-…  ──►  scripts/deploy.sh dev …  ──►  probar e
 - **PagueloFácil:** los dos en **sandbox** hasta tener la cuenta de producción (`PAGUELOFACIL_ENV` en `deploy/env/<alias>.env`, y `VITE_PAYMENTS_ENABLED` en la customer web).
 - **Odoo:** opcional y por organización (en el documento de la org). Dev no lo necesita.
 - **Vertex AI (asistente del admin):** cada ambiente lo usa en su propio proyecto; el bootstrap habilita la API y da el rol.
+
+## 8. Respaldos de producción
+
+Configurados el 2026-11-05 en `restaurant-os-68c79` (con la cuenta `admin@aiudalabs.com`). Dev no tiene respaldos.
+
+| Qué | Configuración |
+|---|---|
+| Firestore `(default)` | PITR activado (recuperación a cualquier minuto de los últimos 7 días) |
+| Firestore, backups programados | Diario con retención de 14 días; semanal (domingo) con retención de 8 semanas |
+| Firestore, protección contra borrado | Activada: `databases delete` y `tools/reset_db_state.py` sobre la base completa fallan a propósito |
+| Export manual | `gs://restaurant-os-68c79-backups/manual/<fecha>` (bucket privado, ubicación US, sin retención automática) |
+| Storage `restaurant-os-68c79.firebasestorage.app` | Versionado activado; versiones no vigentes se borran a los 30 días; papelera de 30 días |
+
+**No cubierto:** RTDB (solo tickets efímeros), usuarios de Auth (`firebase auth:export`). Restauración probada el 2026-11-05: import del export manual a una base temporal con conteos idénticos (orders 384, order_items 531, users 14, products 95); la base temporal se borró.
+
+**Antes de cualquier deploy o migración sobre prod**, tomar un export manual:
+
+```bash
+gcloud firestore export gs://restaurant-os-68c79-backups/manual/$(date +%Y%m%d-%H%M) \
+  --project=restaurant-os-68c79 --account=admin@aiudalabs.com --database='(default)'
+```
+
+Restaurar (siempre a una base nueva, nunca encima de la de prod):
+
+```bash
+gcloud firestore databases create --database=restore-test --location=nam5 --project=restaurant-os-68c79
+gcloud firestore import gs://restaurant-os-68c79-backups/manual/<fecha> --database=restore-test --project=restaurant-os-68c79
+# PITR: gcloud firestore databases clone --source-database=... --snapshot-time=... --destination-database=...
+```
