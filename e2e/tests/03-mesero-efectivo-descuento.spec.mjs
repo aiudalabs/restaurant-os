@@ -86,9 +86,12 @@ test('mesero: pedido por nombre, descuento configurado, cobro en efectivo y tota
     expect(order.data.total).toBe(withDiscount.total);
 
     paidOrderId = order.id;
-    const audit = await fsQuery('audit_log', [{ field: 'orderId', op: 'EQUAL', value: order.id }]);
-    const paid = audit.find((a) => a.data.type === 'order_paid');
-    expect(paid?.data.amount).toBe(withDiscount.total);
+    // order_paid lo escribe el trigger onOrderPaid de forma asíncrona: se espera, no se lee de inmediato.
+    const auditOf = () => fsQuery('audit_log', [{ field: 'orderId', op: 'EQUAL', value: order.id }]);
+    await expect
+      .poll(async () => (await auditOf()).find((a) => a.data.type === 'order_paid')?.data.amount, { timeout: 30_000 })
+      .toBe(withDiscount.total);
+    const audit = await auditOf();
     expect(audit.some((a) => a.data.type === 'discount_applied' && a.data.discountId === disc.id)).toBe(true);
   });
 
