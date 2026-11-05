@@ -7,7 +7,7 @@ Guía única para agentes de código (Claude Code, Codex, Cursor, OpenCode…). 
 - Diagnóstico y hoja de ruta vigentes: `docs/PLATFORM_DIAGNOSIS_2026-11.md`.
 - Flujo de agentes, pruebas y puerta de merge: `docs/DEV_WORKFLOW.md`.
 - Por qué las cosas son como son: `~/.devtrace/decisions/restaurant_os.md`.
-- `ORCHESTRATOR.md` y `setup_agents.sh` (marzo 2026) son **históricos**; no los uses.
+- `docs/archive/ORCHESTRATOR.md` y `docs/archive/setup_agents.sh` (marzo 2026) son **históricos**; no los uses.
 
 ---
 
@@ -48,9 +48,7 @@ Un `npm run build` sin `--mode <projectId>` falla a propósito (guard en `script
 | `apps/landing` | React 18, Vite 5 | **Activa.** Marketing y planes; checkout simulado → signup en admin. Hosting `landing` (`*-inicio`). |
 | `functions/` | TS, firebase-functions v5, Node 22, us-central1 | **Activa.** Motor operacional (§5). |
 | `apps/fastapi_bff` | Python 3.12, FastAPI, Cloud Run `restaurantos-bff` | **Activa**, pero se queda solo con integraciones: fiscal (Digifact), pagos (PagueloFácil), IA, Zaveli. |
-| `packages/core`, `apps/client_app`, `apps/waiter_app`, `apps/kitchen_app` | Flutter/Dart | **Abandonadas.** Congeladas: no las modifiques ni arregles. Se archivan en Fase 1 (tag `archive/flutter-2026-11`). |
-| `apps/waiter_demo` | HTML | **Muerto e inseguro** (credenciales en claro). Se borra en Fase 1. |
-| `apps/admin`, `apps/client`, `apps/kitchen` | solo `SPEC.md` | Obsoletos; no son código vivo. |
+| _(Flutter archivado)_ | Flutter/Dart | Quitado de `main`; recuperable con el tag `archive/flutter-2026-11`. Los `SPEC.md` viejos están en `docs/archive/`. |
 
 Las apps web **no** son un workspace npm: cada una tiene su `package.json`. Las versiones de React, Vite, Tailwind y Firebase **difieren** entre `admin_app` y las demás: la verdad es el `package.json` de cada app. No hagas upgrades para "alinear" sin preguntar (la consolidación está planeada en la Fase 2).
 
@@ -150,7 +148,7 @@ Repo: `aiudalabs/restaurant-os`. Tienes `gh` con permiso `repo`; úsalo para PRs
 
 1. **Un issue por tarea.** Sin issue no hay código. Los criterios de aceptación se escriben como pruebas verificables.
 2. Comenta «🚧 En progreso» en el issue. Rama desde `main`: `feat/issue-{n}-{slug}` o `fix/issue-{n}-{slug}`.
-3. Commits `tipo(scope): descripción` + `Closes #N`. Tags `[ADR]` en cambios de arquitectura. Scopes válidos: `waiter`, `kitchen`, `admin`, `customer`, `landing`, `firebase`, `bff`, `docs`, `ci`. (`client`, `core` son de Flutter, congelado.)
+3. Commits `tipo(scope): descripción` + `Closes #N`. Tags `[ADR]` en cambios de arquitectura. Scopes válidos: `waiter`, `kitchen`, `admin`, `customer`, `landing`, `firebase`, `bff`, `docs`, `ci`.
 4. **Un PR por issue, pequeño. Máximo dos PRs apilados.** (La cadena de ocho PRs de octubre fue un error: no se repite.) El PR dice qué cambia, cómo probarlo y qué queda fuera.
 5. **`main` solo por PR.** Nadie hace push directo a `main`.
 6. Bug encontrado trabajando: abre issue con label `app:{scope}`; arréglalo en el mismo commit si es chico, en otra rama si es grande.
@@ -168,7 +166,7 @@ Repo: `aiudalabs/restaurant-os`. Tienes `gh` con permiso `repo`; úsalo para PRs
 - **Sin atajos para llegar al verde:** no cambies un criterio de aceptación para ocultar un fallo ni sustituyas una integración real por un simulador sin declararlo en el PR. No declares verificada una integración que solo probaste con un simulador.
 - Pirámide objetivo: unitarias (existe en functions/BFF; **falta en webs**) → emuladores (existe) → Playwright de punta a punta (falta). Vitest y Playwright están aprobados como dependencias de desarrollo.
 - Si el sistema de permisos deniega un comando, no lo reintentes por otra vía de forma encubierta: anótalo y pregunta.
-- Reporta resultados con fidelidad: si una prueba falla o algo no se verificó (p. ej. Flutter no está instalado aquí), dilo.
+- Reporta resultados con fidelidad: si una prueba falla o algo no se verificó (p. ej. el JDK de los emuladores no está instalado aquí), dilo.
 
 ---
 
@@ -183,4 +181,4 @@ Repo: `aiudalabs/restaurant-os`. Tienes `gh` con permiso `repo`; úsalo para PRs
 
 ## 10. Subagentes
 
-En `.claude/agents/` hay `core-agent`, `admin-agent`, `firebase-agent`. `core-agent` es de Flutter (congelado). Para el trabajo nuevo se lanzan agentes por tarea (`general-purpose`, `aiuda-stack:react-dev`, `aiuda-stack:firebase-dev`, `aiuda-stack:python-dev`, `aiuda-stack:qa-tester`) cada uno en su worktree, con el issue y los archivos permitidos en el prompt.
+En `.claude/agents/` hay `core-agent`, `admin-agent`, `firebase-agent`. `core-agent` era de Flutter (archivado): no lo uses. Para el trabajo nuevo se lanzan agentes por tarea (`general-purpose`, `aiuda-stack:react-dev`, `aiuda-stack:firebase-dev`, `aiuda-stack:python-dev`, `aiuda-stack:qa-tester`) cada uno en su worktree, con el issue y los archivos permitidos en el prompt.

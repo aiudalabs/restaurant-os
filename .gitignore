@@ -5,11 +5,6 @@ build/
 .env.local
 .DS_Store
 *.log
-.dart_tool/
-.packages
-pubspec.lock
-*.freezed.dart
-*.g.dart
 .venv/
 tools/reports/
 __pycache__/
@@ -26,7 +21,3 @@ apps/fastapi_bff/.zaveli-dev/
 # Cloud Functions local secrets / params (never commit)
 functions/.secret.local
 functions/.env.local
-
-# Config Firebase de waiter_app (congelada)
-apps/waiter_app/android/app/google-services.json
-apps/waiter_app/ios/Runner/GoogleService-Info.plist

@@ -1,6 +1,6 @@
 # RestaurantOS — Arquitectura y Jerarquia del Sistema
 
-**Ultima actualizacion:** 2026-03-30
+**Ultima actualizacion:** 2026-11-05 (solo web; Flutter archivado)
 
 ---
 
@@ -102,8 +102,8 @@ Cada KDS solo escucha su nodo de RTDB = solo ve sus items.
 |---|---|---|
 | **admin** | Todo: CRUD menu, mesas, estaciones, usuarios, ordenes, reportes | Admin web app |
 | **manager** | Gestionar menu, ordenes, reportes (sin crear usuarios) | Admin web app |
-| **operator** | Ver y avanzar tickets de su estacion | Kitchen app (KDS) |
-| **cliente** | Ver menu, ordenar, tracking | Client app (anonimo) |
+| **operator** | Ver y avanzar tickets de su estacion | `kitchen_web` (KDS) |
+| **cliente** | Ver menu, ordenar, tracking | `customer_web` (anonimo) |
 
 ### Autenticacion
 
@@ -117,9 +117,14 @@ Cada KDS solo escucha su nodo de RTDB = solo ve sus items.
 | App | Tecnologia | Plataforma | Usuarios |
 |---|---|---|---|
 | `admin_app` | React + TypeScript + Vite + TailwindCSS | Web (browser) | Duenos, managers |
-| `client_app` | Flutter | iOS + Android (deep links) | Clientes del restaurante |
-| `kitchen_app` | Flutter | Android tablet + Web | Operadores de cocina/bar |
-| `packages/core` | Dart | Compartido | Usado por client_app y kitchen_app |
+| `customer_web` | React + TypeScript + Vite | Web (movil, QR/link) | Clientes del restaurante |
+| `waiter_web` | React + TypeScript + Vite | Web (movil/tablet) | Meseros y caja |
+| `kitchen_web` | React + TypeScript + Vite | Web (tablet) | Operadores de cocina/bar (KDS) |
+| `landing` | React + Vite | Web | Marketing, planes y alta de organizaciones |
+| `functions/` | TypeScript (Cloud Functions) | Firebase | Motor operacional (rutea pedidos, pagos, fidelidad) |
+| `fastapi_bff` | Python + FastAPI | Cloud Run | Integraciones: fiscal (Digifact), pagos, IA, Zaveli |
+
+> Las apps nativas Flutter (`client_app`, `waiter_app`, `kitchen_app`, `packages/core`) se archivaron en el tag git `archive/flutter-2026-11` (2026-11-05). Si hace falta app nativa se envuelve `customer_web` con Capacitor.
 
 ### Cloud Functions
 

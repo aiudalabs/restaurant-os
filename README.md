@@ -2,18 +2,25 @@
 
 Sistema de gestión de pedidos para restaurantes y cadenas. SaaS multi-tenant.
 
-> **Lectura obligatoria antes de tocar código:** [`CLAUDE.md`](./CLAUDE.md) (reglas del monorepo) y [`FIREBASE_SCHEMA.md`](./FIREBASE_SCHEMA.md) (fuente de verdad del esquema).
+> **Lectura obligatoria antes de tocar código:** [`AGENTS.md`](./AGENTS.md) (reglas del monorepo; `CLAUDE.md` lo importa) y [`FIREBASE_SCHEMA.md`](./FIREBASE_SCHEMA.md) (fuente de verdad del esquema).
 
 ---
 
 ## Apps
 
-| App | Stack | Plataforma | Quién la usa |
-|---|---|---|---|
-| `apps/client_app` | Flutter | iOS + Android | Clientes del restaurante |
-| `apps/kitchen_app` | Flutter | Android tablet | Cocina / bar / estaciones |
-| `apps/admin_app` | React + TypeScript + Vite | Web | Dueños y managers |
-| `packages/core` | Dart | Compartido | Usado por client_app y kitchen_app |
+Todo el producto es web (no hay apps nativas; Flutter se archivó en el tag `archive/flutter-2026-11`).
+
+| App | Stack | Quién la usa |
+|---|---|---|
+| `apps/admin_app` | React + TypeScript + Vite | Dueños y managers |
+| `apps/customer_web` | React + TypeScript + Vite | Clientes (pedido por QR/link) |
+| `apps/waiter_web` | React + TypeScript + Vite | Meseros y caja |
+| `apps/kitchen_web` | React + TypeScript + Vite | Cocina / bar (KDS) |
+| `apps/landing` | React + Vite | Marketing y alta de organizaciones |
+| `functions/` | TypeScript (Cloud Functions) | Motor operacional |
+| `apps/fastapi_bff` | Python + FastAPI | Integraciones (fiscal, pagos, IA, Zaveli) |
+
+Estado real, comandos y reglas: [`AGENTS.md`](./AGENTS.md). Ambientes dev/prod: `docs/ENVIRONMENTS.md`.
 
 ---
 
@@ -28,14 +35,15 @@ Sistema de gestión de pedidos para restaurantes y cadenas. SaaS multi-tenant.
 
 ## Cómo compilar y correr
 
-### Flutter apps (client / kitchen)
+### Calidad
 
 ```bash
-# APK release Android
-cd apps/client_app && flutter build apk --release
-cd apps/kitchen_app && flutter build apk --release
-# Output: build/app/outputs/flutter-apk/app-release.apk
+make check    # functions + BFF (rápido)
+make verify   # check + build de las 4 webs contra dev
+make e2e      # reglas y pagos contra emuladores (JDK 21+)
 ```
+
+Las webs se construyen con `--mode <projectId>`; un build sin modo falla a propósito.
 
 ### Admin app (React)
 
@@ -45,8 +53,6 @@ npm install                 # solo la primera vez
 npm run dev                 # dev server → http://localhost:5173
 npm run build               # build producción (dist/)
 ```
-
-> Nota: el script `build` actualmente es `vite build` sin `tsc -b` porque hay errores de tipos pendientes tras upgrade de Recharts/Zod/react-hook-form. El runtime funciona; los tipos quedan por arreglar.
 
 ### Deploy admin app
 
@@ -103,20 +109,23 @@ python3 tools/reset_user_password.py --role operator --password <nueva>
 
 ```
 restaurant_os/
-├── CLAUDE.md                 ← reglas del monorepo (leer primero)
+├── AGENTS.md                 ← reglas del monorepo (leer primero)
+├── CLAUDE.md                 ← importa AGENTS.md
 ├── FIREBASE_SCHEMA.md        ← esquema de Firestore/RTDB
-├── AGENTS.md                 ← coordinación entre agentes
-├── ORCHESTRATOR.md           ← orquestador multi-agente
 ├── firebase.json             ← rules + indexes + hosting + functions
 ├── firestore.rules
 ├── firestore.indexes.json
 ├── database.rules.json
 ├── functions/                ← Cloud Functions (TypeScript)
-├── packages/core/            ← Dart package compartido
 ├── apps/
-│   ├── client_app/           ← Flutter — cliente
-│   ├── kitchen_app/          ← Flutter — KDS
-│   └── admin_app/            ← React — dashboard
+│   ├── admin_app/            ← React — dashboard
+│   ├── customer_web/         ← React — cliente
+│   ├── waiter_web/           ← React — mesero/caja
+│   ├── kitchen_web/          ← React — KDS
+│   ├── landing/              ← React — marketing
+│   └── fastapi_bff/          ← Python — integraciones
+├── docs/                     ← documentación (docs/archive = histórico)
+├── scripts/                  ← deploy y utilidades
 └── tools/                    ← scripts Python admin (gcloud token)
 ```
 
@@ -124,10 +133,9 @@ restaurant_os/
 
 ## Convenciones
 
-Ver `CLAUDE.md` para reglas completas. Resumen:
+Ver `AGENTS.md` para reglas completas. Resumen:
 
-- Commits: `feat(scope):`, `fix(scope):`, `refactor(scope):`, `docs:`, `test(scope):`. Scopes: `client`, `kitchen`, `admin`, `core`, `firebase`, `docs`.
+- Commits: `feat(scope):`, `fix(scope):`, `refactor(scope):`, `docs:`, `test(scope):`. Scopes: `waiter`, `kitchen`, `admin`, `customer`, `landing`, `firebase`, `bff`, `docs`, `ci`.
 - Rama por issue: `feat/issue-{n}-{slug}`.
 - Nunca commitear directo a `main`, nunca subir credenciales.
-- Dart: Freezed para todos los modelos, `final` sobre `var`, sin `dynamic`.
 - React: sin `any`, `useQuery` para lecturas, `react-hook-form` + `zod` para formularios.
