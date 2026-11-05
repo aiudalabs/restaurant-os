@@ -213,7 +213,6 @@ rama feat/issue-N-…  ──►  scripts/deploy.sh dev …  ──►  probar e
 
 - **Código:** el mismo repo. Solo cambian los archivos de config de arriba.
 - **PagueloFácil:** los dos en **sandbox** hasta tener la cuenta de producción (`PAGUELOFACIL_ENV` en `deploy/env/<alias>.env`, y `VITE_PAYMENTS_ENABLED` en la customer web).
-- **Odoo:** opcional y por organización (en el documento de la org). Dev no lo necesita.
 - **Vertex AI (asistente del admin):** cada ambiente lo usa en su propio proyecto; el bootstrap habilita la API y da el rol.
 
 ## 8. Respaldos de producción

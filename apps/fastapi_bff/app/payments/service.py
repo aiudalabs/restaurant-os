@@ -1,12 +1,10 @@
 import logging
-import unicodedata
 from datetime import datetime, timezone
 
 import httpx
 
 from app.config import settings
-from app.core.firestore import ORDERS, ORDER_ITEMS, db
-from app.core.odoo import OdooClient, odoo_client_for_org
+from app.core.firestore import ORDERS, db
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +109,7 @@ def handle_callback(form: dict) -> str | None:
 
     Writes payment.status 'paid' (approved) or 'failed' (rejected). Everything that
     follows a payment (KDS release, audit, invoice) is done by the onOrderPaid
-    Cloud Function, the same as for cash or Yappy. The Odoo sync stays here
-    because the Odoo client lives in the BFF; it is non-blocking.
+    Cloud Function, the same as for cash or Yappy.
     """
     # PF field names vary; normalise to lowercase for safety
     f = {k.lower(): v for k, v in form.items()}
@@ -183,120 +180,4 @@ def handle_callback(form: dict) -> str | None:
         return order_id
     logger.info("Order %s payment → %s (codOper=%s)", order_id, "paid" if approved else "failed", cod_oper)
 
-    if approved:
-        _sync_to_odoo(order_id, cod_oper)
-
     return order_id
-
-
-def _ascii_name(name: str) -> str:
-    return "".join(
-        c for c in unicodedata.normalize("NFD", name)
-        if unicodedata.category(c) != "Mn"
-    ).strip()
-
-
-def _find_odoo_product(client: "OdooClient", product_name: str) -> int | None:
-    ascii = _ascii_name(product_name)
-    for domain in [
-        [["name", "=", product_name]],
-        [["name", "=", ascii]],
-        [["name", "ilike", product_name]],
-        [["name", "ilike", ascii]],
-    ]:
-        results = client.search_read("product.product", domain, ["id", "name"], limit=1)
-        if results:
-            return results[0]["id"]
-    return None
-
-
-def _sync_to_odoo(order_id: str, cod_oper: str) -> None:
-    """Create a pos.order in Odoo — non-blocking (logs errors, never raises)."""
-    try:
-        order_doc = db().collection(ORDERS).document(order_id).get()
-        if not order_doc.exists:
-            return
-        order = order_doc.to_dict() or {}
-
-        # Use THIS order's org Odoo connection (multi-tenant). A tenant without
-        # Odoo configured simply skips the sync — the order stays paid in Firebase.
-        client = odoo_client_for_org(order.get("orgId"))
-        if client is None:
-            logger.info("No Odoo configured for org %s — skipping sync for order %s",
-                        order.get("orgId"), order_id)
-            return
-
-        items = [
-            d.to_dict()
-            for d in db().collection(ORDER_ITEMS)
-            .where("orderId", "==", order_id)
-            .stream()
-        ]
-        if not items:
-            return
-
-        client.authenticate()
-
-        sessions = client.search_read(
-            "pos.session",
-            [["state", "=", "opened"]],
-            ["id"],
-            limit=1,
-        )
-        if not sessions:
-            logger.warning("No open POS session — skipping Odoo sync for order %s", order_id)
-            return
-
-        session_id: int = sessions[0]["id"]
-
-        lines = []
-        for item in items:
-            product_name = item.get("productName", "")
-            product_id = _find_odoo_product(client, product_name)
-            if product_id is None:
-                logger.warning(
-                    "No Odoo product found for '%s' — skipping line in order %s",
-                    product_name, order_id,
-                )
-                continue
-            qty = item.get("quantity", 1)
-            unit_price = float(item.get("unitPrice", 0))
-            lines.append((0, 0, {
-                "product_id": product_id,
-                "full_product_name": product_name,
-                "qty": qty,
-                "price_unit": unit_price,
-                "price_subtotal": unit_price * qty,
-                "price_subtotal_incl": unit_price * qty,
-            }))
-
-        if not lines:
-            return
-
-        # Get next POS order sequence number
-        try:
-            order_name = client._models.execute_kw(
-                client._db, client._uid, client._password,
-                "ir.sequence", "next_by_code", [["pos.order"]]
-            )
-        except Exception:
-            order_name = f"ROS-{order_id[:8].upper()}"
-
-        pos_order_id = client.create("pos.order", {
-            "name": order_name,
-            "session_id": session_id,
-            "lines": lines,
-            "amount_total": float(order.get("total", 0)),
-            "amount_tax": float(order.get("taxAmount", 0)),
-            "amount_paid": float(order.get("total", 0)),
-            "amount_return": 0,
-            # The fiscal document is the PAC's (see docs/DIGIFACT_EVALUATION.md);
-            # the pos.order is an accounting record, not the invoice.
-            "to_invoice": False,
-            "state": "done",
-            "note": f"RestaurantOS #{order_id[:8]} | PF:{cod_oper}",
-        })
-        logger.info("Created pos.order %s for RestaurantOS order %s", pos_order_id, order_id)
-
-    except Exception as exc:
-        logger.error("Odoo sync failed for order %s: %s", order_id, exc)
