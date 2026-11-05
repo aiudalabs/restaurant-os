@@ -17,6 +17,7 @@ Guía única para agentes de código (Claude Code, Codex, Cursor, OpenCode…). 
 - **Único cliente en producción: Pick & Eat** (org `yN4NWwXOCjmh0ydwwRIu`). Sus pedidos reales viven en prod: **no se pierden datos**. Hay respaldos (PITR, diarios, semanales) y restauración probada: `docs/ENVIRONMENTS.md` §8.
 - **`main`** contiene desde el 2026-11-05 la cadena de PRs #69→#82 (pago en servidor, reglas con validación de campos, Digifact, Club de fidelidad, Google Wallet sin credenciales, escaneo de socio, descuentos) y #66. **Dev ya corre ese código; prod sigue en la versión del 2026-10-14** hasta que el responsable pida desplegar.
 - **Antes de desplegar eso a prod**: export manual de Firestore, CORS de Storage (`storage.cors.json`), `BFF_URL` de prod en `functions/.env.restaurant-os-68c79`, secretos del BFF (`INTERNAL_TOKEN`), y credenciales Digifact productivas si se factura.
+- **Principio permanente: multi-tenant y todo configurable.** Nada que cambie de un restaurante a otro (marca, colores, logo, programa de fidelidad, métodos de pago, impuestos, moneda, módulos) va en el código. Es configuración por organización o sucursal. Pick & Eat es un cliente más, no el valor por defecto. Diseño: `docs/BRANDING_DESIGN.md`.
 - **Decisiones del responsable (2026-11-05):** Panamá primero; **Odoo se abandona**; Flutter y `waiter_demo` se archivan/borran; objetivo = producto vendible a cualquier restaurante.
 - **Fase actual:** Fase 1 de la hoja de ruta (limpiar: Odoo ya retirado del BFF; Flutter, CI, documentación). Ver el diagnóstico.
 
