@@ -1,8 +1,9 @@
 // Shared helpers for the emulator suites (REST, no dependencies). Project: demo-ros-test.
 export const P = 'demo-ros-test';
 const FS = `http://${process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080'}/v1/projects/${P}/databases/(default)/documents`;
-const FN = `http://127.0.0.1:5001/${P}/us-central1`;
-const DB = `http://127.0.0.1:9000`;
+const OFF = Number(process.env.EMU_PORT_OFFSET || 0); // permite correr con puertos desplazados si 8080/5001/9000 están ocupados
+const FN = `http://127.0.0.1:${5001 + OFF}/${P}/us-central1`;
+const DB = `http://127.0.0.1:${9000 + OFF}`;
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 export const token = (uid, extra = {}) =>
   `${b64({ alg: 'none', typ: 'JWT' })}.${b64({ sub: uid, user_id: uid, aud: P, iss: `https://securetoken.google.com/${P}`, iat: 0, exp: 9999999999, ...extra })}.`;

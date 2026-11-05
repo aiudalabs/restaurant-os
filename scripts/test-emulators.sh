@@ -58,6 +58,22 @@ step "Compilando functions"
 
 SUITES="${1:-rules counter yappy payment}"
 failed=""
+# Si 8080/5001/9000 están ocupados (p. ej. otro servidor local):
+#   EMU_PORT_OFFSET=10000 scripts/test-emulators.sh <suite>
+if [ -n "${EMU_PORT_OFFSET:-}" ] && [ -z "${EMULATOR_CONFIG:-}" ]; then
+  EMULATOR_CONFIG="firebase.emu.json"
+  python3 - "$EMU_PORT_OFFSET" <<'PY'
+import json, sys
+off = int(sys.argv[1])
+c = json.load(open("firebase.json"))
+for v in c["emulators"].values():
+    if isinstance(v, dict) and "port" in v:
+        v["port"] += off
+json.dump(c, open("firebase.emu.json", "w"), indent=2)
+PY
+  trap 'rm -f firebase.emu.json' EXIT
+fi
+
 for suite in $SUITES; do
   case "$suite" in
     rules) only="firestore"; file="rules.test.mjs" ;;
@@ -68,7 +84,7 @@ for suite in $SUITES; do
   esac
   step "Suite $suite"
   log="$(mktemp)"
-  node "$FT_BIN" emulators:exec --only "$only" --project demo-ros-test "node functions/test/emulator/$file" >"$log" 2>&1 || true
+  node "$FT_BIN" emulators:exec ${EMULATOR_CONFIG:+--config "$EMULATOR_CONFIG"} --only "$only" --project demo-ros-test "node functions/test/emulator/$file" >"$log" 2>&1 || true
   grep -E '^(PASS|FAIL)|all passed|failed$|timeout' "$log" || tail -20 "$log"
   grep -q '^all passed' "$log" || failed="$failed $suite"
   rm -f "$log"

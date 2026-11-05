@@ -30,3 +30,6 @@ functions/.env.local
 # Config Firebase de waiter_app (congelada)
 apps/waiter_app/android/app/google-services.json
 apps/waiter_app/ios/Runner/GoogleService-Info.plist
+
+# Config temporal de emuladores con puertos desplazados (scripts/test-emulators.sh)
+firebase.emu.json
