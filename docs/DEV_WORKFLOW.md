@@ -37,7 +37,7 @@ Dinero y totales, pago confirmado y factura, aislamiento entre organizaciones (r
 | Capa | Herramienta | Dónde | Estado |
 |---|---|---|---|
 | Unitarias backend | `node --test`, `pytest` | `functions/test/unit`, `apps/fastapi_bff/tests` | existe (18 + 50) |
-| Integración con emuladores | Firebase Emulator Suite | `functions/test/emulator` (reglas, contador, pago, Yappy) | existe, manual (JDK 21+) |
+| Integración con emuladores | Firebase Emulator Suite | `functions/test/emulator` (reglas, contador, pago, Yappy, descuentos, Club, PIN, claims) | existe, manual (JDK 21+) |
 | Unitarias web | Vitest | `apps/*/src/**/*.test.ts` | **falta** |
 | Recorrido de punta a punta | Playwright contra dev/emulador | `e2e/` | **falta** |
 

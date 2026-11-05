@@ -3,7 +3,7 @@
 # rules and Cloud Functions. Never touches dev or prod (project demo-ros-test).
 #
 #   scripts/test-emulators.sh            # every suite
-#   scripts/test-emulators.sh yappy      # one suite: rules | counter | yappy | payment
+#   scripts/test-emulators.sh yappy      # one suite: rules | counter | yappy | payment | discount | club | pin | claims
 #
 # Needs a JDK ≥ 21 (Firestore emulator). Uses a private, patched copy of
 # firebase-tools: its functions emulator wraps admin.firestore with .bind() and
@@ -56,7 +56,7 @@ PY
 step "Compilando functions"
 (cd functions && npm run build >/dev/null)
 
-SUITES="${1:-rules counter yappy payment}"
+SUITES="${1:-rules counter yappy payment discount club pin claims}"
 failed=""
 # Si 8080/5001/9000 están ocupados (p. ej. otro servidor local):
 #   EMU_PORT_OFFSET=10000 scripts/test-emulators.sh <suite>
@@ -80,12 +80,16 @@ for suite in $SUITES; do
     counter) only="auth,firestore,database,functions"; file="counter.e2e.mjs" ;;
     yappy) only="auth,firestore,database,functions"; file="yappy.e2e.mjs" ;;
     payment) only="auth,firestore,database,functions"; file="payment.e2e.mjs" ;;
-    *) die "Suite desconocida: $suite (rules | counter | yappy | payment)" ;;
+    discount) only="auth,firestore,database,functions"; file="discount.e2e.mjs" ;;
+    club) only="auth,firestore,database,functions"; file="club.e2e.mjs" ;;
+    pin) only="auth,firestore,database,functions"; file="pin.e2e.mjs" ;;
+    claims) only="auth,firestore,database,functions"; file="claims.e2e.mjs" ;;
+    *) die "Suite desconocida: $suite (rules | counter | yappy | payment | discount | club | pin | claims)" ;;
   esac
   step "Suite $suite"
   log="$(mktemp)"
   node "$FT_BIN" emulators:exec ${EMULATOR_CONFIG:+--config "$EMULATOR_CONFIG"} --only "$only" --project demo-ros-test "node functions/test/emulator/$file" >"$log" 2>&1 || true
-  grep -E '^(PASS|FAIL)|all passed|failed$|timeout' "$log" || tail -20 "$log"
+  grep -E '^(PASS|FAIL|NOTE)|all passed|failed$|timeout' "$log" || tail -20 "$log"
   grep -q '^all passed' "$log" || failed="$failed $suite"
   rm -f "$log"
 done
