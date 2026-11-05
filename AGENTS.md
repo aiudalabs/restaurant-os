@@ -1,299 +1,186 @@
 # AGENTS.md — RestaurantOS
 
-Guía operativa para agentes de código (Claude Code, Codex, Cursor, OpenCode…).
-Describe **el estado real del repo** y cómo trabajar en él sin romper nada.
+Guía única para agentes de código (Claude Code, Codex, Cursor, OpenCode…). Es el estándar del repo:
+`CLAUDE.md` solo la importa. Describe **el estado real** y las reglas obligatorias.
 
-- Reglas de estilo y prohibiciones completas: **`CLAUDE.md`** (manda sobre este archivo si hay conflicto).
-- Esquema de datos: **`FIREBASE_SCHEMA.md`**. Flujo Odoo ↔ Firebase ↔ BFF: **`docs/INTEGRATION_ARCHITECTURE.md`**.
-- Historial de decisiones (por qué las cosas son como son): `~/.devtrace/decisions/restaurant_os.md`.
-
-> Este archivo reemplaza la guía original de "5 agentes paralelos" (marzo 2026). Esa versión,
-> `ORCHESTRATOR.md` y `setup_agents.sh` describen un plan de arranque ya ejecutado: son
-> **históricos**, no los uses como instrucciones.
+- Esquema de datos: `FIREBASE_SCHEMA.md`. Ambientes y respaldos: `docs/ENVIRONMENTS.md`.
+- Diagnóstico y hoja de ruta vigentes: `docs/PLATFORM_DIAGNOSIS_2026-11.md`.
+- Flujo de agentes, pruebas y puerta de merge: `docs/DEV_WORKFLOW.md`.
+- Por qué las cosas son como son: `~/.devtrace/decisions/restaurant_os.md`.
+- `ORCHESTRATOR.md` y `setup_agents.sh` (marzo 2026) son **históricos**; no los uses.
 
 ---
 
-## 0. Estado actual (2026-09-24) — léelo antes de tocar nada
+## 0. Estado actual (2026-11-05)
 
-**Una sola línea: `main`.** El 2026-09-24 se unificaron las dos ramas vivas (`feat/waiter-pin-login`, que era
-producción con el admin naranja, y `feat/issue-41-admin-m3-green`) en `main`. El admin que queda es el
-**Material Design 3 «verde albahaca»** (issue #41), con todas las funciones del anterior.
-
-- **Regla: siempre en dev primero** (ver `CLAUDE.md`). Todo se despliega y prueba en `dev`; a `prod` solo va lo
-  mergeado en `main`, probado en dev y cuando el usuario lo pide explícitamente.
-- **Dos ambientes:** `prod` = `restaurant-os-68c79` (clientes reales) y `dev` = `restaurant-os-dev-49096`. Guía completa:
-  **`docs/ENVIRONMENTS.md`**. Despliega con `scripts/deploy.sh <dev|prod> [qué]`: producción solo desde `main` limpio
-  y con confirmación. Cada app se construye para su proyecto sola (`vite build --mode $GCLOUD_PROJECT` →
-  `apps/<app>/.env.<projectId>`); un `npm run build` sin `--mode` falla a propósito. Las ramas `feat/*` anteriores
-  ya están contenidas en `main`; no las revivas.
-- El admin verde aún **no está en producción** hasta el próximo `deploy --only hosting:admin` desde `main`
-  (producción sigue sirviendo el naranja hasta entonces). Preview viejo: `restaurant-os-68c79--m3-verde-887xu7pd.web.app` (expira 2026-10-07).
-- Organizaciones en producción: «Noel's AiudaLabs» (`trQxt6JRMIoM7yIPSTeq`, sucursal «Noel's Papitas», donde
-  se probó el flujo mesero → KDS), «Pick & Eat» (`yN4NWwXOCjmh0ydwwRIu`: menú nuevo del 2026-09-24 con precios
-  PROVISIONALES, estaciones Cocina/Bar ruteadas, observaciones para el mesero en 4 productos), «Pereda's Pizzas» y «Urban Kitchen».
-
-**Pendiente de desplegar desde `main` (verificado contra producción el 2026-09-24):**
-- **Hosting `admin`** (pasa producción al admin verde) y **`waiter`** (fotos opcionales por sucursal,
-  observaciones para el mesero, medidas Material 3).
-- **BFF** (Cloud Run, última revisión del 2026-07-12): falta el CORS para los canales de preview del admin → en un preview
-  el Asistente IA da «Failed to fetch» (en el dominio de producción sí funciona). También lleva `sentToStationAt`/notas en el espejo de pagos QR.
-- **KDS web** (`hosting:kds`, último deploy 2026-09-22): falta la fila FIFO (más viejo a la derecha), el nombre
-  de la sucursal en la cabecera y el orden estable por `sentToStationAt`.
-
-**Hecho en producción esta semana:** login del mesero con PIN personal; subida de fotos de productos (Storage);
-Reportes arreglado (índice + contrato) con detalle para CSV; aislamiento multi-tenant del KDS (claims + RTDB);
-PIN de estación de 6 dígitos con bloqueo real; borrador del pedido del mesero.
+- **Producto:** SaaS multi-tenant de pedidos para restaurantes (Panamá primero, luego LATAM). El cliente pide por QR o link, el pedido se rutea por estación al KDS, el mesero cobra, el sistema factura (Digifact) y el dueño administra desde un panel web.
+- **Único cliente en producción: Pick & Eat** (org `yN4NWwXOCjmh0ydwwRIu`). Sus pedidos reales viven en prod: **no se pierden datos**. Hay respaldos (PITR, diarios, semanales) y restauración probada: `docs/ENVIRONMENTS.md` §8.
+- **`main`** contiene desde el 2026-11-05 la cadena de PRs #69→#82 (pago en servidor, reglas con validación de campos, Digifact, Club de fidelidad, Google Wallet sin credenciales, escaneo de socio, descuentos) y #66. **Dev ya corre ese código; prod sigue en la versión del 2026-10-14** hasta que el responsable pida desplegar.
+- **Antes de desplegar eso a prod**: export manual de Firestore, CORS de Storage (`storage.cors.json`), `BFF_URL` de prod en `functions/.env.restaurant-os-68c79`, secretos del BFF (`INTERNAL_TOKEN`), y credenciales Digifact productivas si se factura.
+- **Decisiones del responsable (2026-11-05):** Panamá primero; **Odoo se abandona**; Flutter y `waiter_demo` se archivan/borran; objetivo = producto vendible a cualquier restaurante.
+- **Fase actual:** Fase 1 de la hoja de ruta (limpiar: quitar Odoo y Flutter, CI, documentación). Ver el diagnóstico.
 
 ---
 
-## 1. Qué es
+## 1. Ambientes — siempre dev primero (OBLIGATORIO)
 
-SaaS multi-tenant de pedidos para restaurantes (mercado: Panamá / LATAM). El cliente escanea un QR,
-pide desde el navegador, la orden se rutea por estación al KDS de cocina/bar y el dueño administra
-todo desde un panel web. Self-onboarding desde una landing con planes.
+`dev` = `restaurant-os-dev-49096` (pruebas). `prod` = `restaurant-os-68c79` (restaurantes reales). Guía: `docs/ENVIRONMENTS.md`.
 
-**Motores:**
-- **Firebase** (`restaurant-os-68c79`) — Firestore (fuente de verdad operacional), RTDB (tickets
-  en vivo del KDS), Auth, Cloud Functions, Hosting.
-- **FastAPI BFF** — auth de staff contra Odoo, pagos (PagueloFácil), asistente IA (Gemini).
-- **Odoo 17** — ERP/contabilidad. **Diferido y opcional** (decisión 2026-07-12): no está en el
-  camino crítico para vender ni facturar; el BFF lo trata como no-bloqueante y por-org.
+1. Todo se despliega y prueba en dev: `scripts/deploy.sh dev <qué>` desde cualquier rama. `npm run dev` local apunta a dev.
+2. Nada va a prod hasta que esté mergeado en `main` por PR, probado de punta a punta en dev, **y el usuario lo pida explícitamente**. Entonces, desde `main` limpio: `scripts/deploy.sh prod <qué>` (nombra lo que cambió; no `all` por costumbre).
+3. Scripts de `tools/` y escrituras directas a Firestore/RTDB van contra dev (`ROS_PROJECT=restaurant-os-dev-49096`). Datos de prod solo si el usuario lo pide para ese caso.
+4. Antes de cualquier deploy o migración a prod: export manual (comando en `ENVIRONMENTS.md` §8).
+5. Comandos `gcloud` de prod: `--account=admin@aiudalabs.com` (la cuenta por defecto no tiene acceso).
+6. Al terminar una tarea, reporta qué quedó **desplegado en dev** y qué falta para prod. Avisa al usuario cuando haya algo listo para probar en dev. No despliegues a prod por iniciativa propia.
+
+Un `npm run build` sin `--mode <projectId>` falla a propósito (guard en `scripts/vite-env-guard.ts`).
 
 ---
 
-## 2. Mapa de apps — qué está vivo
+## 2. Mapa de apps
 
-| Ruta | Stack | Estado | Deploy |
-|---|---|---|---|
-| `apps/admin_app` | React 19 + TS + Vite + Tailwind 4 + TanStack Router/Query | **Activa** — panel dueños/managers, Material Design 3 «verde albahaca» (issue #41) | Hosting `admin` → restaurant-os-68c79.web.app |
-| `apps/customer_web` | React 18 + TS + Vite + Tailwind 3 + react-router-dom | **Activa** — pedido por QR o por el link «Pedidos para retirar» de la sucursal (oficinas) con número de retiro; pago: Yappy manual (`branch.yappyHandle`), al retirar (`branch.allowPayAtPickup`) o tarjeta PagueloFácil (`VITE_PAYMENTS_ENABLED`, hoy sandbox); reemplaza a `client_app` | Hosting `customer` → restaurant-os-pedir.web.app |
-| `apps/kitchen_web` | React 18 + TS + Vite + Tailwind 3 | **Activa** — KDS web: PIN de estación (el link `?station=` configura la tablet), fila FIFO con el ticket más viejo a la derecha | Hosting `kds` → restaurant-os-cocina.web.app |
-| `apps/waiter_web` | React 18 + TS + Vite + Tailwind 3 | **Activa** — mesero sin mesas: pedido por nombre del cliente → KDS; cobro manual (efectivo/tarjeta/Yappy). Login: el link `?branch=` configura el dispositivo, el mesero toca su nombre + PIN personal. Borrador del pedido en el dispositivo (`lib/draft`), botón atrás dentro de la app (`lib/nav`). Responsive (grilla en PC táctil). **Modo barra:** los ítems cuya categoría no tiene estación activa quedan sin estación y los marca listos el mesero (check por ítem / «Todo listo»); sucursal sin estaciones activas = una persona hace todo. **Yappy manual:** los pedidos por link pagados por Yappy llegan en «Esperando pago»; «Pago recibido» (callable `confirmManualPayment`) los manda a cocina, «No llegó» los cancela | Hosting `waiter` → restaurant-os-mesero.web.app |
-| `apps/landing` | React 18 + Vite + Tailwind 3 | **Activa** — marketing + pricing + checkout simulado → signup en admin | Hosting `landing` → restaurant-os-inicio.web.app |
-| `apps/fastapi_bff` | Python 3.12 + FastAPI | **Activa** — dominios `auth`, `catalog`, `payments`, `ai`, `webhooks` | Cloud Run `restaurantos-bff` (URL en `apps/admin_app/src/lib/config.ts`) |
-| `functions/` | TypeScript, firebase-functions v5 | **Activa** — ver §5 | `firebase deploy --only functions` |
-| `packages/core` | Dart (Freezed, Riverpod) | Mantenimiento — lo usan las apps Flutter | — |
-| `apps/client_app` | Flutter | Legacy — sustituida por `customer_web` en el demo | APK manual |
-| `apps/kitchen_app` | Flutter | Secundaria — `kitchen_web` es el KDS principal | APK manual |
-| `apps/waiter_app` | Flutter | Congelada — `waiter_web` la reemplaza | APK manual |
+| Ruta | Stack | Estado |
+|---|---|---|
+| `apps/admin_app` | React 19, Vite 8, TS, Tailwind 4, TanStack Router/Query, Firebase 12 | **Activa.** Panel dueños/gerentes. Hosting `admin`. Única con lint. |
+| `apps/customer_web` | React 18, Vite 5, Tailwind 3, Firebase 10 | **Activa.** Pedido por QR/link con número de retiro, pago (Yappy manual, al retirar, tarjeta sandbox), seguimiento, Club. Hosting `customer` (`*-pedir`). |
+| `apps/waiter_web` | React 18, Vite 5, Tailwind 3 | **Activa.** Mesero/caja: pedido, cobro, descuentos, factura, cupones, escaneo de socio. Login con `?branch=` + PIN personal. Hosting `waiter` (`*-mesero`). |
+| `apps/kitchen_web` | React 18, Vite 5, Tailwind 3 | **Activa.** KDS: PIN de estación (`?station=`), fila FIFO. Hosting `kds` (`*-cocina`). |
+| `apps/landing` | React 18, Vite 5 | **Activa.** Marketing y planes; checkout simulado → signup en admin. Hosting `landing` (`*-inicio`). |
+| `functions/` | TS, firebase-functions v5, Node 22, us-central1 | **Activa.** Motor operacional (§5). |
+| `apps/fastapi_bff` | Python 3.12, FastAPI, Cloud Run `restaurantos-bff` | **Activa**, pero se queda solo con integraciones: fiscal (Digifact), pagos (PagueloFácil), IA, Zaveli. |
+| `packages/core`, `apps/client_app`, `apps/waiter_app`, `apps/kitchen_app` | Flutter/Dart | **Abandonadas.** Congeladas: no las modifiques ni arregles. Se archivan en Fase 1 (tag `archive/flutter-2026-11`). |
+| `apps/waiter_demo` | HTML | **Muerto e inseguro** (credenciales en claro). Se borra en Fase 1. |
+| `apps/admin`, `apps/client`, `apps/kitchen` | solo `SPEC.md` | Obsoletos; no son código vivo. |
 
-No son código: `apps/admin`, `apps/client`, `apps/kitchen` (solo `SPEC.md` originales),
-`apps/waiter_demo` (prototipo HTML), `design/`, `desings/`, `diagrams/` (mockups).
-Otros: `deploy/` (Docker Compose Odoo+Postgres+BFF+Caddy en VM GCP, **no ejecutado**),
-`odoo_demo/` (Odoo local para pruebas), `tools/` (scripts admin, §7).
-
-⚠️ Las versiones que pinnea `CLAUDE.md` para React (18 / firebase 10 / Tailwind 3) ya **no coinciden**
-con `admin_app` (React 19 / firebase 12 / Tailwind 4 / zod 4). La verdad es el `package.json` de
-cada app. No hagas upgrades ni downgrades para "alinear" sin preguntar.
+Las apps web **no** son un workspace npm: cada una tiene su `package.json`. Las versiones de React, Vite, Tailwind y Firebase **difieren** entre `admin_app` y las demás: la verdad es el `package.json` de cada app. No hagas upgrades para "alinear" sin preguntar (la consolidación está planeada en la Fase 2).
 
 ---
 
 ## 3. Comandos
 
-Las apps web **no** son un workspace npm: cada una tiene su propio `package.json` y `node_modules`.
-
 ```bash
-# Web apps (admin_app | customer_web | kitchen_web | waiter_web | landing)
-cd apps/<app> && npm install
-npm run dev        # puertos: admin 5173, customer 5175, kds 5176, landing 5177, waiter 5178
-npm run build      # vite build → dist/
-npm run lint       # solo admin_app tiene eslint
+make check      # bucle rápido: tests de functions + BFF (sin emuladores)
+make verify     # check + build de las 4 webs contra dev (antes de pedir revisión)
+make e2e        # reglas, pagos y triggers contra emuladores (requiere JDK 21+)
 
-# Cloud Functions
-cd functions && npm install && npm run build      # tsc → lib/ (gitignored)
-npm run serve                                     # emulador de functions
-
-# BFF (usar python3.12 — el python3 del sistema es 3.14 y PEP 668)
-cd apps/fastapi_bff
-cp .env.example .env                              # rellenar; nunca commitear
-python3.12 -m uvicorn app.main:app --reload --port 8000
-python3.12 -m pytest tests -v                     # OJO: tests de integración, ver §6
-
-# Flutter (melos, desde la raíz) — Flutter NO está instalado en esta máquina
-melos bootstrap
-melos run build     # build_runner (Freezed/json_serializable)
-melos run analyze
-melos run test      # o `melos run test:core`
+cd apps/<app> && npm install && npm run dev      # puertos: admin 5173, customer 5175, kds 5176, landing 5177, waiter 5178
+cd functions && npm run build                    # tsc; npm run test:unit
+cd apps/fastapi_bff && python3.12 -m pytest -q   # usa python3.12, no el python3 del sistema
 ```
 
-**Deploy** — ver **`docs/ENVIRONMENTS.md`** (ambientes, bootstrap de uno nuevo, rollback, secretos).
-Los scripts usan **`npx -y firebase-tools@15.30.2`**: la CLI global instalada (14.12.1) no puede desplegar reglas
-de RTDB (bug: envía `{dryRun}` en vez del archivo → "Expected 'rules' property").
-```bash
-scripts/deploy.sh dev web                                   # los 5 sitios a dev (desde cualquier rama)
-scripts/deploy.sh dev "hosting:waiter,functions:x"          # lista --only a dev
-scripts/deploy.sh prod "hosting:admin,functions:x"          # producción: main limpio + escribir «prod»
-scripts/deploy.sh prod bff                                  # BFF (deploy/env/prod.env + prod.secrets.env)
-DRY_RUN=1 scripts/deploy.sh prod all                        # muestra el comando sin ejecutarlo
-```
-En producción nombra lo que cambió en vez de `all`. Al desplegar índices, si la CLI ofrece **borrar** índices
-que no están en `firestore.indexes.json`, responde **No** (el archivo ya refleja producción al 2026-09-29).
+`tests/test_auth.py` y `tests/test_catalog_sync.py` del BFF necesitan un Odoo vivo: se ignoran (Odoo se abandona y esas pruebas se borran con él).
 
-Deploy = acción visible para clientes reales. **Confirma con el usuario antes de desplegar.**
+**Deploy:** `scripts/deploy.sh <dev|prod> [web|functions|rules|bff|"hosting:waiter,functions:x"]`. Prod exige `main` limpio igual a origin y escribir «prod». `DRY_RUN=1` muestra el comando. Los scripts fijan `firebase-tools@15.30.2`. Al desplegar índices, si la CLI ofrece **borrar** índices que no están en `firestore.indexes.json`, responde **No**.
+
+Deploy = acción visible para clientes reales. **Confirma con el usuario antes de desplegar a prod.**
 
 ---
 
 ## 4. Modelo de datos y multi-tenancy (lo que más se rompe)
 
-- Colecciones **planas** en la raíz de Firestore, todas con `orgId` (y `branchId` cuando aplica).
-  Jerarquía: Organization → Branch (`menuId`) → Tables / Stations (`categoryIds[]`);
-  Menu → Categories → Products. Detalle: `FIREBASE_SCHEMA.md`, `docs/ARCHITECTURE.md`.
-- **No crees colecciones fuera de `FIREBASE_SCHEMA.md`.** No toques `firestore.rules`,
-  `FIREBASE_SCHEMA.md` ni `packages/core/lib/utils/firestore_paths.dart` sin consenso explícito.
-- **Aislamiento por org** en `firestore.rules`: el staff se resuelve por `users/{uid}` (`orgId`, `role`).
-  Roles: `admin`, `manager`, `operator` (KDS, con `stationId`), `waiter` (solo `waiter_web`). Toda query de lista desde el admin **debe filtrar por
-  `orgId`** o las reglas la rechazan (bug real ya visto: commit 2b9f05d).
-- **Cliente final = auth anónima**, sin doc en `users`. Solo puede leer su orden (`createdByUid`);
-  la recuperación por código va por la callable `recoverOrder`. El anónimo **no puede leer
-  `stations`**, por eso el routing a estación ocurre server-side en `onOrderCreated`.
-- **Routing KDS:** `onOrderCreated` asigna `stationId` por `categoryId` y espeja el ítem en RTDB
-  `/order_items/{stationId}/{orderId}_{itemId}`. El KDS escucha solo su nodo. El avance de estado
-  escribe RTDB (velocidad) + Firestore (verdad); `onOrderItemUpdated` hace el roll-up de la orden.
-  Si una categoría queda en dos estaciones o en ninguna, los tickets se pierden — diagnostica con
-  `tools/debug_kds_routing.py`.
-- Órdenes `source: 'qr'` con prepago activo nacen `pending_payment` y **no** van al KDS hasta que
-  el BFF confirma el pago.
-- Crear usuarios de staff **solo** vía callables (`createOperatorUser`, `provisionBranch`,
-  `createOrganization`) — nunca crear usuarios de Auth desde el cliente.
-- **Custom claims** `{orgId, role, stationId}` en cada cuenta de staff: los pone `setStaffClaims`
-  al crear la cuenta y el trigger `syncStaffClaims` los re-emite si cambia el doc `users/{uid}`.
-  **RTDB depende de ellos**: `order_items/$stationId` solo para `auth.token.stationId === $stationId`.
-  Si creas staff por otra vía, llama a `setStaffClaims` o su KDS verá el tablero vacío.
-- **Pedidos:** solo admin/manager/waiter los actualizan; las cuentas de cocina (operator) no.
-  El avance de estado lo hacen las Functions (Admin SDK). `orgId` de un pedido es inmutable.
-- **PINs** (lógica común en `functions/src/kds/pin-lock.ts`: pbkdf2, 6 dígitos, bloqueo creciente
-  5 min → 30 min → 24 h):
-  - **Estación (KDS):** `kds_pins/{stationId}`; se pone en Estaciones (`setStationPin`), entra con `kdsLogin`.
-  - **Mesero (personal):** `staff_pins/{uid}`; se pone en Usuarios/Equipo (`setWaiterPin`, admin o gerente),
-    `waiterRoster` lista los meseros activos con PIN de la sucursal, entra con `waiterLogin` (token con
-    `{orgId, role:'waiter'}`, así cada pedido queda con su `createdByUid`). `deleteUser`/`deleteBranch` borran el PIN.
-  - Ambas colecciones son server-only en `firestore.rules`. En Functions con transacciones: **no lances
-    errores dentro de `runTransaction`** — se revierten las escrituras (así se perdía el bloqueo): devuelve
-    el resultado y lanza fuera.
-- **Storage** (`storage.rules`): fotos de productos en `orgs/{orgId}/products/`, lectura pública (el menú
-  del cliente las muestra) y escritura solo para admin/manager de esa org (claims), imágenes < 5 MB.
-  El admin las reduce a ~1200 px JPEG en el navegador antes de subir (`services/storage.service.ts`).
-  URL pública: `https://firebasestorage.googleapis.com/v0/b/restaurant-os-68c79.firebasestorage.app/o/<ruta codificada>?alt=media`.
-- **Estaciones y categorías:** nada impide asignar una categoría a dos estaciones (el admin solo muestra
-  cuál la tiene) y `onOrderCreated` usa la última que lee → la otra pantalla no recibe esos ítems.
-  El Asistente IA crea estaciones pero **no** les asigna categorías: hay que hacerlo en Estaciones.
+- Colecciones **planas** en la raíz de Firestore, todas con `orgId` (y `branchId` si aplica). Detalle: `FIREBASE_SCHEMA.md`.
+- **No crees colecciones fuera de `FIREBASE_SCHEMA.md`.** No toques `firestore.rules`, `FIREBASE_SCHEMA.md` ni este archivo sin consenso explícito del usuario.
+- **Aislamiento por org** en `firestore.rules`: el staff se resuelve por `users/{uid}` (`orgId`, `role`). Roles: `admin`, `manager`, `operator` (KDS), `waiter`. Toda query de lista desde el admin **debe filtrar por `orgId`**.
+- **Cliente final = auth anónima**, sin doc en `users`. Solo lee su pedido (`createdByUid`). Recuperación por código con la callable `recoverOrder`.
+- **Dinero y estado de pago lo decide el servidor.** Los clientes no escriben `payment.*` ni `fiscal`. Totales los calcula `onOrderCreated` desde `products` (`functions/src/orders/totals.ts`). Todo camino de pago converge en `markOrderPaid` (`recordPayment`, `confirmManualPayment`, callback de tarjeta) y el trigger `onOrderPaid` libera a cocina, suma puntos y pide la factura.
+- **Routing KDS:** `onOrderCreated` asigna `stationId` por categoría y espeja a RTDB `/order_items/{stationId}/{orderId}_{itemId}`. Pedidos `pending_payment` no se espejan hasta pagarse. Diagnóstico: `tools/debug_kds_routing.py`.
+- **Custom claims** `{orgId, role, stationId}`: los pone `setStaffClaims` y los re-emite `syncStaffClaims`. RTDB y Storage dependen de ellos. Crear staff **solo** vía callables (`createOperatorUser`, `provisionBranch`, `createOrganization`).
+- **PINs** (`functions/src/kds/pin-lock.ts`: pbkdf2, 6 dígitos, bloqueo creciente): estación en `kds_pins`, mesero en `staff_pins`. Colecciones server-only. En transacciones **no lances errores dentro de `runTransaction`**: se revierten las escrituras.
+- **`organizations/{orgId}/private/*`** (credenciales Digifact) es solo servidor.
+- **Storage:** fotos en `orgs/{orgId}/products/` (escritura admin/manager); facturas en `orgs/{orgId}/invoices/` (lectura pública por CUFE).
+- **Estaciones y categorías:** nada impide asignar una categoría a dos estaciones; `onOrderCreated` usa la última. El Asistente IA crea estaciones pero no les asigna categorías.
 
 ---
 
 ## 5. Backend: Functions y BFF
 
-**Cloud Functions** (`functions/src/index.ts`): `onOrderCreated` (rutea y espeja a RTDB con
-`sentToStationAt` fijo y las notas del ítem), `onOrderItemUpdated`, `recoverOrder`, `createOperatorUser`,
-`deleteUser`, `syncStaffClaims` (trigger), `createOrganization` (acepta `plan` starter|growth|chain),
-`provisionBranch` (crea estaciones + operadores), `deleteBranch`, `setStationPin`, `kdsLogin`,
-`kdsStationInfo`, `setWaiterPin`, `waiterRoster`, `waiterLogin`, `yappyWebhook` (futuro), `getOrderReports`.
+**Cloud Functions** (`functions/src/index.ts`): triggers `onOrderCreated`, `onOrderItemUpdated`, `onOrderPaid`, `syncStaffClaims`; HTTPS `yappyWebhook`, `customerManifest`; callables de organizaciones, personal, PINs, pagos (`recordPayment`, `confirmManualPayment`, `applyDiscount`), Club (`redeemReward`, `useVoucher`, `attachMember`, `googleWalletLink`), fiscal (`setFiscalCredentials`, `getFiscalStatus`) y `getOrderReports`. Lista completa con su detalle: `docs/PLATFORM_DIAGNOSIS_2026-11.md` apéndice A. `getOrderReports` devuelve exactamente `OrderReportData` de `apps/admin_app/src/services/report.service.ts`; si cambias uno, cambia el otro.
 
-`getOrderReports` devuelve exactamente `OrderReportData` de `apps/admin_app/src/services/report.service.ts`
-(totales, cancelados aparte, ingresos = solo cobrados, ventas por día en la zona horaria de la org, y una fila
-por pedido para el CSV). Necesita el índice `orders (branchId, createdAt ↑)`. Si cambias uno, cambia el otro.
-
-**BFF** — reglas en `CLAUDE.md` §Python. Además:
-- Un dominio = carpeta con `router.py` / `service.py` / `models.py`. Contratos siempre Pydantic.
-- JSON-RPC a Odoo **solo** en `app/core/odoo.py`. Odoo es por-org (credenciales en
-  `organizations/{orgId}`), con fallback single-tenant a `.env`. El sync a Odoo tras un pago
-  nunca bloquea al cliente. `CLAUDE.md` pide encolar fallos en `sync_queue`, pero **hoy no existe**:
-  `_sync_to_odoo` (`payments/service.py`) solo loguea y sigue — un fallo de Odoo se pierde.
-- El `orgId` se deriva del **token verificado** o de la orden, nunca del body de la petición.
-- **CORS:** orígenes fijos (admin, customer, localhost) + `admin_preview_origin_regex` para los preview
-  channels del admin (`restaurant-os-68c79--*.web.app`, coincidencia completa). Un dominio nuevo que llame
-  al BFF necesita estar ahí o el navegador muestra «Failed to fetch».
-- **Asistente IA** (`app/ai/`, `POST /ai/plan` + `POST /ai/apply`, doc `docs/AI_ASSISTANT.md`):
-  el modelo **nunca escribe en la DB** — solo produce un `BuildPlan`; el BFF lo ejecuta
-  determinísticamente tras confirmación humana, con `orgId` inyectado. Solo herramientas de creación.
-  Gemini vía Vertex AI + ADC (sin API key); los modelos Gemini 3 solo responden en
-  `location="global"`.
-- **Pagos** (`docs/PAYMENTS.md`): PagueloFácil (link hospedado, sin tocar datos de tarjeta).
-  Stripe **no opera en Panamá**. El callback de PagueloFácil **no viene firmado** → mantener la
-  idempotencia y el hook de verificación S2S (`_verify_with_paguelofacil`; la URL REST es un TODO,
-  no la inventes). En `customer_web` el prepago está apagado salvo `VITE_PAYMENTS_ENABLED` + `VITE_BFF_URL`.
+**BFF** (`apps/fastapi_bff`):
+- Un dominio = carpeta con `router.py` / `service.py` / `models.py`. Contratos siempre Pydantic; nada de `dict` suelto cruzando un router.
+- El `orgId` sale del **token verificado** o de la orden, nunca del body.
+- Facturación: `onOrderPaid` llama `POST /fiscal/orders/{id}/invoice` con `X-Internal-Token`. El número fiscal (`branches.fiscal.nextNumber`) se asigna y persiste **antes** de llamar a Digifact; idempotente.
+- CORS: orígenes fijos + `admin_preview_origin_regex`. Un dominio nuevo que llame al BFF debe estar ahí.
+- Asistente IA: el modelo **nunca escribe en la DB**; produce un `BuildPlan` que el BFF ejecuta tras confirmación humana. Gemini vía Vertex AI + ADC.
+- Pagos: PagueloFácil; el callback **no viene firmado**, mantén la idempotencia. Stripe no opera en Panamá.
+- **Odoo:** abandonado. No agregues código nuevo que dependa de él. Su retiro (`app/auth`, `app/catalog`, `app/core/odoo.py`, sync de `pos.order`, `deploy/docker-compose.yml`) es parte de la Fase 1.
 
 ---
 
-## 6. Verificación antes de dar algo por terminado
+## 6. Reglas de código
 
-No hay CI. Verifica a mano lo que tocaste:
+**React / TypeScript** (todas las apps web)
+1. Componentes funcionales con hooks. Sin class components.
+2. Props tipadas. Sin `any`.
+3. Formularios con `react-hook-form` + `zod` (en admin).
+4. Nunca llamar a Firestore directamente desde un componente: usa hooks/services. `useQuery` de TanStack para llamadas (excepto realtime).
+5. Cada feature en su carpeta: `components/`, `hooks/`, `services/`, `types/`.
+6. Sin lógica de negocio en componentes. Sin dinero ni estado de pago calculados en el navegador.
 
-| Tocaste | Mínimo |
-|---|---|
-| Una web app | `npm run build` sin errores (+ `npm run lint` en admin) |
-| `admin_app` tipos | El build es `tsc -b && vite build`: los tipos están limpios, mantenlos así (un error de tipos rompe el deploy) |
-| `functions/` | `npm run build` (tsc) |
-| BFF | Importa sin error (`python3.12 -c "import app.main"`) y prueba el endpoint. `tests/test_auth.py` y `test_catalog_sync.py` necesitan Odoo corriendo + credenciales Firebase; si no están, dilo en vez de reportar "tests OK" |
-| Reglas / routing | Probar el flujo anónimo real: QR → menú → orden → aparece en KDS |
-| Flutter | `melos run analyze` / `test` — requiere Flutter, que no está instalado aquí; reporta que no se verificó |
+**Python / FastAPI**
+1. Contratos Pydantic. Nada de `dict` suelto entre capas.
+2. `catch` vacío prohibido: un fallo tragado cambia el comportamiento sin avisar; se registra con su correlación.
+3. Comparación de secretos en tiempo constante (`hmac.compare_digest`).
+4. Nunca commitear `.env`, `serviceAccountKey.json` ni credenciales.
 
-Las pruebas de emulador de septiembre (seguridad multi-tenant, PIN de estación y de mesero, Reportes,
-Storage, flujo del mesero) fueron scripts temporales y **no están en el repo**: si tocas esas áreas,
-escribe la prueba de nuevo contra los emuladores (patrón en §6, Emuladores).
+**TypeScript en Functions:** tipado estricto, sin `any`, errores de callables con `HttpsError`.
 
-La DB de producción se **borró por completo el 2026-07-12** para arrancar a vender: no existen los
-datos ni los usuarios demo que aparecen en `README.md`/memorias antiguas. Las pruebas que escriban
-en la DB deben limpiar lo que crean.
+**Nomenclatura**
 
----
+| Elemento | TypeScript | Python |
+|---|---|---|
+| Archivos | `kebab-case.tsx` | `snake_case.py` |
+| Clases/Componentes | `PascalCase` | `PascalCase` |
+| Variables/funciones | `camelCase` | `snake_case` |
+| Constantes | `CONSTANT` | `UPPER_CASE` |
+| Servicios/Repos | sufijo `Service` | sufijo `Service` |
 
-### Emuladores (prueba local sin tocar producción)
-`firebase.json` tiene bloque `emulators` (auth 9099, firestore 8080, database 9000, functions 5001, storage 9199, UI 4000).
-Sin el emulador de **auth** corriendo, las Functions emuladas crean usuarios en el Auth **real** — verifica
-que aparezca "Authentication" en la tabla de arranque. Las functions corren en Node 22 (`engines`).
-**Suites automáticas:** `scripts/test-emulators.sh` (o `… rules|counter|yappy`) corre
-`functions/test/emulator/*` contra las reglas y las Cloud Functions reales en el proyecto `demo-ros-test`
-(nunca toca dev ni prod). Córrelo antes de desplegar functions o reglas. Necesita un JDK ≥ 21.
-⚠️ Bug de `firebase-tools` (14.12 y 15.30): el emulador envuelve `admin.firestore` con `.bind()` y se
-pierde `admin.firestore.Timestamp` → las Functions fallan **solo en el emulador** con
-"Cannot read properties of undefined (reading 'now')". En producción funcionan. El script usa una copia
-privada de firebase-tools en `$TMPDIR` con `Proxied.getOriginal` parcheado; no hace falta hacerlo a mano.
-`waiter_web` se conecta a los emuladores con `VITE_USE_EMULATORS=true npm run dev`.
-
----
-
-## 7. Scripts admin (`tools/`)
-
-Python con token de `gcloud auth print-access-token` (no service account). Todos hacen **dry-run
-por defecto**; `--yes` aplica. Son destructivos sobre datos reales — confirma antes de usar `--yes`.
-
-`debug_kds_routing.py` (diagnóstico, solo lectura) · `reset_db_state.py` (borra órdenes, libera mesas) ·
-`reset_user_password.py` · `seed_pizzas_beers.py` / `seed_pereda_liberty.py` (seeds) ·
-`bump_prices.py` · `export_daily_report.py` (xlsx; requiere `openpyxl` en `.venv/` de la raíz).
-Llamadas a Identity Toolkit necesitan el header `x-goog-user-project: restaurant-os-68c79`.
+**Prohibido a cualquier agente**
+- Crear colecciones de Firestore fuera de `FIREBASE_SCHEMA.md`; hardcodear rutas de Firestore (usa `firestore-paths`/`paths.ts`).
+- Subir `google-services.json`, `.env` o credenciales al repo.
+- Modificar los archivos de otra tarea sin autorización; instalar dependencias sin consultar (incluye Vitest/Playwright: ya consultado, ver §8).
+- Fabricar IDs, URLs, claves o endpoints. Si no está en el repo o no se puede consultar, pregunta o marca `TODO: replace with real value`.
+- `git add -A` / `git add .`: agrega archivos por nombre.
 
 ---
 
-## 8. Git y GitHub
+## 7. Flujo con GitHub
 
-- Repo: `aiudalabs/restaurant-os`. Flujo por issue, ramas `feat/issue-{n}-{slug}` y formato de
-  commit `tipo(scope): …` + `Closes #N` — detalle en `CLAUDE.md`. Nunca commitear a `main`.
-- Scopes de `CLAUDE.md`: `client`, `waiter`, `kitchen`, `admin`, `core`, `firebase`, `bff`, `docs`.
-  El historial también usa `customer`, `kds`, `landing` para las apps web nuevas.
-- `main` tiene todo el código actual desde la unificación del 2026-09-24 (ver §0): ramifica desde `main`.
-  Las PRs #35–#40 se cerraron sin mergear en su día; su trabajo entró a `main` con la unificación.
-- Issues abiertos del plan original (#25–#30) son épicas de sprint antiguas; el mapa vigente de
-  prioridades está en `docs/ROADMAP.md` + decisiones recientes, no en esos issues.
+Repo: `aiudalabs/restaurant-os`. Tienes `gh` con permiso `repo`; úsalo para PRs e issues.
+
+1. **Un issue por tarea.** Sin issue no hay código. Los criterios de aceptación se escriben como pruebas verificables.
+2. Comenta «🚧 En progreso» en el issue. Rama desde `main`: `feat/issue-{n}-{slug}` o `fix/issue-{n}-{slug}`.
+3. Commits `tipo(scope): descripción` + `Closes #N`. Tags `[ADR]` en cambios de arquitectura. Scopes válidos: `waiter`, `kitchen`, `admin`, `customer`, `landing`, `firebase`, `bff`, `docs`, `ci`. (`client`, `core` son de Flutter, congelado.)
+4. **Un PR por issue, pequeño. Máximo dos PRs apilados.** (La cadena de ocho PRs de octubre fue un error: no se repite.) El PR dice qué cambia, cómo probarlo y qué queda fuera.
+5. **`main` solo por PR.** Nadie hace push directo a `main`.
+6. Bug encontrado trabajando: abre issue con label `app:{scope}`; arréglalo en el mismo commit si es chico, en otra rama si es grande.
+7. Si necesitas algo que otra tarea no entrega: issue con label `blocker` y un stub con `// TODO(blocker): #N`.
+
+---
+
+## 8. Calidad: cómo se trabaja con agentes (resumen de `docs/DEV_WORKFLOW.md`)
+
+- **Orquestador** (sesión principal) divide el trabajo, lanza **agentes independientes en worktrees** (uno por rama/tarea), los vigila, y es el único que mergea.
+- Mientras trabajas: `make check`. Antes de pedir revisión, una vez: `make verify` y, si tocaste reglas, pagos o triggers, `make e2e`. No corras las suites completas en cada cambio.
+- **Puerta previa al merge** (sobre el commit exacto que se fusiona): CI en verde; `make verify` en verde; `make e2e` si aplica; cada criterio de aceptación del issue cubierto por una prueba o una verificación anotada en el PR.
+- **Revisión por otro agente**, obligatoria para: reglas de seguridad, pagos, credenciales, aislamiento entre organizaciones, facturación. Lo demás se mergea con lo local en verde, declarado en el PR.
+- **Pruebas que no se omiten:** dinero y totales, pago y factura, aislamiento entre orgs (A **no** lee ni escribe lo de B), credenciales y PINs, descuentos y puntos.
+- **Sin atajos para llegar al verde:** no cambies un criterio de aceptación para ocultar un fallo ni sustituyas una integración real por un simulador sin declararlo en el PR. No declares verificada una integración que solo probaste con un simulador.
+- Pirámide objetivo: unitarias (existe en functions/BFF; **falta en webs**) → emuladores (existe) → Playwright de punta a punta (falta). Vitest y Playwright están aprobados como dependencias de desarrollo.
+- Si el sistema de permisos deniega un comando, no lo reintentes por otra vía de forma encubierta: anótalo y pregunta.
+- Reporta resultados con fidelidad: si una prueba falla o algo no se verificó (p. ej. Flutter no está instalado aquí), dilo.
 
 ---
 
 ## 9. Seguridad y secretos
 
-- Existen localmente y están en `.gitignore`: `apps/fastapi_bff/.env`, `apps/fastapi_bff/serviceAccountKey.json`,
-  `apps/*/.env.local`. **No los leas en voz alta, no los copies, no los saques del ignore.**
-- **Riesgo abierto:** `apps/waiter_app/android/app/google-services.json` y
-  `apps/waiter_app/ios/Runner/GoogleService-Info.plist` están sin trackear pero **no** ignorados.
-  Nunca uses `git add -A` / `git add .`; agrega archivos por nombre.
-- La API key web de Firebase inline en `customer_web/src/lib/firebase.ts` es pública por diseño.
-- Nunca fabriques IDs, URLs, claves o endpoints (Cloud Run, PagueloFácil, Odoo…). Si no está en el
-  repo o no lo puedes consultar, pregunta o márcalo `TODO: replace with real value`.
-- Bug conocido: `waiter_app` usa el bundle ID de `client_app` (`com.aiudalabs.restaurantos.client`).
-  No lo cambies sin coordinar — afecta firma y config de Firebase.
+- Locales e ignorados: `apps/fastapi_bff/.env`, `apps/fastapi_bff/serviceAccountKey.json`, `apps/*/.env.local`, `functions/.secret.local`, `deploy/env/*.secrets.env`. No los leas en voz alta ni los copies.
+- Las API keys web de Firebase en `apps/*/.env.*` son públicas por diseño; su seguridad depende de las reglas (y de restricciones de key / App Check, pendiente de confirmar).
+- Pendientes de seguridad (ver diagnóstico §4.4): firma del callback de tarjeta, hash de Yappy en tiempo constante y su `secretKey` en claro, `/payments/init` y `/catalog/products` sin autenticación, secretos del BFF fuera de Secret Manager.
+- Escrituras a la DB de prod desde scripts de `tools/`: dry-run por defecto, `--yes` aplica; son destructivas, confirma antes. `reset_db_state.py` falla en prod por la protección de borrado (intencional).
 
 ---
 
-## 10. Subagentes de Claude Code
+## 10. Subagentes
 
-Definidos en `.claude/agents/`: `core-agent` (packages/core), `admin-agent` (admin_app),
-`firebase-agent` (functions + rules). Úsalos solo dentro de su carpeta. No hay agentes dedicados
-para `customer_web`, `kitchen_web`, `landing` ni el BFF.
+En `.claude/agents/` hay `core-agent`, `admin-agent`, `firebase-agent`. `core-agent` es de Flutter (congelado). Para el trabajo nuevo se lanzan agentes por tarea (`general-purpose`, `aiuda-stack:react-dev`, `aiuda-stack:firebase-dev`, `aiuda-stack:python-dev`, `aiuda-stack:qa-tester`) cada uno en su worktree, con el issue y los archivos permitidos en el prompt.
