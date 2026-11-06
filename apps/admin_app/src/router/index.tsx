@@ -82,10 +82,19 @@ const usersRoute = createRoute({
   component: UsersPage,
 });
 
+/** `order` opens that order's detail; `q` pre-fills the search box (both come from the command bar and Inicio). */
+export interface OrdersSearch {
+  order?: string;
+  q?: string;
+}
+
+const text = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined);
+
 const ordersRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/orders',
   component: OrdersPage,
+  validateSearch: (s: Record<string, unknown>): OrdersSearch => ({ order: text(s.order), q: text(s.q) }),
 });
 
 const reportsRoute = createRoute({
@@ -94,10 +103,16 @@ const reportsRoute = createRoute({
   component: ReportsPage,
 });
 
+/** `q` is what the person typed in the command bar; the assistant shows it in its input, unsent. */
+export interface AssistantSearch {
+  q?: string;
+}
+
 const assistantRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/assistant',
   component: AiAssistantPage,
+  validateSearch: (s: Record<string, unknown>): AssistantSearch => ({ q: text(s.q) }),
 });
 
 const settingsRoute = createRoute({
