@@ -14,8 +14,16 @@ await put('order_items/nofield', { orgId: 'A', orderId: 'o1', status: 'queued', 
 await put('order_items/routed', { orgId: 'A', orderId: 'o1', stationId: 'S1', status: 'queued', productName: 'Huevos', quantity: 1 });
 await put('order_items/otherorg', { orgId: 'B', orderId: 'o2', stationId: '', status: 'queued', productName: 'Limonada', quantity: 1 });
 await put('orders/paid', { orgId: 'A', branchId: 'b1', status: 'ready', total: 10, payment: { method: 'cash', status: 'paid' } });
+await put('users/adA', { orgId: 'A', role: 'admin' });
+await put('users/adB', { orgId: 'B', role: 'admin' });
+await put('branches/brA', { orgId: 'A', name: 'Sede', isActive: true, yappyHandle: '@x' });
 await put('organizations/A', { name: 'A' });
 await put('organizations/A/private/odoo', { odooPassword: 'secret' });
+
+const bucketUrl = (org, file = 'logo.png') => `https://firebasestorage.googleapis.com/v0/b/demo.firebasestorage.app/o/orgs%2F${org}%2Fbrand%2F${file}?alt=media`;
+const branding = (over = {}) => ({ displayName: 'Pick & Eat', primary: '#3F6B2A', accent: '#c9a24a', fontPreset: 'classic', logoUrl: bucketUrl('A'), iconUrl: bucketUrl('A', 'icon-512.png'), ...over });
+const setBranding = (uid, b) => update(uid, 'branches/brA', { branding: b });
+const newBranch = (uid, data) => create(token(uid), `branches/nb${++n}`, data);
 
 const done = { status: 'done', completedAt: '2026-09-28', updatedAt: '2026-09-28' };
 const order = (over = {}) => ({ orgId: 'A', branchId: 'b1', createdByUid: 'cust1', source: 'qr', status: 'pending', total: 5, payment: { method: null, status: null }, ...over });
@@ -67,6 +75,33 @@ await report([
   ['manager cannot set payment_failed by hand', () => update('mA', 'orders/paid', { status: 'payment_failed', updatedAt: 'x' }), false],
   ['operator cannot update orders', () => update('opS1', 'orders/paid', { status: 'closed' }), false],
   ['customer cannot update an order', () => patch('orders/paid', { status: 'closed' }, asAnon).then(() => true, () => false), false],
+
+  // branches: existing writes keep working, branding is validated (issue #108)
+  ['admin still edits regular branch fields', () => update('adA', 'branches/brA', { yappyHandle: '@y', allowPayAtPickup: true, fiscal: { nextNumber: 5 } }), true],
+  ['admin of another org cannot edit the branch', () => update('adB', 'branches/brA', { yappyHandle: '@z' }), false],
+  ['manager cannot edit the branch', () => update('mA', 'branches/brA', { yappyHandle: '@z' }), false],
+  ['admin creates a branch without branding', () => newBranch('adA', { orgId: 'A', name: 'N', isActive: true }), true],
+  ['admin creates a branch with valid branding', () => newBranch('adA', { orgId: 'A', name: 'N', branding: branding() }), true],
+  ['admin creates a branch with invalid branding', () => newBranch('adA', { orgId: 'A', name: 'N', branding: branding({ primary: 'red' }) }), false],
+  ['admin sets valid branding', () => setBranding('adA', branding()), true],
+  ['branding accepts a tagline up to 80', () => setBranding('adA', branding({ tagline: 'x'.repeat(80) })), true],
+  ['branding rejects a tagline over 80', () => setBranding('adA', branding({ tagline: 'x'.repeat(81) })), false],
+  ['branding rejects displayName over 40', () => setBranding('adA', branding({ displayName: 'x'.repeat(41) })), false],
+  ['branding rejects empty displayName', () => setBranding('adA', branding({ displayName: '' })), false],
+  ['branding rejects short hex', () => setBranding('adA', branding({ primary: '#fff' })), false],
+  ['branding rejects non-hex accent', () => setBranding('adA', branding({ accent: '#GGGGGG' })), false],
+  ['branding rejects css in a color', () => setBranding('adA', branding({ primary: '#3F6B2A;background:url(x)' })), false],
+  ['branding rejects unknown fontPreset', () => setBranding('adA', branding({ fontPreset: 'comic' })), false],
+  ['branding rejects an extra key', () => setBranding('adA', branding({ css: 'body{}' })), false],
+  ['branding rejects a missing required key', () => setBranding('adA', (({ iconUrl, ...r }) => r)(branding())), false],
+  ['branding rejects an external logoUrl', () => setBranding('adA', branding({ logoUrl: 'https://evil.example/logo.png' })), false],
+  ['branding rejects javascript: url', () => setBranding('adA', branding({ iconUrl: 'javascript:alert(1)' })), false],
+  ['branding rejects another org bucket path', () => setBranding('adA', branding({ logoUrl: bucketUrl('B') })), false],
+  ['branding rejects a products/ path', () => setBranding('adA', branding({ logoUrl: bucketUrl('A').replace('brand', 'products') })), false],
+  ['branding rejects a non-map value', () => setBranding('adA', 'x'), false],
+  ['branding cannot be written by another org admin', () => update('adB', 'branches/brA', { branding: branding() }), false],
+  ['anonymous customer can read branches', () => fetch(`http://${process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080'}/v1/projects/demo-ros-test/databases/(default)/documents/branches/brA`, { headers: { Authorization: `Bearer ${asAnon}` } }).then((r) => r.ok), true],
+  ['anonymous customer cannot write branding', () => patch('branches/brA', { branding: branding() }, asAnon).then(() => true, () => false), false],
 
   // private subcollection
   ['manager cannot read org private secrets', async () => {

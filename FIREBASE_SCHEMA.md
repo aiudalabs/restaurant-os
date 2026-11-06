@@ -119,6 +119,15 @@ pbkdf2-sha256, bloqueo creciente 5 min → 30 min → 24 h tras 5 intentos falli
     district: string            // distrito
     state: string               // provincia
   }
+  branding?: {                  // marca pública del restaurante (docs/BRANDING_DESIGN.md, #108). Opcional
+    displayName: string         // 1..40 caracteres; título, PWA y Wallet
+    primary: string             // '#RRGGBB'
+    accent: string             // '#RRGGBB'
+    fontPreset: 'classic' | 'modern' | 'rounded'
+    logoUrl: string             // https://firebasestorage.googleapis.com/v0/b/<bucket>/o/orgs%2F{orgId}%2Fbrand%2F<file>?alt=media
+    iconUrl: string             // ídem (orgs/{orgId}/brand/*), solo nuestro bucket
+    tagline?: string            // máx. 80 caracteres
+  }                             // lectura: cualquier usuario autenticado (como el resto de branches); escritura: admin de la org, validada en firestore.rules
   businessHours: {
     monday?: { open: string, close: string }   // "08:00", "22:00"
     tuesday?: { open: string, close: string }
