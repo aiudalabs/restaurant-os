@@ -1,53 +1,72 @@
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
+import * as Dialog from '@radix-ui/react-dialog';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useBranchContext } from '@/hooks/use-branch-context';
 import { useTheme } from '@/hooks/use-theme';
 import { Icon } from '@/components/ui/icon';
-import { IconButton } from '@/components/ui/button';
+import { CommandBar } from './command-bar';
+import { ALL_NAV, PRIMARY_NAV, SECONDARY_NAV, isActive, type NavItem } from './nav-items';
 
-interface NavItem {
-  to: string;
-  label: string;
-  icon: string;
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+const SHORTCUT = IS_MAC ? '⌘K' : 'Ctrl K';
+// Phone bar: the four used during service, the rest behind "Más".
+const PHONE_BAR = PRIMARY_NAV.slice(0, 4);
+const MORE = [...PRIMARY_NAV.slice(4), ...SECONDARY_NAV];
+
+/** The brand mark: a clock face whose single hand is the "ahora" line. */
+function Mark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" className={className}>
+      <rect width="32" height="32" rx="9" fill="var(--action)" />
+      <circle cx="16" cy="16" r="8" fill="none" stroke="var(--on-action)" strokeWidth="2" />
+      <path d="M16 9.5V16" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" />
+    </svg>
+  );
 }
 
-// Order = frequency of use. The assistant sits apart at the bottom of the rail.
-const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Inicio', icon: 'home' },
-  { to: '/orders', label: 'Pedidos', icon: 'receipt_long' },
-  { to: '/menu', label: 'Menú', icon: 'menu_book' },
-  { to: '/reports', label: 'Reportes', icon: 'bar_chart' },
-  { to: '/stations', label: 'Estaciones', icon: 'soup_kitchen' },
-  { to: '/tables', label: 'Mesas', icon: 'table_restaurant' },
-  { to: '/users', label: 'Equipo', icon: 'group' },
-  { to: '/branches', label: 'Sucursales', icon: 'storefront' },
-  { to: '/settings', label: 'Facturación', icon: 'receipt' },
-];
-const ASSISTANT: NavItem = { to: '/assistant', label: 'Asistente', icon: 'auto_awesome' };
-const ALL_ITEMS = [...NAV_ITEMS, ASSISTANT];
-// Phone bottom bar: the four used during service; the rest live behind "Más".
-const BOTTOM_BAR = NAV_ITEMS.slice(0, 4);
-
-function isActive(pathname: string, to: string) {
-  return to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(`${to}/`);
+function RailLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const active = isActive(pathname, item.to);
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>
+        <Link
+          to={item.to}
+          aria-label={item.label}
+          aria-current={active ? 'page' : undefined}
+          className={cn(
+            'm3-state grid h-11 w-11 place-items-center rounded-[10px]',
+            active ? 'bg-[var(--brand)] text-[var(--on-brand)]' : 'text-[var(--rail-ink)] hover:bg-white/10 hover:text-white',
+          )}
+        >
+          <Icon name={item.icon} filled={active} size={24} />
+        </Link>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content
+          side="right"
+          sideOffset={10}
+          className="t-label-large z-[80] rounded-md bg-[var(--ink)] px-2.5 py-1.5 text-[var(--ground)]"
+        >
+          {item.label}
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
 }
 
-/** One destination of the dark rail / drawer: icon over label, basil pill when active. */
-function RailLink({ item, pathname, accent }: { item: NavItem; pathname: string; accent?: boolean }) {
+function PhoneBarLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const active = isActive(pathname, item.to);
   return (
     <Link
       to={item.to}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'flex w-[76px] shrink-0 flex-col items-center gap-1 rounded-2xl py-2.5 text-[12px] leading-4 transition-colors',
-        active
-          ? 'bg-[var(--md-sys-color-primary)] font-semibold text-[#ffffff] dark:text-[var(--md-sys-color-on-primary)]'
-          : accent
-            ? 'font-semibold text-[var(--ros-saffron)] hover:bg-[#ffffff]/5'
-            : 'font-medium text-[var(--ros-rail-fg)] hover:bg-[#ffffff]/5 hover:text-[#ffffff]',
+        't-label-medium flex h-14 flex-col items-center justify-center gap-0.5 rounded-[10px]',
+        active ? 'bg-[var(--brand)] text-[var(--on-brand)]' : 'text-[var(--rail-ink)]',
       )}
     >
       <Icon name={item.icon} filled={active} size={22} />
@@ -57,45 +76,46 @@ function RailLink({ item, pathname, accent }: { item: NavItem; pathname: string;
 }
 
 export default function AdminLayout() {
-  // The modal drawer remembers the path it was opened on: navigating closes it
-  // (derived state — no effect needed).
-  const [modalOpenedAt, setModalOpenedAt] = useState<string | null>(null);
   const { appUser, logout } = useAuth();
-  const { branches, selectedBranchId, setSelectedBranchId, selectedBranch } = useBranchContext();
+  const { branches, selectedBranchId, setSelectedBranchId } = useBranchContext();
   const { theme, toggle } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
-  const current = ALL_ITEMS.find((i) => isActive(pathname, i.to)) ?? NAV_ITEMS[0];
-  const modalOpen = modalOpenedAt === pathname;
-  const setModalOpen = (open: boolean) => setModalOpenedAt(open ? pathname : null);
-  const initial = appUser?.displayName?.charAt(0).toUpperCase() ?? '?';
-  const onHome = current.to === '/';
-  const dateLabel = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
+  // Close the "Más" sheet when navigating (derived from the path it opened on).
+  const [moreOpenedAt, setMoreOpenedAt] = useState('');
+  const sheetOpen = moreOpen && moreOpenedAt === pathname;
 
-  // Close the modal drawer on Escape.
   useEffect(() => {
-    if (!modalOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setModalOpenedAt(null);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandOpen((o) => !o);
+      }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [modalOpen]);
+  }, []);
 
-  const branchSelect = (id: string, className?: string) => (
-    <div className={cn('relative', className)}>
-      <label htmlFor={id} className="sr-only">
+  const current = ALL_NAV.find((i) => isActive(pathname, i.to)) ?? PRIMARY_NAV[0];
+  const onHome = current.to === '/';
+  const onOrders = current.to === '/orders';
+  const initial = appUser?.displayName?.charAt(0).toUpperCase() ?? '?';
+  const themeLabel = theme === 'dark' ? 'Usar tema claro' : 'Usar tema oscuro';
+  const themeIcon = theme === 'dark' ? 'light_mode' : 'dark_mode';
+
+  const branchSelect = (
+    <div className="relative min-w-0 flex-1 md:w-60 md:flex-none">
+      <label htmlFor="branch-select" className="sr-only">
         Sucursal
       </label>
-      <Icon
-        name="storefront"
-        size={20}
-        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--md-sys-color-on-surface-variant)]"
-      />
       <select
-        id={id}
+        id="branch-select"
         value={selectedBranchId}
         onChange={(e) => setSelectedBranchId(e.target.value)}
         disabled={branches.length <= 1}
-        className="t-label-large h-12 w-full appearance-none rounded-full bg-[var(--md-sys-color-surface-container-low)] pl-11 pr-10 text-[var(--md-sys-color-on-surface)] disabled:opacity-100"
+        className="t-label-large h-11 w-full appearance-none truncate rounded-[10px] border border-[var(--line-strong)] bg-[var(--surface)] pl-3 pr-9 text-[var(--ink)] disabled:opacity-100"
       >
         {branches.length === 0 && <option value="">Sin sucursal</option>}
         {branches.map((b) => (
@@ -105,146 +125,198 @@ export default function AdminLayout() {
         ))}
       </select>
       {branches.length > 1 && (
-        <Icon
-          name="expand_more"
-          size={20}
-          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[var(--md-sys-color-on-surface-variant)]"
-        />
+        <Icon name="expand_more" size={20} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--ink-soft)]" />
       )}
     </div>
-  );
-
-  const accountButton = (
-    <button
-      type="button"
-      onClick={logout}
-      title={`${appUser?.displayName ?? ''} · Cerrar sesión`}
-      aria-label="Cerrar sesión"
-      className="t-title-small grid h-11 w-11 place-items-center rounded-full bg-[var(--md-sys-color-primary)] text-[#ffffff]"
-    >
-      {initial}
-    </button>
   );
 
   return (
-    <div className="flex h-dvh bg-[var(--md-sys-color-surface)]">
-      {/* Dark navigation rail — tablet and desktop (≥600px) */}
-      <nav
-        aria-label="Secciones"
-        className="hidden w-24 shrink-0 flex-col items-center gap-1 overflow-y-auto bg-[var(--ros-rail)] py-5 min-[600px]:flex"
-      >
-        <span className="mb-4 grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--md-sys-color-primary)] text-[#ffffff]">
-          <Icon name="room_service" filled />
-        </span>
-        {NAV_ITEMS.map((item) => (
-          <RailLink key={item.to} item={item} pathname={pathname} />
-        ))}
-        <div className="min-h-4 flex-1" />
-        <RailLink item={ASSISTANT} pathname={pathname} accent />
-        <IconButton
-          icon={theme === 'dark' ? 'light_mode' : 'dark_mode'}
-          label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema oscuro'}
-          onClick={toggle}
-          className="mt-2 text-[var(--ros-rail-fg)]"
-        />
-        <div className="mt-2">{accountButton}</div>
-      </nav>
-
-      {/* Main column — min-w-0 keeps wide content from stretching the page */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex shrink-0 items-end gap-3 px-4 pb-4 pt-5 sm:px-8 sm:pt-7">
-          <div className="min-w-0 flex-1">
-            <p className="t-body-medium truncate first-letter:uppercase text-[var(--md-sys-color-on-surface-variant)]">
-              {onHome ? dateLabel : (selectedBranch?.name ?? '')}
-            </p>
-            <h1 className="t-display-small truncate sm:text-[52px] text-[var(--md-sys-color-on-surface)]">
-              {onHome ? (selectedBranch?.name ?? 'Inicio') : current.label}
-            </h1>
-          </div>
-          {branchSelect('branch-select', 'hidden w-64 sm:block')}
-          <IconButton
-            icon={theme === 'dark' ? 'light_mode' : 'dark_mode'}
-            label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema oscuro'}
-            onClick={toggle}
-            className="min-[600px]:hidden"
-          />
-        </header>
-
-        <main className="flex-1 overflow-y-auto px-4 pb-28 sm:px-8 sm:pb-10">
-          <div key={pathname} className="mx-auto max-w-[1280px]" style={{ animation: 'm3-view-in 250ms var(--md-ease-emphasized-decelerate)' }}>
-            <Outlet />
-          </div>
-        </main>
-      </div>
-
-      {/* Dark bottom bar — phones (<600px) */}
-      <nav
-        aria-label="Secciones"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 gap-1 bg-[var(--ros-rail)] px-2 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 min-[600px]:hidden"
-      >
-        {BOTTOM_BAR.map((item) => {
-          const active = isActive(pathname, item.to);
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              aria-current={active ? 'page' : undefined}
-              className={cn(
-                'flex h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] leading-4',
-                active
-                  ? 'bg-[var(--md-sys-color-primary)] font-semibold text-[#ffffff] dark:text-[var(--md-sys-color-on-primary)]'
-                  : 'font-medium text-[var(--ros-rail-fg)]',
-              )}
-            >
-              <Icon name={item.icon} filled={active} size={22} />
-              {item.label}
-            </Link>
-          );
-        })}
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          aria-current={BOTTOM_BAR.some((i) => i.to === current.to) ? undefined : 'page'}
-          className={cn(
-            'flex h-14 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] leading-4',
-            BOTTOM_BAR.some((i) => i.to === current.to)
-              ? 'font-medium text-[var(--ros-rail-fg)]'
-              : 'bg-[var(--md-sys-color-primary)] font-semibold text-[#ffffff] dark:text-[var(--md-sys-color-on-primary)]',
-          )}
+    <Tooltip.Provider delayDuration={150}>
+      <div className="flex h-dvh bg-[var(--ground)] text-[var(--ink)]">
+        <a
+          href="#contenido"
+          className="t-label-large sr-only z-[90] rounded-md bg-[var(--action)] px-3 py-2 text-[var(--on-action)] focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
         >
-          <Icon name="more_horiz" size={22} />
-          Más
-        </button>
-      </nav>
+          Saltar al contenido
+        </a>
 
-      {/* "Más" drawer — phones: every section, branch and account */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 min-[600px]:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setModalOpen(false)} style={{ animation: 'm3-fade-in 150ms linear' }} />
-          <aside
-            role="dialog"
-            aria-modal="true"
-            aria-label="Más secciones"
-            className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-[28px] bg-[var(--ros-rail)] px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-5"
-            style={{ animation: 'm3-view-in 250ms var(--md-ease-emphasized-decelerate)' }}
-          >
-            <div className="mb-4 flex items-center gap-3">
-              {accountButton}
-              <div className="min-w-0 flex-1">
-                <p className="t-title-small truncate text-[#ffffff]">{appUser?.displayName}</p>
-                <p className="t-body-small text-[var(--ros-rail-fg)]">Toca tu inicial para cerrar sesión</p>
-              </div>
-              <IconButton icon="close" label="Cerrar" onClick={() => setModalOpen(false)} className="text-[var(--ros-rail-fg)]" />
+        {/* Rail — tablet and desktop */}
+        <nav aria-label="Secciones" className="hidden w-16 shrink-0 flex-col items-center gap-1.5 border-r border-[var(--rail-line)] bg-[var(--rail-bg)] py-4 md:flex">
+          <Mark className="mb-4 h-9 w-9" />
+          {PRIMARY_NAV.map((item) => (
+            <RailLink key={item.to} item={item} pathname={pathname} />
+          ))}
+        </nav>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="flex shrink-0 items-center gap-3 px-4 py-3 md:px-8">
+            <Mark className="h-9 w-9 shrink-0 md:hidden" />
+            {branchSelect}
+
+            <button
+              type="button"
+              onClick={() => setCommandOpen(true)}
+              className="m3-state t-body-medium hidden h-11 min-w-0 flex-1 items-center gap-3 rounded-[10px] border border-[var(--line-strong)] bg-[var(--surface)] px-3 text-left text-[var(--ink-soft)] md:mx-auto md:flex md:max-w-xl"
+            >
+              <Icon name="search" size={20} />
+              <span className="min-w-0 flex-1 truncate">Pregunta o busca</span>
+              <kbd className="t-label-medium shrink-0 rounded-md border border-[var(--line)] px-1.5 py-0.5">{SHORTCUT}</kbd>
+            </button>
+            <button
+              type="button"
+              aria-label="Abrir la barra de comandos"
+              onClick={() => setCommandOpen(true)}
+              className="m3-state grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-[var(--line-strong)] bg-[var(--surface)] text-[var(--ink)] md:hidden"
+            >
+              <Icon name="search" size={22} />
+            </button>
+
+            <button
+              type="button"
+              aria-label={themeLabel}
+              title={themeLabel}
+              onClick={toggle}
+              className="m3-state hidden h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--ink)] md:grid"
+            >
+              <Icon name={themeIcon} />
+            </button>
+
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger
+                aria-label={`Cuenta de ${appUser?.displayName ?? 'usuario'}`}
+                className="t-title-small grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--tint)] text-[var(--ink)] data-[state=open]:bg-[var(--action)] data-[state=open]:text-[var(--on-action)]"
+              >
+                {initial}
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  align="end"
+                  sideOffset={8}
+                  className="z-[80] w-64 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-2 text-[var(--ink)] shadow-xl [animation:m3-dialog-in_120ms_var(--ease-out)]"
+                >
+                  <div className="px-3 py-2">
+                    <p className="t-title-small truncate">{appUser?.displayName}</p>
+                    <p className="t-body-small truncate text-[var(--ink-soft)]">{appUser?.email}</p>
+                  </div>
+                  <DropdownMenu.Separator className="my-1 h-px bg-[var(--line)]" />
+                  {SECONDARY_NAV.map((item) => (
+                    <DropdownMenu.Item key={item.to} asChild>
+                      <Link to={item.to} className="t-body-medium flex min-h-11 items-center gap-3 rounded-[10px] px-3 outline-none data-[highlighted]:bg-[var(--tint)]">
+                        <Icon name={item.icon} size={20} className="text-[var(--ink-soft)]" />
+                        {item.label}
+                      </Link>
+                    </DropdownMenu.Item>
+                  ))}
+                  <DropdownMenu.Separator className="my-1 h-px bg-[var(--line)]" />
+                  <DropdownMenu.Item
+                    onSelect={toggle}
+                    className="t-body-medium flex min-h-11 cursor-pointer items-center gap-3 rounded-[10px] px-3 outline-none data-[highlighted]:bg-[var(--tint)]"
+                  >
+                    <Icon name={themeIcon} size={20} className="text-[var(--ink-soft)]" />
+                    {themeLabel}
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    onSelect={() => void logout()}
+                    className="t-body-medium flex min-h-11 cursor-pointer items-center gap-3 rounded-[10px] px-3 outline-none data-[highlighted]:bg-[var(--tint)]"
+                  >
+                    <Icon name="logout" size={20} className="text-[var(--ink-soft)]" />
+                    Cerrar sesión
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </header>
+
+          <main id="contenido" className="min-h-0 flex-1 overflow-y-auto px-4 pb-28 md:px-8 md:pb-10">
+            <div className={cn('mx-auto', onOrders ? 'max-w-[1400px]' : 'max-w-[1240px]')}>
+              {!onHome && !onOrders && (
+                <h1 className="t-headline-medium pb-5 pt-2 text-[var(--ink)]">{current.label}</h1>
+              )}
+              <Outlet />
             </div>
-            {branchSelect('branch-select-mobile', 'mb-4')}
-            <div className="grid grid-cols-4 justify-items-center gap-2">
-              {ALL_ITEMS.map((item) => (
-                <RailLink key={item.to} item={item} pathname={pathname} accent={item.to === ASSISTANT.to} />
-              ))}
-            </div>
-          </aside>
+          </main>
         </div>
-      )}
-    </div>
+
+        {/* Bottom bar — phones */}
+        <nav
+          aria-label="Secciones"
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 gap-1 border-t border-[var(--rail-line)] bg-[var(--rail-bg)] px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 md:hidden"
+        >
+          {PHONE_BAR.map((item) => (
+            <PhoneBarLink key={item.to} item={item} pathname={pathname} />
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              setMoreOpenedAt(pathname);
+              setMoreOpen(true);
+            }}
+            aria-current={PHONE_BAR.some((i) => i.to === current.to) ? undefined : 'page'}
+            className={cn(
+              't-label-medium flex h-14 flex-col items-center justify-center gap-0.5 rounded-[10px]',
+              PHONE_BAR.some((i) => i.to === current.to) ? 'text-[var(--rail-ink)]' : 'bg-[var(--brand)] text-[var(--on-brand)]',
+            )}
+          >
+            <Icon name="more_horiz" size={22} />
+            Más
+          </button>
+        </nav>
+
+        <Dialog.Root open={sheetOpen} onOpenChange={setMoreOpen}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 [animation:m3-fade-in_120ms_linear] md:hidden" />
+            <Dialog.Content
+              aria-describedby={undefined}
+              className="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-2xl border-t border-[var(--line)] bg-[var(--surface)] px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 text-[var(--ink)] [animation:m3-sheet-up_240ms_var(--ease-out)] md:hidden"
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <Dialog.Title className="t-title-large">Más secciones</Dialog.Title>
+                <Dialog.Close
+                  aria-label="Cerrar"
+                  className="m3-state grid h-11 w-11 place-items-center rounded-[10px] text-[var(--ink)]"
+                >
+                  <Icon name="close" />
+                </Dialog.Close>
+              </div>
+              <ul>
+                {MORE.map((item) => (
+                  <li key={item.to}>
+                    <Link
+                      to={item.to}
+                      className="m3-state t-body-large flex min-h-12 items-center gap-3 rounded-[10px] px-2 text-[var(--ink)]"
+                    >
+                      <Icon name={item.icon} className="text-[var(--ink-soft)]" />
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+                <li>
+                  <button
+                    type="button"
+                    onClick={toggle}
+                    className="m3-state t-body-large flex min-h-12 w-full items-center gap-3 rounded-[10px] px-2 text-left text-[var(--ink)]"
+                  >
+                    <Icon name={themeIcon} className="text-[var(--ink-soft)]" />
+                    {themeLabel}
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => void logout()}
+                    className="m3-state t-body-large flex min-h-12 w-full items-center gap-3 rounded-[10px] px-2 text-left text-[var(--ink)]"
+                  >
+                    <Icon name="logout" className="text-[var(--ink-soft)]" />
+                    Cerrar sesión
+                  </button>
+                </li>
+              </ul>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+
+        <CommandBar open={commandOpen} onOpenChange={setCommandOpen} />
+      </div>
+    </Tooltip.Provider>
   );
 }

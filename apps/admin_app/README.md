@@ -71,3 +71,11 @@ export default defineConfig([
   },
 ])
 ```
+
+## Modo demo (sin credenciales)
+
+`npm run demo` abre el servidor de desarrollo en http://localhost:5199 con datos de ejemplo de Pick & Eat en memoria (`src/demo`).
+Entra directo (sin login; `/login` muestra la pantalla de acceso). Funcionan Inicio, Pedidos y la barra de comandos (Ctrl/Cmd+K); confirmar un pago o cambiar el estado de un pedido actúa sobre los datos de ejemplo.
+Las demás pantallas leen Firestore directamente y no están cubiertas.
+
+Solo existe en el servidor de desarrollo: `vite.config.ts` cambia los servicios por los de `src/demo` únicamente con `command === serve` y `--mode demo`; un `npm run build` nunca los importa.

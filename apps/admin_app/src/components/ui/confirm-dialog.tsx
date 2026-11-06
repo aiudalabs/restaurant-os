@@ -36,12 +36,12 @@ export function ConfirmDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4" style={{ animation: 'm3-fade-in 150ms linear' }}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" style={{ animation: 'm3-fade-in 150ms linear' }}>
       <div
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
-        className="w-full max-w-sm rounded-[28px] bg-[var(--md-sys-color-surface-container-high)] p-6"
+        className="w-full max-w-sm rounded-2xl bg-[var(--md-sys-color-surface-container-high)] p-6"
         style={{ animation: 'm3-dialog-in 250ms var(--md-ease-emphasized-decelerate)' }}
       >
         <div className="flex flex-col items-center text-center">
