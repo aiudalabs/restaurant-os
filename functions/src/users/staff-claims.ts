@@ -22,9 +22,20 @@ export async function setStaffClaims(uid: string, c: StaffClaims): Promise<void>
   });
 }
 
+/** Drops the claims and invalidates refresh tokens so a deactivated user loses KDS / RTDB access. */
+async function revokeStaffAccess(uid: string): Promise<void> {
+  try {
+    await admin.auth().setCustomUserClaims(uid, null);
+    await admin.auth().revokeRefreshTokens(uid);
+  } catch (e) {
+    functions.logger.warn(`Access not revoked for ${uid}: ${(e as Error).message}`);
+  }
+}
+
 /**
  * syncStaffClaims — Firestore trigger on users/{uid}. When the admin changes a
- * user's role or station (or org), re-issue the claims. The user's next token
+ * user's role or station (or org), re-issue the claims. When isActive turns false the claims are removed and refresh
+ * tokens revoked; when it turns true again they are re-emitted. The user's next token
  * refresh (≤1h, or forced by the KDS on a permission error) picks them up.
  */
 export const syncStaffClaims = functions.firestore
@@ -33,8 +44,17 @@ export const syncStaffClaims = functions.firestore
     const after = change.after.exists ? change.after.data() : null;
     if (!after) return;
     const before = change.before.exists ? change.before.data() : null;
+    const deactivated = after.isActive === false;
+    const wasDeactivated = before?.isActive === false;
+    if (deactivated) {
+      if (wasDeactivated) return;
+      await revokeStaffAccess(context.params.uid);
+      return;
+    }
+
     const same =
       before &&
+      !wasDeactivated &&
       before.orgId === after.orgId &&
       before.role === after.role &&
       (before.stationId ?? "") === (after.stationId ?? "");

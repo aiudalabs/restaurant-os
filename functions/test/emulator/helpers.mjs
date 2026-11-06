@@ -103,6 +103,8 @@ const authPost = async (path, body, bearer) => {
 };
 /** Creates an email/password user in the Auth emulator and returns its uid. */
 export const createAuthUser = async (email, password = 'pw-123456') => (await authPost('accounts:signUp', { email, password, returnSecureToken: true })).localId;
+/** Creates an Auth emulator user with a fixed uid (admin call), e.g. an anonymous customer. */
+export const createAuthUserWithUid = (uid) => authPost(`projects/${P}/accounts`, { localId: uid, email: `${uid}@test.io` }, 'owner');
 /** Fresh ID token (carries the current custom claims) of an email/password user. */
 export const signInPassword = async (email, password = 'pw-123456') => (await authPost('accounts:signInWithPassword', { email, password, returnSecureToken: true })).idToken;
 /** Exchanges a custom token (kdsLogin / waiterLogin) for an ID token, like the client SDK does. */
@@ -112,6 +114,11 @@ export async function claimsOf(uid) {
   const j = await authPost(`projects/${P}/accounts:lookup`, { localId: [uid] }, 'owner');
   const raw = j.users?.[0]?.customAttributes;
   return raw ? JSON.parse(raw) : {};
+}
+/** validSince (epoch seconds, set by revokeRefreshTokens) of a uid, or undefined. */
+export async function validSinceOf(uid) {
+  const j = await authPost(`projects/${P}/accounts:lookup`, { localId: [uid] }, 'owner');
+  return j.users?.[0]?.validSince;
 }
 /** Overwrites the custom claims of a uid (admin, owner). */
 export const setClaimsRaw = (uid, claims) => authPost(`projects/${P}/accounts:update`, { localId: uid, customAttributes: JSON.stringify(claims) }, 'owner');

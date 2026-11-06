@@ -8,7 +8,8 @@ import { newVoucherRef } from "./vouchers";
  * challenge progress to the customer who placed it.
  *
  * - Staff-created orders carry the waiter's uid (a users/{uid} doc exists) and earn
- *   nothing, unless the waiter attached a member (order.loyaltyUid, attachMember).
+ *   nothing, unless the waiter attached a customer member (order.loyaltyUid,
+ *   attachMember). A staff uid never earns, attached or not.
  * - Idempotent: the earn event id is the order id, created inside the transaction.
  * - Never throws into the payment flow (the caller catches).
  */
@@ -18,12 +19,16 @@ export async function awardLoyalty(orderId: string, order: FirebaseFirestore.Doc
 
   const db = admin.firestore();
   // A member attached by staff (attachMember) wins; otherwise the customer who placed the order.
+  const createdBy = typeof order.createdByUid === "string" ? order.createdByUid : "";
   let uid = typeof order.loyaltyUid === "string" ? order.loyaltyUid : "";
-  if (!uid) {
-    uid = typeof order.createdByUid === "string" ? order.createdByUid : "";
+  if (uid) {
+    // Staff never earn on orders they take, even if a member id slipped through.
+    if (uid === createdBy) return;
+  } else {
+    uid = createdBy;
     if (!uid) return;
-    if ((await db.collection("users").doc(uid).get()).exists) return;
   }
+  if ((await db.collection("users").doc(uid).get()).exists) return;
 
   const itemsSnap = await db.collection("order_items").where("orderId", "==", orderId).get();
   const productIds = itemsSnap.docs.map((d) => String(d.data().productId ?? "")).filter(Boolean);

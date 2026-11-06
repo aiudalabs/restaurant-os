@@ -1,5 +1,5 @@
 // syncStaffClaims (users/{uid} → custom claims) and the RTDB rule order_items/$stationId. Emulator only.
-import { patch, createAuthUser, signInPassword, claimsOf, setClaimsRaw, jwtPayload, rtdbAs, waitFor, sleep, check, done, note } from './helpers.mjs';
+import { patch, createAuthUser, signInPassword, claimsOf, setClaimsRaw, jwtPayload, rtdbAs, waitFor, sleep, check, done, validSinceOf } from './helpers.mjs';
 
 const claimsEq = async (uid, want) => JSON.stringify(Object.entries(await claimsOf(uid)).sort()) === JSON.stringify(Object.entries(want).sort());
 
@@ -73,12 +73,24 @@ check('ghost user did not break the next user (trigger keeps running)', await (a
   return true;
 })());
 
-// ── 7. Probe: a deactivated operator ─────────────────────────────────────────
+// ── 7. Deactivated operator (finding #99) ───────────────────────────────────
 await patch(`users/${uid}`, { stationId: 'S1', role: 'operator' });
 await waitFor('claims S1 again', () => claimsEq(uid, { orgId: 'A', role: 'operator', stationId: 'S1' }));
+const oldTok = await signInPassword('kds1@test.io');
+check('control: active operator reads S1', (await rtdbAs(oldTok, 'GET', 'order_items/S1')).ok);
 await patch(`users/${uid}`, { isActive: false });
-await sleep(3000);
+await waitFor('claims removed on deactivation', async () => Object.keys(await claimsOf(uid)).length === 0);
+check('isActive=false → custom claims removed', true);
 tok = await signInPassword('kds1@test.io');
-const stillReads = (await rtdbAs(tok, 'GET', 'order_items/S1')).ok;
-note(`deactivating an operator (users.isActive=false) keeps its stationId claim and RTDB access: ${stillReads} (syncStaffClaims compares only orgId/role/stationId and ignores isActive)`);
+check('deactivated: a fresh token carries no stationId and reads no station', jwtPayload(tok).stationId === undefined && !(await rtdbAs(tok, 'GET', 'order_items/S1')).ok);
+const vs = await validSinceOf(uid);
+check('deactivated: refresh tokens revoked (validSince set)', Number(vs) > 0, String(vs));
+await patch(`users/${uid}`, { displayName: 'Cocina baja' });
+await sleep(2000);
+check('editing a deactivated user does not re-emit claims', Object.keys(await claimsOf(uid)).length === 0);
+await patch(`users/${uid}`, { isActive: true });
+await waitFor('claims re-emitted on reactivation', () => claimsEq(uid, { orgId: 'A', role: 'operator', stationId: 'S1' }));
+check('isActive=true again → claims re-emitted', true);
+tok = await signInPassword('kds1@test.io');
+check('reactivated: reads S1 again', (await rtdbAs(tok, 'GET', 'order_items/S1')).ok);
 done();

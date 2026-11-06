@@ -33,12 +33,37 @@ export const attachMember = functions.https.onCall(async (data: { orderId?: stri
   }
   const memberUid = data.memberId.slice(prefix.length);
 
+  // The member must be a real customer: an existing Auth user (a first-time customer has
+  // no loyalty_members doc until their first paid order) and never a staff account (a
+  // waiter could otherwise earn points on the orders they take).
+  try {
+    await admin.auth().getUser(memberUid);
+  } catch (e) {
+    if ((e as { code?: string }).code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "Socio no encontrado.");
+    }
+    throw e;
+  }
+  const [memberSnap, staffSnap] = await Promise.all([
+    db.collection("loyalty_members").doc(data.memberId).get(),
+    db.collection("users").doc(memberUid).get(),
+  ]);
+  if (staffSnap.exists) {
+    throw new HttpsError("invalid-argument", "El personal no puede ser socio de un pedido.");
+  }
+  if (memberSnap.exists && memberSnap.data()?.orgId !== caller.orgId) {
+    throw new HttpsError("not-found", "Socio no encontrado en este restaurante.");
+  }
+
   const orderRef = db.collection("orders").doc(data.orderId);
   const order = await db.runTransaction(async (tx) => {
     const o = (await tx.get(orderRef)).data();
     if (!o || o.orgId !== caller.orgId) throw new HttpsError("not-found", "Pedido no encontrado.");
     if (o.loyaltyUid && o.loyaltyUid !== memberUid) {
       throw new HttpsError("failed-precondition", "Este pedido ya tiene otro socio.");
+    }
+    if (o.createdByUid === memberUid) {
+      throw new HttpsError("failed-precondition", "No se puede sumar puntos a quien tomó el pedido.");
     }
     const creator = typeof o.createdByUid === "string" ? o.createdByUid : "";
     if (!creator || !(await tx.get(db.collection("users").doc(creator))).exists) {

@@ -177,9 +177,17 @@ service cloud.firestore {
       allow read: if belongsToMyOrg(resource.data.orgId)
                   || resource.data.createdByUid == uid();
       allow update: if belongsToMyOrg(resource.data.orgId)
-                    && (isManager()
-                        || userDoc().stationId == resource.data.stationId
+                    && ((isManager() || userDoc().stationId == resource.data.stationId)
+                        && itemStatusOnly()
                         || counterUpdate());
+    }
+
+    // Clients (manager, KDS station) may only move an item through its lifecycle.
+    // Money (unitPrice, totalPrice, discountAmount), routing and identity fields are
+    // written by Cloud Functions only (applyDiscount, onOrderCreated).
+    function itemStatusOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'startedAt', 'completedAt', 'updatedAt']);
     }
 
     // Counter mode (issue #45): an item whose category has no active station is
