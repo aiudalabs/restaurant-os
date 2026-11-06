@@ -11,7 +11,7 @@ listado oficial: https://dgi.mef.gob.pa/_7FacturaElectronica/Proveedorespac). Op
 en Guatemala, El Salvador, Costa Rica y República Dominicana.
 
 Por tanto no toca `app/payments` ni reemplaza PagueloFácil/Yappy. Cubre el pendiente
-**"Factura Fiscal"** de `docs/NEXT_STEPS.md`, que hoy está planteado vía Odoo
+**"Factura Fiscal"** de `docs/NEXT_STEPS.md` (retirado; ver issue #87), que hoy está planteado vía Odoo
 (`action_pos_order_invoice`).
 
 ## 2. Qué se verificó hoy contra el ambiente de pruebas

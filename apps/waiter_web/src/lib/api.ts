@@ -14,6 +14,7 @@ import {
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from './firebase';
 import { paths } from './paths';
+import { cartItemCount, orderAmounts, round2 } from './totals';
 import type {
   Branch,
   CartLine,
@@ -89,10 +90,8 @@ export async function loadMenu(menuId: string): Promise<MenuData> {
 export async function createOrder(branch: Branch, customerName: string, lines: CartLine[]): Promise<string> {
   const uid = auth.currentUser?.uid ?? '';
   const name = customerName.trim();
-  const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
-  const taxAmount = round2(subtotal * branch.taxPercent);
-  const total = round2(subtotal + taxAmount);
-  const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
+  const { subtotal, taxAmount, total } = orderAmounts(lines, branch.taxPercent);
+  const itemCount = cartItemCount(lines);
 
   const batch = writeBatch(db);
   const orderRef = doc(collection(db, paths.orders));
@@ -107,7 +106,7 @@ export async function createOrder(branch: Branch, customerName: string, lines: C
     source: 'waiter',
     createdByUid: uid,
     status: 'pending',
-    subtotal: round2(subtotal),
+    subtotal,
     taxAmount,
     taxPercent: branch.taxPercent,
     tipAmount: 0,
@@ -303,10 +302,6 @@ export async function closeOrder(orderId: string): Promise<void> {
     completedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
-}
-
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
 }
 
 /**

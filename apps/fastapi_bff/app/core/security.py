@@ -27,8 +27,7 @@ def require_role(*roles: str):
 
 def org_of(user: dict) -> str | None:
     """Tenant of a verified token. Staff tokens (Firebase custom claims set by
-    syncStaffClaims) carry `orgId`; tokens minted by the BFF's own /auth/login
-    carry `org_id`. Accept both."""
+    syncStaffClaims) carry `orgId`; `org_id` is accepted for legacy tokens."""
     return user.get("orgId") or user.get("org_id")
 
 

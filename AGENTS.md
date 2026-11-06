@@ -17,8 +17,9 @@ Guía única para agentes de código (Claude Code, Codex, Cursor, OpenCode…). 
 - **Único cliente en producción: Pick & Eat** (org `yN4NWwXOCjmh0ydwwRIu`). Sus pedidos reales viven en prod: **no se pierden datos**. Hay respaldos (PITR, diarios, semanales) y restauración probada: `docs/ENVIRONMENTS.md` §8.
 - **`main`** contiene desde el 2026-11-05 la cadena de PRs #69→#82 (pago en servidor, reglas con validación de campos, Digifact, Club de fidelidad, Google Wallet sin credenciales, escaneo de socio, descuentos) y #66. **Dev ya corre ese código; prod sigue en la versión del 2026-10-14** hasta que el responsable pida desplegar.
 - **Antes de desplegar eso a prod**: export manual de Firestore, CORS de Storage (`storage.cors.json`), `BFF_URL` de prod en `functions/.env.restaurant-os-68c79`, secretos del BFF (`INTERNAL_TOKEN`), y credenciales Digifact productivas si se factura.
+- **Principio permanente: multi-tenant y todo configurable.** Nada que cambie de un restaurante a otro (marca, colores, logo, programa de fidelidad, métodos de pago, impuestos, moneda, módulos) va en el código. Es configuración por organización o sucursal. Pick & Eat es un cliente más, no el valor por defecto. Diseño: `docs/BRANDING_DESIGN.md`.
 - **Decisiones del responsable (2026-11-05):** Panamá primero; **Odoo se abandona**; Flutter y `waiter_demo` se archivan/borran; objetivo = producto vendible a cualquier restaurante.
-- **Fase actual:** Fase 1 de la hoja de ruta (limpiar: quitar Odoo y Flutter, CI, documentación). Ver el diagnóstico.
+- **Fase actual:** Fase 1 de la hoja de ruta (limpiar: Odoo ya retirado del BFF; Flutter, CI, documentación). Ver el diagnóstico.
 
 ---
 
@@ -66,8 +67,6 @@ cd functions && npm run build                    # tsc; npm run test:unit
 cd apps/fastapi_bff && python3.12 -m pytest -q   # usa python3.12, no el python3 del sistema
 ```
 
-`tests/test_auth.py` y `tests/test_catalog_sync.py` del BFF necesitan un Odoo vivo: se ignoran (Odoo se abandona y esas pruebas se borran con él).
-
 **Deploy:** `scripts/deploy.sh <dev|prod> [web|functions|rules|bff|"hosting:waiter,functions:x"]`. Prod exige `main` limpio igual a origin y escribir «prod». `DRY_RUN=1` muestra el comando. Los scripts fijan `firebase-tools@15.30.2`. Al desplegar índices, si la CLI ofrece **borrar** índices que no están en `firestore.indexes.json`, responde **No**.
 
 Deploy = acción visible para clientes reales. **Confirma con el usuario antes de desplegar a prod.**
@@ -101,7 +100,7 @@ Deploy = acción visible para clientes reales. **Confirma con el usuario antes d
 - CORS: orígenes fijos + `admin_preview_origin_regex`. Un dominio nuevo que llame al BFF debe estar ahí.
 - Asistente IA: el modelo **nunca escribe en la DB**; produce un `BuildPlan` que el BFF ejecuta tras confirmación humana. Gemini vía Vertex AI + ADC.
 - Pagos: PagueloFácil; el callback **no viene firmado**, mantén la idempotencia. Stripe no opera en Panamá.
-- **Odoo:** abandonado. No agregues código nuevo que dependa de él. Su retiro (`app/auth`, `app/catalog`, `app/core/odoo.py`, sync de `pos.order`, `deploy/docker-compose.yml`) es parte de la Fase 1.
+- **Odoo:** retirado del BFF y de `deploy/` (issue #87, 2026-11-05). No agregues código que dependa de él.
 
 ---
 
@@ -174,7 +173,7 @@ Repo: `aiudalabs/restaurant-os`. Tienes `gh` con permiso `repo`; úsalo para PRs
 
 - Locales e ignorados: `apps/fastapi_bff/.env`, `apps/fastapi_bff/serviceAccountKey.json`, `apps/*/.env.local`, `functions/.secret.local`, `deploy/env/*.secrets.env`. No los leas en voz alta ni los copies.
 - Las API keys web de Firebase en `apps/*/.env.*` son públicas por diseño; su seguridad depende de las reglas (y de restricciones de key / App Check, pendiente de confirmar).
-- Pendientes de seguridad (ver diagnóstico §4.4): firma del callback de tarjeta, hash de Yappy en tiempo constante y su `secretKey` en claro, `/payments/init` y `/catalog/products` sin autenticación, secretos del BFF fuera de Secret Manager.
+- Pendientes de seguridad (ver diagnóstico §4.4): firma del callback de tarjeta, hash de Yappy en tiempo constante y su `secretKey` en claro, `/payments/init` sin autenticación, secretos del BFF fuera de Secret Manager.
 - Escrituras a la DB de prod desde scripts de `tools/`: dry-run por defecto, `--yes` aplica; son destructivas, confirma antes. `reset_db_state.py` falla en prod por la protección de borrado (intencional).
 
 ---

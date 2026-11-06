@@ -3,7 +3,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { releaseToKds } from "../orders/kds-ticket";
 import { requestInvoice } from "./request-invoice";
-import { bffInternalToken } from "./config";
+import { bffInternalToken, runtimeServiceAccount } from "./config";
 import { awardLoyalty } from "../loyalty/award";
 
 /**
@@ -18,7 +18,7 @@ import { awardLoyalty } from "../loyalty/award";
  *
  * Idempotent by construction: the flip happens once; the RTDB keys are stable.
  */
-export const onOrderPaid = onDocumentUpdated({ document: "orders/{orderId}", secrets: [bffInternalToken] }, async (event) => {
+export const onOrderPaid = onDocumentUpdated({ document: "orders/{orderId}", secrets: [bffInternalToken], serviceAccount: runtimeServiceAccount }, async (event) => {
   const before = event.data?.before?.data();
   const after = event.data?.after?.data();
   if (!before || !after) return;

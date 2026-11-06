@@ -1,0 +1,14 @@
+{
+  "name": "restaurant-os-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Recorridos Playwright contra el ambiente DEV (Pick & Eat). Ver README.md",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "cleanup": "node cleanup.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0"
+  }
+}

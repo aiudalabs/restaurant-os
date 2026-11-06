@@ -1,8 +1,9 @@
 // Shared helpers for the emulator suites (REST, no dependencies). Project: demo-ros-test.
 export const P = 'demo-ros-test';
 const FS = `http://${process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080'}/v1/projects/${P}/databases/(default)/documents`;
-const FN = `http://127.0.0.1:5001/${P}/us-central1`;
-const DB = `http://127.0.0.1:9000`;
+const OFF = Number(process.env.EMU_PORT_OFFSET || 0); // permite correr con puertos desplazados si 8080/5001/9000 están ocupados
+const FN = `http://127.0.0.1:${5001 + OFF}/${P}/us-central1`;
+const DB = `http://127.0.0.1:${9000 + OFF}`;
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 export const token = (uid, extra = {}) =>
   `${b64({ alg: 'none', typ: 'JWT' })}.${b64({ sub: uid, user_id: uid, aud: P, iss: `https://securetoken.google.com/${P}`, iat: 0, exp: 9999999999, ...extra })}.`;
@@ -58,6 +59,75 @@ export async function call(name, uid, data) {
   const j = await r.json();
   return j.error ? { error: j.error.status } : j.result;
 }
+/** Like call(), but keeps the error message: { error: STATUS, message } or the result. */
+export async function callFull(name, uid, data) {
+  const r = await fetch(`${FN}/${name}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(uid ? { Authorization: `Bearer ${token(uid)}` } : {}) },
+    body: JSON.stringify({ data }),
+  });
+  const j = await r.json();
+  return j.error ? { error: j.error.status, message: j.error.message ?? '' } : j.result;
+}
+/** Runs all calls with the same status check: `refused(await call(...), 'NOT_FOUND')`. */
+export const refused = (res, status) => res?.error === status;
+
+/** Documents of `coll` whose `field` equals `value`, as [{ id, ...fields }] (owner = bypasses rules). */
+export async function query(coll, field, value) {
+  const r = await fetch(`${FS}:runQuery`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: coll }], where: { fieldFilter: { field: { fieldPath: field }, op: 'EQUAL', value: { stringValue: value } } } } }),
+  });
+  return (await r.json()).filter((x) => x.document).map((x) => ({
+    id: x.document.name.split('/').pop(),
+    ...Object.fromEntries(Object.entries(x.document.fields ?? {}).map(([k, v]) => [k, dec(v)])),
+  }));
+}
+/** Rules check: true if `uid` may read the doc (a real user token, rules enforced). */
+export async function readAs(uid, path) {
+  const r = await fetch(`${FS}/${path}`, { headers: { Authorization: `Bearer ${token(uid)}` } });
+  return r.ok;
+}
+
+// ── Auth + RTDB emulators (real tokens, rules enforced) ───────────────────────
+const AUTH = `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST || `127.0.0.1:${9099 + OFF}`}/identitytoolkit.googleapis.com/v1`;
+const DBH = `http://${process.env.FIREBASE_DATABASE_EMULATOR_HOST || `127.0.0.1:${9000 + OFF}`}`;
+const authPost = async (path, body, bearer) => {
+  const r = await fetch(`${AUTH}/${path}${path.includes('?') ? '&' : '?'}key=fake`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}) },
+    body: JSON.stringify(body),
+  });
+  return r.json();
+};
+/** Creates an email/password user in the Auth emulator and returns its uid. */
+export const createAuthUser = async (email, password = 'pw-123456') => (await authPost('accounts:signUp', { email, password, returnSecureToken: true })).localId;
+/** Fresh ID token (carries the current custom claims) of an email/password user. */
+export const signInPassword = async (email, password = 'pw-123456') => (await authPost('accounts:signInWithPassword', { email, password, returnSecureToken: true })).idToken;
+/** Exchanges a custom token (kdsLogin / waiterLogin) for an ID token, like the client SDK does. */
+export const signInCustom = async (customToken) => (await authPost('accounts:signInWithCustomToken', { token: customToken, returnSecureToken: true })).idToken;
+/** Custom claims currently stored for a uid, read from the Auth emulator. */
+export async function claimsOf(uid) {
+  const j = await authPost(`projects/${P}/accounts:lookup`, { localId: [uid] }, 'owner');
+  const raw = j.users?.[0]?.customAttributes;
+  return raw ? JSON.parse(raw) : {};
+}
+/** Overwrites the custom claims of a uid (admin, owner). */
+export const setClaimsRaw = (uid, claims) => authPost(`projects/${P}/accounts:update`, { localId: uid, customAttributes: JSON.stringify(claims) }, 'owner');
+export const jwtPayload = (jwt) => JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString());
+/** RTDB access with an ID token (rules enforced): 'owner' bypasses, null = unauthenticated. */
+export async function rtdbAs(idToken, method, path, body) {
+  const r = await fetch(`${DBH}/${path}.json?ns=${P}-default-rtdb${idToken && idToken !== 'owner' ? `&auth=${idToken}` : ''}`, {
+    method,
+    headers: idToken === 'owner' ? { Authorization: 'Bearer owner' } : {},
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  return { ok: r.ok, status: r.status, body: r.ok ? await r.json() : null };
+}
+/** Prints a finding that is documented in the PR but not asserted (the behavior is not decided). */
+export const note = (text) => console.log(`NOTE  ${text}`);
+
 export async function waitFor(label, fn, ms = 20000) {
   const t0 = Date.now();
   while (Date.now() - t0 < ms) {

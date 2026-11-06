@@ -4,16 +4,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # Odoo — SINGLE-TENANT FALLBACK only. In multi-tenant, each org's Odoo
-    # connection is read from organizations/{orgId} (odooUrl/odooDb/odooUser/
-    # odooPassword) via app.core.odoo.odoo_client_for_org(). These env values are
-    # used when an org has no Odoo configured (dev / one-tenant deploy). Empty by
-    # default: a tenant without Odoo simply skips the sync (ODOO_ROLE.md).
-    odoo_url: str = ""
-    odoo_db: str = ""
-    odoo_user: str = "admin"
-    odoo_password: str = "admin"
-
     # Firebase
     google_application_credentials: str = ""
     firebase_project_id: str = ""
@@ -23,7 +13,7 @@ class Settings(BaseSettings):
     # App
     org_id: str = "org_demo_001"
     branch_id: str = "branch_main_001"
-    secret_key: str = "cambiar-en-produccion"
+    secret_key: str = ""  # sin uso por ahora; sin default inseguro
 
     # PagueloFácil
     paguelofacil_cclw: str = ""

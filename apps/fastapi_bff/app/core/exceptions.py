@@ -1,14 +1,6 @@
 from fastapi import HTTPException
 
 
-class OdooAuthError(Exception):
-    pass
-
-
-class OdooRPCError(Exception):
-    pass
-
-
 class FirebaseError(Exception):
     pass
 

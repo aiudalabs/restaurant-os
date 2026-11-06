@@ -5,9 +5,11 @@ import { createOrder, loadCheckoutConfig } from '../lib/api';
 import { initPayment } from '../lib/payments';
 import { money } from '../lib/format';
 import { saveActiveOrder } from '../lib/session';
+import { buildInvoiceRequest, EMPTY_INVOICE, type InvoiceForm } from '../lib/invoice';
+import { orderAmounts } from '../lib/totals';
 import { useCart } from '../store/cart';
 import { useSession } from '../store/session';
-import type { CheckoutConfig, InvoiceRequest, PayMethod } from '../types';
+import type { CheckoutConfig, PayMethod } from '../types';
 
 const METHOD_TEXT: Record<PayMethod, { label: string; hint: string }> = {
   yappy: { label: 'Yappy', hint: 'Pagas ahora por Yappy y lo preparamos al confirmar tu pago.' },
@@ -17,34 +19,6 @@ const METHOD_TEXT: Record<PayMethod, { label: string; hint: string }> = {
 
 const INPUT_CLS =
   'w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-brand';
-
-interface InvoiceForm {
-  name: string;
-  taxId: string;
-  email: string;
-}
-
-const EMPTY_INVOICE: InvoiceForm = { name: '', taxId: '', email: '' };
-
-/**
- * Every field is optional: with none filled we send nothing and the server
- * issues the invoice to consumidor final. With a RUC, the server resolves the
- * DV and the company name itself (Digifact GetInfoRuc).
- */
-function buildInvoiceRequest(form: InvoiceForm): { request?: InvoiceRequest; error?: string } {
-  const name = form.name.trim();
-  const taxId = form.taxId.trim();
-  const email = form.email.trim();
-  if (email && !/^\S+@\S+\.\S+$/.test(email)) return { error: 'Revisa el correo para la factura.' };
-  if (!name && !taxId && !email) return {};
-  const request: InvoiceRequest = {
-    receiverType: taxId ? '01' : '02',
-    taxId: taxId || 'CF',
-    name: name || 'Consumidor Final',
-  };
-  if (email) request.email = email;
-  return { request };
-}
 
 export function CartScreen() {
   const navigate = useNavigate();
@@ -74,8 +48,7 @@ export function CartScreen() {
   if (!session) return null;
 
   const { taxPercent } = config;
-  const taxAmount = cart.subtotal * taxPercent;
-  const total = cart.subtotal + taxAmount;
+  const { taxAmount, total } = orderAmounts(cart.lines, taxPercent);
 
   const confirm = async () => {
     if (cart.itemCount === 0 || submitting) return;

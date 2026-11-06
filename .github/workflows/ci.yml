@@ -26,6 +26,9 @@ jobs:
           cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
       - run: npm ci
         working-directory: apps/${{ matrix.app }}
+      # Las apps sin script `test` (admin_app, kitchen_web) se saltan.
+      - run: npm run --if-present test
+        working-directory: apps/${{ matrix.app }}
       # Siempre se construye contra dev: el guard de vite rechaza `production`.
       - run: npm run build -- --mode restaurant-os-dev-49096
         working-directory: apps/${{ matrix.app }}
@@ -55,9 +58,5 @@ jobs:
           cache-dependency-path: apps/fastapi_bff/requirements.txt
       - run: pip install -r requirements.txt
         working-directory: apps/fastapi_bff
-      # test_auth y test_catalog_sync necesitan un Odoo vivo; Odoo se abandona.
-      - run: >
-          python -m pytest -q
-          --ignore=tests/test_auth.py
-          --ignore=tests/test_catalog_sync.py
+      - run: python -m pytest -q
         working-directory: apps/fastapi_bff

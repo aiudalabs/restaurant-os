@@ -21,3 +21,6 @@ apps/fastapi_bff/.zaveli-dev/
 # Cloud Functions local secrets / params (never commit)
 functions/.secret.local
 functions/.env.local
+
+# Config temporal de emuladores con puertos desplazados (scripts/test-emulators.sh)
+firebase.emu.json
