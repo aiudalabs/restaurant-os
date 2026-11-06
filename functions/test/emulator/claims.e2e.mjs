@@ -1,5 +1,5 @@
 // syncStaffClaims (users/{uid} → custom claims) and the RTDB rule order_items/$stationId. Emulator only.
-import { patch, createAuthUser, signInPassword, claimsOf, setClaimsRaw, jwtPayload, rtdbAs, waitFor, sleep, check, done, validSinceOf } from './helpers.mjs';
+import { patch, createAuthUser, signInPassword, claimsOf, setClaimsRaw, jwtPayload, rtdbAs, waitFor, sleep, check, done, validSinceOf, disabledOf, signInPasswordRaw } from './helpers.mjs';
 
 const claimsEq = async (uid, want) => JSON.stringify(Object.entries(await claimsOf(uid)).sort()) === JSON.stringify(Object.entries(want).sort());
 
@@ -81,8 +81,9 @@ check('control: active operator reads S1', (await rtdbAs(oldTok, 'GET', 'order_i
 await patch(`users/${uid}`, { isActive: false });
 await waitFor('claims removed on deactivation', async () => Object.keys(await claimsOf(uid)).length === 0);
 check('isActive=false → custom claims removed', true);
-tok = await signInPassword('kds1@test.io');
-check('deactivated: a fresh token carries no stationId and reads no station', jwtPayload(tok).stationId === undefined && !(await rtdbAs(tok, 'GET', 'order_items/S1')).ok);
+check('deactivated: the old token\'s refresh is revoked and the Auth account is disabled', await disabledOf(uid) === true);
+const dis = await signInPasswordRaw('kds1@test.io');
+check('deactivated: a fresh password sign-in is refused (no idToken)', !dis.idToken, JSON.stringify(dis).slice(0, 120));
 const vs = await validSinceOf(uid);
 check('deactivated: refresh tokens revoked (validSince set)', Number(vs) > 0, String(vs));
 await patch(`users/${uid}`, { displayName: 'Cocina baja' });
@@ -92,5 +93,6 @@ await patch(`users/${uid}`, { isActive: true });
 await waitFor('claims re-emitted on reactivation', () => claimsEq(uid, { orgId: 'A', role: 'operator', stationId: 'S1' }));
 check('isActive=true again → claims re-emitted', true);
 tok = await signInPassword('kds1@test.io');
+check('reactivated: account enabled again', await disabledOf(uid) === false);
 check('reactivated: reads S1 again', (await rtdbAs(tok, 'GET', 'order_items/S1')).ok);
 done();

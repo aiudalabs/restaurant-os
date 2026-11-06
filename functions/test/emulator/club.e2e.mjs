@@ -229,4 +229,11 @@ await pay('p3');
 await waitFor('p3 audit', async () => (await auditCount('p3', 'order_paid')) === 1);
 await sleep(1500);
 check('awardLoyalty never awards a staff uid (loyaltyUid = creator)', (await earn('p3')).orgId === undefined && num((await member('A', 'wA')).points) === 0);
+// D: loyaltyUid = a DIFFERENT staff uid on an order taken by wA earns nothing.
+await staffOrder('p4');
+await patch('orders/p4', { loyaltyUid: 'wA2' });
+await pay('p4');
+await waitFor('p4 audit', async () => (await auditCount('p4', 'order_paid')) === 1);
+await sleep(1500);
+check('awardLoyalty never awards another staff uid (loyaltyUid = wA2)', (await earn('p4')).orgId === undefined && (await member('A', 'wA2')).orgId === undefined);
 done();

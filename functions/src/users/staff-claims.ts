@@ -22,14 +22,25 @@ export async function setStaffClaims(uid: string, c: StaffClaims): Promise<void>
   });
 }
 
-/** Drops the claims and invalidates refresh tokens so a deactivated user loses KDS / RTDB access. */
-async function revokeStaffAccess(uid: string): Promise<void> {
+/** Runs one Auth step; a failure is logged (error level, except a missing Auth user) and never skips the next step. */
+async function authStep(uid: string, step: string, fn: () => Promise<unknown>): Promise<void> {
   try {
-    await admin.auth().setCustomUserClaims(uid, null);
-    await admin.auth().revokeRefreshTokens(uid);
+    await fn();
   } catch (e) {
-    functions.logger.warn(`Access not revoked for ${uid}: ${(e as Error).message}`);
+    const code = (e as { code?: string }).code;
+    if (code === "auth/user-not-found") {
+      functions.logger.warn(`${step} skipped for ${uid}: Auth user not found`);
+      return;
+    }
+    functions.logger.error(`${step} failed for ${uid}: ${(e as Error).message}`);
   }
+}
+
+/** Deactivation: drop claims, revoke refresh tokens, disable the Auth account (no new sign-ins). Independent steps. */
+async function revokeStaffAccess(uid: string): Promise<void> {
+  await authStep(uid, "Claims removal", () => admin.auth().setCustomUserClaims(uid, null));
+  await authStep(uid, "Token revocation", () => admin.auth().revokeRefreshTokens(uid));
+  await authStep(uid, "Account disable", () => admin.auth().updateUser(uid, { disabled: true }));
 }
 
 /**
@@ -50,6 +61,10 @@ export const syncStaffClaims = functions.firestore
       if (wasDeactivated) return;
       await revokeStaffAccess(context.params.uid);
       return;
+    }
+
+    if (wasDeactivated) {
+      await authStep(context.params.uid, "Account enable", () => admin.auth().updateUser(context.params.uid, { disabled: false }));
     }
 
     const same =

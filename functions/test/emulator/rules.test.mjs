@@ -59,6 +59,9 @@ await report([
   ['waiter creates an order in its org', () => create(token('wA'), fresh(), order({ createdByUid: 'wA', source: 'waiter', payment: { method: null, status: 'pending' } })), true],
   ['waiter cannot create an order in another org', () => create(token('wA'), fresh(), order({ orgId: 'B', createdByUid: 'wA', source: 'waiter' })), false],
 
+  // order_items / orders: money and loyalty fields are server-only at creation
+  ['client cannot create an item with discountAmount', () => create(asAnon, freshItem(), item({ discountAmount: 5 })), false],
+  ['client cannot create an order with loyaltyUid', () => create(asAnon, fresh(), order({ loyaltyUid: 'wA' })), false],
   // order_items: create
   ['customer creates a queued unrouted item', () => create(asAnon, freshItem(), item()), true],
   ['item needs a productId', () => create(asAnon, freshItem(), item({ productId: '' })), false],

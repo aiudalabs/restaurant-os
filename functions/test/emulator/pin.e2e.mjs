@@ -162,6 +162,12 @@ const kok = await klogin('S1', '123456');
 check('kdsLogin: right PIN → { token, stationName }, attempts reset', typeof kok?.token === 'string' && kok?.stationName === 'Cocina' && num((await get('kds_pins/S1')).failedAttempts) === 0, JSON.stringify(kok).slice(0, 80));
 const kc = jwtPayload(kok.token);
 check('kds token: uid = the station operator, claims { orgId A, stationId S1, role operator }', kc.uid === kp.operatorUid && kc.claims?.orgId === 'A' && kc.claims?.stationId === 'S1' && kc.claims?.role === 'operator', JSON.stringify(kc.claims));
+// Deactivated operator (finding #99): the right PIN no longer mints a token.
+await patch(`users/${kp.operatorUid}`, { isActive: false });
+const kOff = await klogin('S1', '123456');
+check('kdsLogin: deactivated operator + right PIN → PERMISSION_DENIED, no token', kOff.error === 'PERMISSION_DENIED' && !kOff.token, JSON.stringify(kOff));
+await patch(`users/${kp.operatorUid}`, { isActive: true });
+check('kdsLogin: reactivated operator logs in again', typeof (await klogin('S1', '123456'))?.token === 'string');
 const kid = await signInCustom(kok.token);
 const kip = jwtPayload(kid);
 check('exchanged ID token carries stationId S1', kip.stationId === 'S1' && kip.orgId === 'A' && kip.role === 'operator');

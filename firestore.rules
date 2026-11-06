@@ -137,6 +137,7 @@ service cloud.firestore {
         && d.status in ['pending', 'pending_payment']
         && d.get('source', '') in ['qr', 'waiter']
         && !('fiscal' in d)
+        && !('loyaltyUid' in d)
         && !('invoiceRequest' in d && d.invoiceRequest is map && d.invoiceRequest.get('receiverType', '02') == '01' && d.invoiceRequest.get('taxId', '') == '')
         && newPaymentOk(d);
     }
@@ -169,7 +170,8 @@ service cloud.firestore {
         && d.orgId is string && d.orderId is string
         && d.productId is string && d.productId.size() > 0
         && d.status == 'queued'
-        && d.get('stationId', '') == '';
+        && d.get('stationId', '') == ''
+        && !('discountAmount' in d);
     }
 
     match /order_items/{itemId} {

@@ -120,6 +120,13 @@ export async function validSinceOf(uid) {
   const j = await authPost(`projects/${P}/accounts:lookup`, { localId: [uid] }, 'owner');
   return j.users?.[0]?.validSince;
 }
+/** Whether the Auth account is disabled. */
+export async function disabledOf(uid) {
+  const j = await authPost(`projects/${P}/accounts:lookup`, { localId: [uid] }, 'owner');
+  return j.users?.[0]?.disabled === true;
+}
+/** Raw password sign-in result (idToken absent when refused). */
+export const signInPasswordRaw = (email, password = 'pw-123456') => authPost('accounts:signInWithPassword', { email, password, returnSecureToken: true });
 /** Overwrites the custom claims of a uid (admin, owner). */
 export const setClaimsRaw = (uid, claims) => authPost(`projects/${P}/accounts:update`, { localId: uid, customAttributes: JSON.stringify(claims) }, 'owner');
 export const jwtPayload = (jwt) => JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString());
