@@ -44,10 +44,37 @@ service cloud.firestore {
 
     // ─── Branches ───────────────────────────────────────────────────
 
+    // branding (docs/BRANDING_DESIGN.md, Refs #108): public theme of the restaurant,
+    // read by any authed user (incl. anonymous customers). Optional; when present it
+    // must be exactly this shape. No free CSS/HTML: hex colors, enum font, URLs only
+    // from our own Storage bucket under orgs/{orgId}/brand/.
+    function brandUrlOk(url, orgId) {
+      return url is string
+        && url.matches('^https://firebasestorage\\.googleapis\\.com/v0/b/[^/]+/o/orgs%2F' + orgId + '%2Fbrand%2F[^/?]+\\?alt=media(&token=[A-Za-z0-9-]+)?$');
+    }
+    function brandingValid(b, orgId) {
+      return b is map
+        && b.keys().hasOnly(['displayName', 'primary', 'accent', 'fontPreset', 'logoUrl', 'iconUrl', 'tagline'])
+        && b.keys().hasAll(['displayName', 'primary', 'accent', 'fontPreset', 'logoUrl', 'iconUrl'])
+        && b.displayName is string && b.displayName.size() >= 1 && b.displayName.size() <= 40
+        && b.primary is string && b.primary.matches('^#[0-9A-Fa-f]{6}$')
+        && b.accent is string && b.accent.matches('^#[0-9A-Fa-f]{6}$')
+        && b.fontPreset in ['classic', 'modern', 'rounded']
+        && brandUrlOk(b.logoUrl, orgId)
+        && brandUrlOk(b.iconUrl, orgId)
+        && (!('tagline' in b) || (b.tagline is string && b.tagline.size() <= 80));
+    }
+    function branchBrandingOk(data) {
+      return !('branding' in data) || brandingValid(data.branding, data.orgId);
+    }
+
     match /branches/{branchId} {
       allow read: if isAuthed();
-      allow create: if isAdmin() && belongsToMyOrg(request.resource.data.orgId);
-      allow update, delete: if isAdmin() && belongsToMyOrg(resource.data.orgId);
+      allow create: if isAdmin() && belongsToMyOrg(request.resource.data.orgId)
+        && branchBrandingOk(request.resource.data);
+      allow update: if isAdmin() && belongsToMyOrg(resource.data.orgId)
+        && branchBrandingOk(request.resource.data);
+      allow delete: if isAdmin() && belongsToMyOrg(resource.data.orgId);
     }
 
     // ─── Menus ──────────────────────────────────────────────────────
