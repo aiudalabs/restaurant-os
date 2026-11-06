@@ -61,7 +61,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             Pedidos, cocina, cobros y facturas en una sola vista, comparada con el mismo día de la semana pasada.
           </p>
         </div>
-        <p className="t-body-small text-[var(--ink-soft)]">Para restaurantes en Panamá.</p>
+        <span aria-hidden="true" />
       </aside>
 
       <main className="flex min-h-dvh items-center justify-center px-4 py-10 lg:[--field-bg:var(--surface)] lg:border-l lg:border-[var(--line)] lg:bg-[var(--surface)]">

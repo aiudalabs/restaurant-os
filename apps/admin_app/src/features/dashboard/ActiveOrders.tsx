@@ -27,7 +27,7 @@ export function ActiveOrders({ orders, loading, now }: Props) {
 
   return (
     <section aria-labelledby="activos" className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 sm:p-6">
-      <div className="mb-3 flex items-baseline justify-between gap-4">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4">
         <h2 id="activos" className="t-headline-small text-[var(--ink)]">
           Pedidos activos
         </h2>
@@ -57,7 +57,7 @@ export function ActiveOrders({ orders, loading, now }: Props) {
                   search={{ order: o.id }}
                   className="m3-state flex min-h-14 items-center gap-4 rounded-[10px] px-2 py-2.5 text-[var(--ink)]"
                 >
-                  <span className="t-number w-16 shrink-0 text-xl font-bold leading-none">{orderCode(o)}</span>
+                  <span className="t-number w-[4.75rem] shrink-0 whitespace-nowrap text-xl font-bold leading-none">{orderCode(o)}</span>
                   <span className="min-w-0 flex-1">
                     <span className="t-title-small block truncate">
                       {o.customerName && o.customerName !== orderCode(o) ? o.customerName : `${o.itemCount} ${o.itemCount === 1 ? 'artículo' : 'artículos'}`}

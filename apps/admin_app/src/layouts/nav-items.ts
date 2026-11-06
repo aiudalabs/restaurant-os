@@ -30,6 +30,11 @@ export function isActive(pathname: string, to: string): boolean {
   return to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(`${to}/`);
 }
 
+/** Only letters and digits, folded: "P4F2A", "p-4f2a" and "p 4f2a" are the same pickup code. */
+export function squash(text: string): string {
+  return fold(text).replace(/[^a-z0-9]/g, '');
+}
+
 /** Lowercase without accents, for forgiving matches ("menu" finds "Menú"). */
 export function fold(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();

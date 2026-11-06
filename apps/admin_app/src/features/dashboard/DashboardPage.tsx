@@ -119,11 +119,9 @@ export default function DashboardPage() {
         <p className="t-body-medium flex flex-wrap items-center gap-x-3 gap-y-1 text-[var(--ink-soft)]">
           <span className="first-letter:uppercase">{WEEKDAY_DATE.format(new Date(now))}</span>
           <span aria-hidden="true">·</span>
-          <span>{selectedBranch?.name ?? 'Sin sucursal'}</span>
-          <span aria-hidden="true">·</span>
           <span>{hours}</span>
           <span className="inline-flex items-center gap-1.5">
-            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[var(--accent)] [animation:jornada-pulse_2.4s_ease-in-out_infinite]" />
+            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[var(--accent)]" />
             En vivo
           </span>
         </p>

@@ -8,7 +8,7 @@ import { useTodayOrders } from '@/hooks/use-orders';
 import { money } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type { Order } from '@/types/order';
-import { ALL_NAV, fold } from './nav-items';
+import { ALL_NAV, fold, squash } from './nav-items';
 
 const STATUS_TEXT: Record<string, string> = {
   pending_payment: 'Esperando pago',
@@ -32,7 +32,10 @@ interface Item {
 }
 
 function orderMatches(o: Order, q: string): boolean {
-  return [o.pickupCode, o.customerName, o.tableNumber].some((f) => f && fold(f).includes(q));
+  const flat = squash(q);
+  return [o.pickupCode, o.customerName, o.tableNumber].some(
+    (f) => f && (fold(f).includes(q) || (flat !== '' && squash(f).includes(flat))),
+  );
 }
 
 /**
@@ -61,7 +64,7 @@ function Palette({ onClose }: { onClose: () => void }) {
       orders
         .filter((o) => orderMatches(o, folded))
         .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
-        .slice(0, 5)
+        .slice(0, 3)
         .forEach((o) =>
           out.push({
             id: `order-${o.id}`,
@@ -74,7 +77,9 @@ function Palette({ onClose }: { onClose: () => void }) {
         );
     }
 
-    ALL_NAV.filter((n) => folded === '' || fold(`${n.label} ${n.keywords ?? ''}`).includes(folded)).forEach((n) =>
+    ALL_NAV.filter((n) => folded === '' || fold(`${n.label} ${n.keywords ?? ''}`).includes(folded))
+      .slice(0, folded === '' ? ALL_NAV.length : 3)
+      .forEach((n) =>
       out.push({
         id: `nav-${n.to}`,
         group: 'Ir a',
@@ -85,13 +90,16 @@ function Palette({ onClose }: { onClose: () => void }) {
     );
 
     if (text) {
-      out.push({
-        id: 'search-orders',
-        group: 'Buscar',
-        icon: 'search',
-        label: `Buscar «${text}» en todos los pedidos`,
-        run: go(() => void navigate({ to: '/orders', search: { q: text } })),
-      });
+      // A code or a name is worth searching in every order; a sentence is for the assistant.
+      if (!/\s/.test(text) && text.length <= 10) {
+        out.push({
+          id: 'search-orders',
+          group: 'Buscar',
+          icon: 'search',
+          label: `Buscar «${text}» en todos los pedidos`,
+          run: go(() => void navigate({ to: '/orders', search: { q: text } })),
+        });
+      }
       out.push({
         id: 'ask',
         group: 'Asistente',
@@ -148,8 +156,13 @@ function Palette({ onClose }: { onClose: () => void }) {
 
       <ul id="command-list" role="listbox" aria-label="Resultados" className="max-h-[min(60vh,420px)] overflow-y-auto p-2">
         {items.map((it, i) => (
-          <li key={it.id} role="presentation">
-            {(i === 0 || items[i - 1].group !== it.group) && (
+          <li
+            key={it.id}
+            role="presentation"
+            // The assistant row is pinned to the bottom of the list: free text can always fall through to it.
+            className={it.group === 'Asistente' ? 'sticky bottom-0 -mx-2 -mb-2 border-t border-[var(--line)] bg-[var(--surface)] p-2' : undefined}
+          >
+            {it.group !== 'Asistente' && (i === 0 || items[i - 1].group !== it.group) && (
               <p className="t-label-medium px-3 pb-1 pt-3 text-[var(--ink-soft)]">{it.group}</p>
             )}
             <div

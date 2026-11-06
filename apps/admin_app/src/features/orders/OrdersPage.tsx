@@ -14,6 +14,7 @@ import { DEFAULT_TIMEZONE, money } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type { Order, OrderStatus } from '@/types/order';
 import { OrderDetail, StatusDot } from './OrderDetail';
+import { squash } from '@/layouts/nav-items';
 import { statusLabel, whenLabel } from './order-labels';
 
 interface Filter {
@@ -40,7 +41,10 @@ const PAGE = 100;
 
 function matchesText(o: Order, q: string): boolean {
   const needle = q.toLowerCase();
-  return [o.tableNumber, o.pickupCode, o.customerName, o.id].some((f) => f?.toLowerCase().includes(needle));
+  const flat = squash(q);
+  return [o.tableNumber, o.pickupCode, o.customerName, o.id].some(
+    (f) => f && (f.toLowerCase().includes(needle) || (flat !== '' && squash(f).includes(flat))),
+  );
 }
 
 /** Pedidos: state filters, the list, and the open order pinned on the right (a sheet on phones). */
@@ -212,7 +216,7 @@ export default function OrdersPage() {
                           on && 'bg-[var(--tint)] shadow-[inset_3px_0_0_var(--ink)]',
                         )}
                       >
-                        <span className="t-number w-16 shrink-0 text-xl font-bold leading-none">{orderCode(o)}</span>
+                        <span className="t-number w-[4.75rem] shrink-0 whitespace-nowrap text-xl font-bold leading-none">{orderCode(o)}</span>
                         <span className="min-w-0 flex-1">
                           <span className="t-title-small block truncate">
                             {o.customerName && o.customerName !== orderCode(o) ? o.customerName : `${o.itemCount} ${o.itemCount === 1 ? 'artículo' : 'artículos'}`}

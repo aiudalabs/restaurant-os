@@ -67,11 +67,11 @@ export function JornadaChart({ win, today, lastWeek, lastWeekState, onRetryLastW
   const n = slotCount(win);
   const nowSlot = nowMin === null ? -1 : Math.min(n - 1, Math.max(0, slotOf(nowMin, win)));
   const W = Math.max(width, 280);
-  const H = W < 520 ? 230 : 300;
+  const H = W < 520 ? 250 : 320;
   const padL = metric === 'revenue' ? 44 : 32;
   const padR = 8;
   const padT = 34;
-  const padB = 30;
+  const padB = 52;
   const plotW = W - padL - padR;
   const plotH = H - padT - padB;
   const sw = plotW / n;
@@ -238,10 +238,8 @@ export function JornadaChart({ win, today, lastWeek, lastWeekState, onRetryLastW
           <line x1={padL} x2={W - padR} y1={base} y2={base} stroke="var(--line-strong)" />
           {hourSlots.map((i) => {
             const cx = x(i);
-            // Hide the hour label that would sit under the "ahora" pill.
-            if (nowX !== null && Math.abs(cx - nowX) < 34) return null;
             return (
-              <text key={i} x={cx} y={H - 8} textAnchor="middle" fontSize={12} fill="var(--ink-soft)" className="tnum">
+              <text key={i} x={cx} y={base + 18} textAnchor="middle" fontSize={12} fill="var(--ink-soft)" className="tnum">
                 {clock(win.openMin + i * SLOT_MINUTES)}
               </text>
             );
@@ -250,7 +248,7 @@ export function JornadaChart({ win, today, lastWeek, lastWeekState, onRetryLastW
           {/* "ahora" */}
           {nowX !== null && (
             <g>
-              <line x1={nowX} x2={nowX} y1={padT - 6} y2={base} stroke="var(--accent)" strokeWidth={2} />
+              <line x1={nowX} x2={nowX} y1={padT - 6} y2={H - 24} stroke="var(--accent)" strokeWidth={2} />
               <rect x={nowX - 26} y={H - 24} width={52} height={20} rx={10} fill="var(--accent)" />
               <text x={nowX} y={H - 10} textAnchor="middle" fontSize={12} fontWeight={700} fill="#101a33">
                 ahora

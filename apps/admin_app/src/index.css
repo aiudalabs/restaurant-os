@@ -68,7 +68,7 @@
   --late: #e5484d;
 
   --line: #dfe2ec;          /* hairline borders on --surface */
-  --line-strong: #8a93ab;   /* control outlines, 3:1 on --surface */
+  --line-strong: #7a849f;   /* control outlines, 3:1 on --surface and on --ground */
   --tint: #e8ebf3;          /* hover / selected fill */
   --accent-ink: #7a4e00;    /* mango as text (AA on --surface and --ground) */
   --accent-wash: #fff0c7;
@@ -273,12 +273,14 @@ body {
 @keyframes m3-view-in { from { opacity: 0; transform: translateY(8px); } }
 /* The one choreographed moment: the day curve rising when Inicio loads. */
 @keyframes jornada-rise { from { transform: scaleY(0); } }
-@keyframes jornada-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 
-/* Visible focus in both themes: ink (never mango, which fails 3:1 on the ground). */
-:where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 3px solid var(--ink);
-  outline-offset: 2px;
+/* Visible focus in both themes: ink (never mango, which fails 3:1 on the ground).
+   In the base layer so a component can restyle it (the command bar input does). */
+@layer base {
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 2px;
+  }
 }
 
 /* Scrollbars */
