@@ -1,4 +1,5 @@
 import { Icon } from '../components/Icon';
+import { BrandMark } from '../components/BrandMark';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { loadBranch } from '../lib/api';
@@ -63,7 +64,9 @@ export function EntryScreen() {
     <div className="flex flex-1 flex-col justify-between px-6 pb-10 safe-top">
       <div />
       <div className="flex flex-col items-center text-center">
-        <img src="/brand/logo.png" alt="Pick & Eat" className="mb-6 h-36 w-auto object-contain" />
+        <div className="mb-6 flex min-h-[9rem] items-center justify-center">
+          <BrandMark className="h-36" wordmarkClassName="text-5xl" />
+        </div>
 
         {status === 'error' ? (
           <>

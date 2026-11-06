@@ -2,11 +2,10 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="64x64" href="/icons/favicon-64.png" />
+    <title>Pedidos</title>
+    <link rel="icon" type="image/svg+xml" href="/icons/platform.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#FAF8F2" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="theme-color" content="#3B5BDB" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -30,11 +29,48 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap"
-      rel="stylesheet"
-    />
-    <title>Pick &amp; Eat</title>
+    <!-- Theme before first paint: applies the branding cached for this branch (written by
+         src/lib/branding.ts, validated there) as CSS variables, title, theme-color, icons and
+         the font of the chosen preset. No cache -> neutral platform theme (defaults in index.css). -->
+    <script>
+      (function () {
+        var FONT = 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..700&family=Hanken+Grotesk:wght@400..700&display=swap';
+        var t = null;
+        try {
+          var p = new URLSearchParams(location.search);
+          var branch = p.get('branch');
+          if (!branch) {
+            var h = JSON.parse(localStorage.getItem('ros_customer_home') || 'null');
+            branch = h && h.branchId;
+          }
+          if (branch) {
+            var e = JSON.parse(localStorage.getItem('ros_theme_v1_' + branch) || 'null');
+            if (e && e.v === 1 && e.theme) t = e.theme;
+          }
+        } catch (err) {}
+        var href = FONT;
+        try {
+          if (t) {
+            var root = document.documentElement;
+            for (var k in t.vars) {
+              if (/^--[a-z-]+$/.test(k) && typeof t.vars[k] === 'string') root.style.setProperty(k, t.vars[k]);
+            }
+            if (typeof t.title === 'string') document.title = t.title;
+            if (/^#[0-9A-Fa-f]{6}$/.test(t.themeColor)) document.querySelector('meta[name="theme-color"]').content = t.themeColor;
+            if (typeof t.iconUrl === 'string' && t.iconUrl.indexOf('https://') === 0) {
+              document.querySelectorAll('link[rel="icon"]').forEach(function (n) { n.remove(); });
+              ['icon', 'apple-touch-icon'].forEach(function (rel) {
+                var l = document.createElement('link'); l.rel = rel; l.href = t.iconUrl; document.head.appendChild(l);
+              });
+            }
+            if (typeof t.fontHref === 'string' && t.fontHref.indexOf('https://fonts.googleapis.com/') === 0) href = t.fontHref;
+          }
+        } catch (err) {}
+        var f = document.createElement('link');
+        f.rel = 'stylesheet'; f.href = href; f.setAttribute('data-brand-font', '');
+        document.head.appendChild(f);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
