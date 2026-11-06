@@ -4,7 +4,9 @@ import { useBranchContext } from '@/hooks/use-branch-context';
 import { useDayReport } from '@/hooks/use-day-report';
 import { useNow } from '@/hooks/use-now';
 import { useOrganization } from '@/hooks/use-organization';
+import { useCategories } from '@/hooks/use-menu';
 import { useStations } from '@/hooks/use-stations';
+import { useUsers } from '@/hooks/use-users';
 import {
   useActiveOrders,
   useConfirmManualPayment,
@@ -15,9 +17,11 @@ import { DEFAULT_TIMEZONE, clock, shiftYmd, wallClock } from '@/lib/time';
 import { ActiveOrders } from './ActiveOrders';
 import { AhoraPanel } from './AhoraPanel';
 import { JornadaChart, type LastWeekState } from './JornadaChart';
+import { PrimerPedido } from './PrimerPedido';
 import {
   buildMarkers,
   buildSeries,
+  closingNote,
   dayWindow,
   fitWindow,
   isKitchenLate,
@@ -41,6 +45,8 @@ export default function DashboardPage() {
   const { orders: activeOrders, loading: activeLoading } = useActiveOrders(orgId, branchId);
   const { orders: todayOrders, loading: todayLoading } = useTodayOrders(orgId, branchId);
   const { stations, loading: stationsLoading } = useStations(orgId, branchId);
+  const { categories, loading: categoriesLoading } = useCategories(selectedBranch?.menuId ?? '');
+  const { users, loading: usersLoading } = useUsers(orgId);
   const { confirm, busyId } = useConfirmManualPayment();
   const [confirmError, setConfirmError] = useState('');
 
@@ -90,6 +96,11 @@ export default function DashboardPage() {
     ? 'Cargando la jornada…'
     : jornadaSentence({ phase, nowMin: clockNow.minutes, win, active: flow, now, soldCount: todaySales.length, soldRevenue });
 
+  const waiterCount = users.filter((u) => u.role === 'waiter' && u.isActive && u.branchIds.includes(branchId)).length;
+  const lastWeekRevenue = lastWeekSales ? lastWeekSales.reduce((sum, s) => sum + s.total, 0) : null;
+  const weekdayName = new Intl.DateTimeFormat('es-PA', { weekday: 'long', timeZone: tz }).format(new Date(now));
+  const closing = phase === 'after' ? closingNote({ soldRevenue, lastWeekRevenue, weekday: weekdayName }) : null;
+
   const lastWeekState: LastWeekState = report.isError ? 'error' : report.isPending ? 'loading' : 'ready';
 
   const lateCount = flow.filter((o) => isKitchenLate(o, now)).length;
@@ -128,10 +139,20 @@ export default function DashboardPage() {
         <h1 className="text-[28px] font-bold leading-[1.1] tracking-[-0.02em] text-[var(--ink)] [font-family:var(--font-display)] md:text-[44px]">
           {sentence}
         </h1>
+        {closing && <p className="t-body-large text-[var(--ink-soft)]">{closing}</p>}
         {win.source !== 'branch' && (
           <p className="t-body-small text-[var(--ink-soft)]">Configura el horario en Sucursales para que el gráfico use el real.</p>
         )}
       </header>
+
+      <PrimerPedido
+        orgId={orgId}
+        branchId={branchId}
+        categoryCount={categoriesLoading ? null : categories.length}
+        stationCount={stationsLoading ? null : stations.length}
+        waiterCount={usersLoading ? null : waiterCount}
+        hasOrders={todayOrders.length > 0 || activeOrders.length > 0}
+      />
 
       <section aria-label="La jornada" className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 sm:p-6">
         {todayLoading ? (

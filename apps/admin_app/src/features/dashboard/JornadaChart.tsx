@@ -303,8 +303,10 @@ export function JornadaChart({ win, today, lastWeek, lastWeekState, onRetryLastW
         </svg>
 
         {!hasToday && (
-          <p className="t-body-medium pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 px-12 text-center text-[var(--ink-soft)]">
-            Todavía no hay ventas hoy. Las barras aparecen con el primer pedido.
+          <p className="pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center px-6">
+            <span className="t-body-medium rounded-[10px] bg-[var(--surface)] px-4 py-2 text-center text-[var(--ink)] shadow-[0_1px_2px_rgba(16,26,51,0.08),0_4px_12px_rgba(16,26,51,0.06)]">
+              Todavía no hay ventas hoy. Las barras aparecen con el primer pedido.
+            </span>
           </p>
         )}
       </div>

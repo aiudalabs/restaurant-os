@@ -203,6 +203,15 @@ export interface SentenceInput {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+/** After closing: how the day went against the same weekday last week. Null when there is nothing honest to compare. */
+export function closingNote(i: { soldRevenue: number; lastWeekRevenue: number | null; weekday: string }): string | null {
+  if (i.lastWeekRevenue === null || i.lastWeekRevenue <= 0 || i.soldRevenue <= 0) return null;
+  const pct = Math.round((i.soldRevenue / i.lastWeekRevenue - 1) * 100);
+  const ref = `el ${i.weekday} pasado (${money(i.lastWeekRevenue)})`;
+  if (pct === 0) return `Igual que ${ref}.`;
+  return `${Math.abs(pct)} % ${pct > 0 ? 'más' : 'menos'} que ${ref}.`;
+}
+
 export function jornadaSentence(i: SentenceInput): string {
   if (i.phase === 'before') return `Aún cerrado. Hoy abre a las ${clock(i.win.openMin)}.`;
   if (i.phase === 'after') {
@@ -214,7 +223,7 @@ export function jornadaSentence(i: SentenceInput): string {
   if (i.active.length === 0) {
     return i.soldCount === 0
       ? `${lead} Todavía no entra ningún pedido.`
-      : `${lead} Sin pedidos activos; van ${plural(i.soldCount, 'pedido', 'pedidos')} hoy.`;
+      : `${lead} Sala despejada; van ${plural(i.soldCount, 'pedido', 'pedidos')} hoy.`;
   }
   const oldest = Math.max(...i.active.map((o) => minutesWaiting(o, i.now)));
   return i.active.length === 1

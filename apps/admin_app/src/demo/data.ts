@@ -272,8 +272,11 @@ export function buildLastWeekRows(startIso: string): OrderReportRow[] {
 let seed: Seed | null = null;
 const listeners = new Set<() => void>();
 
+/** `?setup=empty` shows a brand-new restaurant: no menu, no waiter, no orders (first-use panel). */
+export const isEmptySetup = (): boolean => new URLSearchParams(window.location.search).get('setup') === 'empty';
+
 export function store(): Seed {
-  if (!seed) seed = build(Date.now());
+  if (!seed) seed = isEmptySetup() ? { orders: [], items: [] } : build(Date.now());
   return seed;
 }
 
