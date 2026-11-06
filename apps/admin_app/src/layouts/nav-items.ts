@@ -20,6 +20,7 @@ export const PRIMARY_NAV: NavItem[] = [
 export const SECONDARY_NAV: NavItem[] = [
   { to: '/reports', label: 'Reportes', icon: 'bar_chart', keywords: 'ventas exportar csv' },
   { to: '/stations', label: 'Estaciones', icon: 'soup_kitchen', keywords: 'cocina bar kds' },
+  { to: '/brand', label: 'Marca', icon: 'palette', keywords: 'logo colores identidad nombre tema tipografía apariencia cliente' },
   { to: '/tables', label: 'Mesas', icon: 'table_restaurant', keywords: 'qr' },
   { to: '/assistant', label: 'Asistente', icon: 'auto_awesome', keywords: 'ia inteligencia artificial crear' },
 ];
