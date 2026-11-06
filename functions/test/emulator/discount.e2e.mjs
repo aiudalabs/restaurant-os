@@ -123,8 +123,8 @@ check('waiter of another org cannot write the order', !(await update('wB', 'orde
 check('customer who created it cannot discount it', !(await update('anon-2', 'orders/d4', { discountAmount: 5, total: 5 })));
 check('waiter cannot write item.discountAmount / unitPrice', !(await update('wA', 'order_items/d6_0', { discountAmount: 5 })) && !(await update('wA', 'order_items/d6_0', { unitPrice: 0.01 })));
 check('organizations.discounts: waiter cannot edit the catalog of discounts', !(await update('wA', 'organizations/A', { discounts: [{ id: 'x', percent: 100 }] })));
-// Probe: the item rule lets a manager write any item field (no applyDiscount, no audit). Documented, not asserted.
-const mgrItem = await update('mgrA', 'order_items/d6_0', { discountAmount: 9 });
-note(`manager client can write order_items.discountAmount directly: ${mgrItem} (rules: order_items update = isManager(), no field restriction)`);
+check('manager cannot write item.discountAmount / unitPrice / totalPrice (applyDiscount + audit cannot be bypassed)',
+  !(await update('mgrA', 'order_items/d6_0', { discountAmount: 9 })) && !(await update('mgrA', 'order_items/d6_0', { unitPrice: 0.01 })) && !(await update('mgrA', 'order_items/d6_0', { totalPrice: 0 })));
+check('manager still updates item status (admin / KDS lifecycle)', await update('mgrA', 'order_items/d6_0', { status: 'cancelled', updatedAt: 'x' }));
 await sleep(100);
 done();

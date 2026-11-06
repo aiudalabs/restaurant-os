@@ -137,6 +137,7 @@ service cloud.firestore {
         && d.status in ['pending', 'pending_payment']
         && d.get('source', '') in ['qr', 'waiter']
         && !('fiscal' in d)
+        && !('loyaltyUid' in d)
         && !('invoiceRequest' in d && d.invoiceRequest is map && d.invoiceRequest.get('receiverType', '02') == '01' && d.invoiceRequest.get('taxId', '') == '')
         && newPaymentOk(d);
     }
@@ -169,7 +170,8 @@ service cloud.firestore {
         && d.orgId is string && d.orderId is string
         && d.productId is string && d.productId.size() > 0
         && d.status == 'queued'
-        && d.get('stationId', '') == '';
+        && d.get('stationId', '') == ''
+        && !('discountAmount' in d);
     }
 
     match /order_items/{itemId} {
@@ -177,9 +179,17 @@ service cloud.firestore {
       allow read: if belongsToMyOrg(resource.data.orgId)
                   || resource.data.createdByUid == uid();
       allow update: if belongsToMyOrg(resource.data.orgId)
-                    && (isManager()
-                        || userDoc().stationId == resource.data.stationId
+                    && ((isManager() || userDoc().stationId == resource.data.stationId)
+                        && itemStatusOnly()
                         || counterUpdate());
+    }
+
+    // Clients (manager, KDS station) may only move an item through its lifecycle.
+    // Money (unitPrice, totalPrice, discountAmount), routing and identity fields are
+    // written by Cloud Functions only (applyDiscount, onOrderCreated).
+    function itemStatusOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'startedAt', 'completedAt', 'updatedAt']);
     }
 
     // Counter mode (issue #45): an item whose category has no active station is

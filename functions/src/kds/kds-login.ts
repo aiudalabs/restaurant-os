@@ -29,6 +29,11 @@ export const kdsLogin = functions.https.onCall(async (data: KdsLoginRequest) => 
   if (!outcome.ok) throw new functions.https.HttpsError(outcome.code, outcome.message);
   const result = { operatorUid: outcome.record.operatorUid as string, orgId: outcome.record.orgId as string };
 
+  const operator = await db.collection("users").doc(result.operatorUid).get();
+  if (operator.exists && operator.data()?.isActive === false) {
+    throw new functions.https.HttpsError("permission-denied", "Esta estación está desactivada.");
+  }
+
   const token = await admin.auth().createCustomToken(result.operatorUid, {
     orgId: result.orgId,
     stationId: data.stationId,

@@ -1,5 +1,5 @@
 // Club Pick & Eat (issue #75): awardLoyalty via onOrderPaid, redeemReward, useVoucher, attachMember, loyalty_* rules. Emulator only.
-import { patch, get, token, call, callFull, query, readAs, update, waitFor, sleep, check, done, note } from './helpers.mjs';
+import { patch, get, token, call, callFull, query, readAs, update, waitFor, sleep, check, done, createAuthUserWithUid } from './helpers.mjs';
 
 await patch('users/wA', { orgId: 'A', role: 'waiter' });
 await patch('users/wA2', { orgId: 'A', role: 'waiter' });
@@ -153,6 +153,7 @@ check('a stamp-card voucher is redeemable by the waiter too', (await call('useVo
 
 // ── 4. attachMember ──────────────────────────────────────────────────────────
 await staffOrder('a1');
+for (const u of ['cust8', 'cust9', 'cust11', 'cust12']) await createAuthUserWithUid(u); // attachMember needs an existing Auth user (no member doc yet)
 check('customer cannot attach', (await call('attachMember', 'cust8', { orderId: 'a1', memberId: 'A_cust8' })).error === 'PERMISSION_DENIED');
 check('KDS operator cannot attach', (await call('attachMember', 'opK', { orderId: 'a1', memberId: 'A_cust8' })).error === 'PERMISSION_DENIED');
 check('missing args → INVALID_ARGUMENT', (await call('attachMember', 'wA', { orderId: 'a1' })).error === 'INVALID_ARGUMENT');
@@ -163,7 +164,7 @@ check('unknown order → NOT_FOUND', (await call('attachMember', 'wA', { orderId
 check('refusals attached nobody', (await get('orders/a1')).loyaltyUid === undefined);
 
 const at1 = await call('attachMember', 'wA', { orderId: 'a1', memberId: 'A_cust8' });
-check('unpaid order: attached, awarded:false', at1?.awarded === false && (await get('orders/a1')).loyaltyUid === 'cust8', JSON.stringify(at1));
+check('unpaid order: a never-paid Auth user (no member doc) is attached, awarded:false', at1?.awarded === false && (await get('orders/a1')).loyaltyUid === 'cust8', JSON.stringify(at1));
 check('attaching the same member again is idempotent', (await call('attachMember', 'wA2', { orderId: 'a1', memberId: 'A_cust8' }))?.awarded === false);
 check('one member per order: a different member → FAILED_PRECONDITION', (await call('attachMember', 'wA', { orderId: 'a1', memberId: 'A_cust9' })).error === 'FAILED_PRECONDITION' && (await get('orders/a1')).loyaltyUid === 'cust8');
 check('nothing awarded before payment', (await earn('a1')).orgId === undefined && (await member('A', 'cust8')).orgId === undefined);
@@ -205,11 +206,34 @@ check('owner of the voucher cannot mark it used / edit it', !(await update('cust
 check('manager cannot write a member either', !(await update('mgrA', 'loyalty_members/A_cust1', { points: 99999 })));
 check('points unchanged after the rules probes', num((await member('A', 'cust1')).points) === 21);
 
-// Probes documented in the PR (behavior not decided; not asserted).
+// Findings #98: staff and ghost members are refused.
+await createAuthUserWithUid('wA'); await createAuthUserWithUid('wA2');
 await staffOrder('p1');
-const self = await call('attachMember', 'wA', { orderId: 'p1', memberId: 'A_wA' });
-note(`attachMember accepts the waiter's own member id (A_wA): ${JSON.stringify(self)} -> the waiter can earn points on orders they take`);
+const self = await callFull('attachMember', 'wA', { orderId: 'p1', memberId: 'A_wA' });
+check('attachMember refuses the waiter\'s own member id', self.error === 'INVALID_ARGUMENT' && (await get('orders/p1')).loyaltyUid === undefined, JSON.stringify(self));
+await seedMember('wA', {});
+const self2 = await callFull('attachMember', 'wA', { orderId: 'p1', memberId: 'A_wA' });
+check('...even if a member doc exists for the staff uid', self2.error === 'INVALID_ARGUMENT' && (await get('orders/p1')).loyaltyUid === undefined, JSON.stringify(self2));
+const other = await callFull('attachMember', 'wA', { orderId: 'p1', memberId: 'A_wA2' });
+check('attachMember refuses another staff uid too', other.error === 'INVALID_ARGUMENT', JSON.stringify(other));
 await staffOrder('p2');
-const ghost = await call('attachMember', 'wA', { orderId: 'p2', memberId: 'A_neverseen' });
-note(`attachMember does not check that the member exists: ${JSON.stringify(ghost)}`);
+const ghost = await callFull('attachMember', 'wA', { orderId: 'p2', memberId: 'A_neverseen' });
+check('attachMember refuses a made-up uid that is not in Auth', ghost.error === 'NOT_FOUND' && (await get('orders/p2')).loyaltyUid === undefined, JSON.stringify(ghost));
+await patch('loyalty_members/A_wrongorg', { orgId: 'B', uid: 'wrongorg', points: 0 });
+await createAuthUserWithUid('wrongorg');
+check('attachMember refuses a member doc of another org', (await call('attachMember', 'wA', { orderId: 'p2', memberId: 'A_wrongorg' })).error === 'NOT_FOUND');
+// awardLoyalty defense in depth: an order with loyaltyUid = the staff uid (written by admin) earns nothing.
+await staffOrder('p3');
+await patch('orders/p3', { loyaltyUid: 'wA' });
+await pay('p3');
+await waitFor('p3 audit', async () => (await auditCount('p3', 'order_paid')) === 1);
+await sleep(1500);
+check('awardLoyalty never awards a staff uid (loyaltyUid = creator)', (await earn('p3')).orgId === undefined && num((await member('A', 'wA')).points) === 0);
+// D: loyaltyUid = a DIFFERENT staff uid on an order taken by wA earns nothing.
+await staffOrder('p4');
+await patch('orders/p4', { loyaltyUid: 'wA2' });
+await pay('p4');
+await waitFor('p4 audit', async () => (await auditCount('p4', 'order_paid')) === 1);
+await sleep(1500);
+check('awardLoyalty never awards another staff uid (loyaltyUid = wA2)', (await earn('p4')).orgId === undefined && (await member('A', 'wA2')).orgId === undefined);
 done();
