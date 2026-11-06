@@ -42,7 +42,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 function ErrorBlock({ message }: { message: string }) {
   return (
-    <div role="alert" className="t-body-medium flex items-start gap-2 rounded-xl bg-[var(--md-sys-color-error-container)] p-3 text-[var(--md-sys-color-on-error-container)]">
+    <div role="alert" className="t-body-medium flex items-start gap-2 rounded-[10px] bg-[var(--late-wash)] p-3 text-[var(--late-ink)]">
       <Icon name="error" size={20} className="shrink-0" />
       <span className="min-w-0 break-words">{message}</span>
     </div>
@@ -73,7 +73,7 @@ export default function LoginPage() {
     <AuthLayout>
       {mode === 'login' ? (
         <form onSubmit={loginForm.handleSubmit((d) => login(d.email, d.password))} className="space-y-5">
-          <h2 className="t-title-large text-[var(--md-sys-color-on-surface)]">Inicia sesión</h2>
+          <h1 className="t-headline-medium text-[var(--ink)]">Inicia sesión</h1>
           <Input
             id="email"
             label="Email"
@@ -100,9 +100,9 @@ export default function LoginPage() {
         </form>
       ) : (
         <form onSubmit={regForm.handleSubmit((d) => registerOrg({ ...d, plan: signup.plan }))} className="space-y-5">
-          <h2 className="t-title-large text-[var(--md-sys-color-on-surface)]">Crea tu restaurante</h2>
+          <h1 className="t-headline-medium text-[var(--ink)]">Crea tu restaurante</h1>
           {signup.plan && (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--md-sys-color-outline-variant)] px-4 py-3">
+            <div className="flex items-center justify-between gap-3 rounded-[10px] border border-[var(--line)] px-4 py-3">
               <span className="t-body-medium text-[var(--md-sys-color-on-surface-variant)]">Plan seleccionado</span>
               <StatusChip tone="success" icon="workspace_premium">{PLAN_LABELS[signup.plan]}</StatusChip>
             </div>
