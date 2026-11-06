@@ -36,6 +36,7 @@ export default defineConfig(({ command, mode }) => {
       { find: /^@\/services\/organization\.service$/, replacement: path.join(demoDir, 'organization.service.ts') },
       { find: /^@\/services\/report\.service$/, replacement: path.join(demoDir, 'report.service.ts') },
       { find: /^@\/services\/station\.service$/, replacement: path.join(demoDir, 'station.service.ts') },
+      { find: /^@\/features\/brand\/services\/brand\.service$/, replacement: path.join(demoDir, 'brand.service.ts') },
       { find: /^@\/services\/menu\.service$/, replacement: path.join(demoDir, 'menu.service.ts') },
       { find: /^@\/services\/user\.service$/, replacement: path.join(demoDir, 'user.service.ts') },
     )

@@ -1,4 +1,5 @@
 import type { Timestamp } from 'firebase/firestore';
+import type { Branding } from '@/features/brand/theme';
 
 export interface BusinessHoursEntry {
   open: string;
@@ -45,4 +46,6 @@ export interface Branch {
   };
   createdAt: Timestamp;
   fiscal?: BranchFiscal;
+  /** Restaurant brand (one per organization, copied to every branch). Public: customers read it. */
+  branding?: Branding;
 }

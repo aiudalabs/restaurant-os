@@ -15,6 +15,7 @@ import UsersPage from '@/features/users/UsersPage';
 import OrdersPage from '@/features/orders/OrdersPage';
 import ReportsPage from '@/features/reports/ReportsPage';
 import AiAssistantPage from '@/features/ai-assistant/AiAssistantPage';
+import BrandPage from '@/features/brand/BrandPage';
 import SettingsPage from '@/features/settings/SettingsPage';
 import { auth } from '@/lib/firebase';
 
@@ -115,6 +116,12 @@ const assistantRoute = createRoute({
   validateSearch: (s: Record<string, unknown>): AssistantSearch => ({ q: text(s.q) }),
 });
 
+const brandRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/brand',
+  component: BrandPage,
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/settings',
@@ -133,6 +140,7 @@ const routeTree = rootRoute.addChildren([
     ordersRoute,
     reportsRoute,
     assistantRoute,
+    brandRoute,
     settingsRoute,
   ]),
 ]);
