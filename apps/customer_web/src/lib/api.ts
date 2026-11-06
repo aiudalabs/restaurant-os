@@ -14,6 +14,7 @@ import { auth, db, ensureAnonAuth, functions } from './firebase';
 import { paths } from './paths';
 import { generatePickupCode } from './pickup';
 import { paymentsEnabled } from './config';
+import { applyBranding } from './branding';
 import { orderAmounts } from './totals';
 import type {
   Branch,
@@ -35,10 +36,20 @@ export interface MenuData {
 }
 
 export async function loadBranch(branchId: string): Promise<Branch> {
+  if (import.meta.env.DEV) {
+    const { devFixture } = await import('./devBrand');
+    const fx = devFixture();
+    if (fx) {
+      applyBranding(fx.branding, branchId);
+      return fx.branch;
+    }
+  }
   await ensureAnonAuth();
   const snap = await getDoc(doc(db, paths.branches, branchId));
   if (!snap.exists()) throw new Error('Sucursal no encontrada');
   const data = snap.data();
+  // Invalid or missing `branding` falls back to the neutral platform theme.
+  applyBranding(data.branding, snap.id);
   return {
     id: snap.id,
     orgId: data.orgId,

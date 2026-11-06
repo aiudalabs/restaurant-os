@@ -7,6 +7,8 @@ import {
 } from '../lib/club';
 import { loadHome } from '../lib/home';
 import { useSession } from '../store/session';
+import { BrandMark } from '../components/BrandMark';
+import { useBranding } from '../lib/branding';
 import { ClubNav } from '../components/ClubNav';
 import { Icon } from '../components/Icon';
 import { MemberQr } from '../components/MemberQr';
@@ -16,6 +18,7 @@ import { Spinner } from '../components/Spinner';
 export function ClubScreen() {
   const navigate = useNavigate();
   const { session } = useSession();
+  const branding = useBranding();
   const orgId = clubOrgId(session?.orgId);
   const [member, setMember] = useState<Member>(EMPTY_MEMBER);
   const [loaded, setLoaded] = useState(false);
@@ -54,7 +57,9 @@ export function ClubScreen() {
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex flex-col items-center px-5 pt-5 safe-top">
-        <img src="/brand/logo.png" alt="Pick & Eat" className="h-[72px] w-auto object-contain" />
+        <div className="flex min-h-[72px] items-center">
+          <BrandMark className="h-[72px]" wordmarkClassName="text-3xl" />
+        </div>
       </div>
 
       <div className="flex items-center justify-between px-5 pt-3">
@@ -71,7 +76,7 @@ export function ClubScreen() {
       <div className="mx-5 mt-4 flex flex-col gap-3.5 rounded-3xl bg-brand p-[18px] pb-4 text-white">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs uppercase tracking-[0.08em] text-brand-mist">Pick &amp; Eat Club</p>
+            <p className="text-xs uppercase tracking-[0.08em] text-brand-mist">{branding.displayName} Club</p>
             <p className="font-display text-[44px] font-semibold leading-none">
               {member.points} <span className="text-lg font-medium">puntos</span>
             </p>

@@ -3,21 +3,24 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
-      // Pick & Eat palette (mockup «Pick & Eat Club»).
+      // Brand colors are CSS variables (rgb channels) set at runtime from the branch's
+      // `branding` (src/lib/theme.ts); defaults live in src/index.css. `gold` is the
+      // accent color — the name is kept so existing classes keep working.
       colors: {
         brand: {
-          DEFAULT: '#3F6B2A',
-          dark: '#2E5120',
-          tint: '#E8F0E1',
-          mist: '#D9E6CF',
+          DEFAULT: 'rgb(var(--brand) / <alpha-value>)',
+          dark: 'rgb(var(--brand-dark) / <alpha-value>)',
+          tint: 'rgb(var(--brand-tint) / <alpha-value>)',
+          mist: 'rgb(var(--brand-mist) / <alpha-value>)',
         },
         gold: {
-          DEFAULT: '#C9A24A',
-          dark: '#A8832F',
-          light: '#F5D98A',
-          tint: '#F1E6C8',
-          ink: '#6E5412',
+          DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
+          dark: 'rgb(var(--accent-dark) / <alpha-value>)',
+          light: 'rgb(var(--accent-light) / <alpha-value>)',
+          tint: 'rgb(var(--accent-tint) / <alpha-value>)',
+          ink: 'rgb(var(--accent-ink) / <alpha-value>)',
         },
+        // Neutrals and semantic colors are NOT customizable (legibility).
         surface: '#FAF8F2',
         ink: '#141414',
         hint: '#6B6B66',
@@ -30,8 +33,8 @@ export default {
         '3xl': '20px',
       },
       fontFamily: {
-        display: ['Fraunces', 'Georgia', 'serif'],
-        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
       },
     },
   },
