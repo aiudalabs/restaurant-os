@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, type ReactNode } from 'react';
+import { useSearch } from '@tanstack/react-router';
 import { Button, IconButton } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Card, StatusChip, TagChip } from '@/components/ui/m3';
@@ -56,7 +57,9 @@ function buildHistory(msgs: Msg[]): ChatTurn[] {
 export default function AiAssistantPage() {
   const { selectedBranch } = useBranchContext();
   const [messages, setMessages] = useState<Msg[]>([]);
-  const [input, setInput] = useState('');
+  // The command bar hands over free text as ?q=; it is shown, never sent on its own.
+  const { q } = useSearch({ from: '/admin/assistant' });
+  const [input, setInput] = useState(q ?? '');
   const [csv, setCsv] = useState<{ rows: ProductRow[]; name: string } | null>(null);
   const [sending, setSending] = useState(false);
   const [applyingId, setApplyingId] = useState<number | null>(null);
