@@ -9,9 +9,9 @@ export const PROD_PROJECT = 'restaurant-os-68c79';
 export const GCLOUD_ACCOUNT = 'admin@aiudalabs.com';
 export const REGION = 'us-central1';
 
-export const ORG = '07OfcB2trnuJlb7XBIZn';
-export const BRANCH = 'rnYMQIjihcRQYFwCmPND';
-export const STATION = 'fiscal-demo-cocina';
+export const ORG = 'ktKse3rxhXnhP3YYaBAr';
+export const BRANCH = '9KI93ENmMtBjjWtznJ4r';
+export const STATION = '5HGMoneJvMhH7a4ngf7E';
 
 export const URLS = {
   customer: `https://restaurant-os-dev-pedir.web.app/?org=${ORG}&branch=${BRANCH}`,
@@ -31,7 +31,7 @@ export const ORDER_PREFIX = 'E2E-';
 export const TAG = 'e2e-temp';
 
 // Productos del menú de la sucursal (lectura de products/ en dev). La categoría
-// fiscal-demo-pizzas es la única que enruta a la estación fiscal-demo-cocina.
+// fiscal-demo-pizzas es la única que enruta a la estación 5HGMoneJvMhH7a4ngf7E.
 export const PRODUCT = {
   margarita: { id: 'fiscal-demo-margarita', name: 'Pizza Margarita' },
   pepperoni: { id: 'fiscal-demo-pepperoni', name: 'Pizza Pepperoni' },

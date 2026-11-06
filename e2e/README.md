@@ -5,9 +5,9 @@ estado en Firestore/RTDB por REST. Solo dev (`restaurant-os-dev-49096`); **nunca
 
 | App | URL |
 |---|---|
-| Cliente | https://restaurant-os-dev-pedir.web.app/?org=07OfcB2trnuJlb7XBIZn&branch=rnYMQIjihcRQYFwCmPND |
-| Mesero | https://restaurant-os-dev-mesero.web.app/?branch=rnYMQIjihcRQYFwCmPND |
-| Cocina | https://restaurant-os-dev-cocina.web.app/?station=fiscal-demo-cocina |
+| Cliente | https://restaurant-os-dev-pedir.web.app/?org=ktKse3rxhXnhP3YYaBAr&branch=9KI93ENmMtBjjWtznJ4r |
+| Mesero | https://restaurant-os-dev-mesero.web.app/?branch=9KI93ENmMtBjjWtznJ4r |
+| Cocina | https://restaurant-os-dev-cocina.web.app/?station=5HGMoneJvMhH7a4ngf7E |
 | Admin | https://restaurant-os-dev-49096.web.app |
 
 ## Cómo correrla
@@ -45,7 +45,7 @@ auto-espera de Playwright y `expect.poll` contra Firestore.
 
 - un admin y un mesero temporales (`users/{uid}` con `e2eTemp: true`; los claims los pone el trigger
   `syncStaffClaims`; se espera con sondeo de `accounts:lookup`),
-- el PIN del mesero y de la estación `fiscal-demo-cocina` con las callables `setWaiterPin` / `setStationPin`
+- el PIN del mesero y de la estación `5HGMoneJvMhH7a4ngf7E` con las callables `setWaiterPin` / `setStationPin`
   (iniciando sesión como el admin temporal),
 - un descuento `e2e-temp-…` en `organizations/{org}.discounts` solo si la organización no tiene uno activo sin cédula.
 
@@ -61,7 +61,7 @@ barre por marcas, así que sirve tras un crash. Al terminar cuenta los restos y 
 
 ### Lo único existente que se toca (y se restaura)
 
-`setStationPin` **reemplaza** `kds_pins/fiscal-demo-cocina`. El setup guarda el documento original tal cual en el
+`setStationPin` **reemplaza** `kds_pins/5HGMoneJvMhH7a4ngf7E`. El setup guarda el documento original tal cual en el
 manifest y el teardown lo **restaura byte a byte** (nunca lo borra). Mientras corre la batería el PIN real de esa
 estación **no funciona**; no la corras mientras alguien use ese KDS. Si la corrida muere, `npm run cleanup` lo restaura.
 
