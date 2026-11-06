@@ -15,6 +15,7 @@ const TONE_DOT: Record<Tone, string> = {
   good: 'bg-[var(--good)]',
   late: 'bg-[var(--late)]',
   attention: 'bg-[var(--accent)] ring-1 ring-[var(--ink)]',
+  info: 'bg-[var(--brand)]',
   quiet: 'bg-[var(--ink-soft)]',
 };
 

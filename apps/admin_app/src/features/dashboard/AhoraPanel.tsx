@@ -13,8 +13,14 @@ const METHOD_LABEL: Record<PaymentMethod, string> = {
   yappy: 'Yappy',
   transfer: 'Transferencia',
 };
-// Four steps of the same ink: the legend names each one, so colour never carries meaning alone.
-const METHOD_OPACITY: Record<PaymentMethod, number> = { cash: 1, card: 0.7, yappy: 0.45, transfer: 0.25 };
+// One hue per method; the legend names each one, so colour never carries meaning alone.
+const METHOD_COLOR: Record<PaymentMethod, string> = {
+  cash: 'var(--cat-2)',
+  card: 'var(--cat-1)',
+  yappy: 'var(--cat-3)',
+  transfer: 'var(--cat-5)',
+};
+const STATION_COLORS = ['var(--cat-1)', 'var(--cat-4)', 'var(--cat-2)', 'var(--cat-3)'];
 
 function Block({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
@@ -157,7 +163,7 @@ export function AhoraPanel({
           </p>
         ) : (
           <ul className="space-y-3">
-            {rows.map((r) => (
+            {rows.map((r, i) => (
               <li key={r.id}>
                 <div className="t-body-medium mb-1 flex items-baseline justify-between gap-3">
                   <span className="text-[var(--ink)]">{r.name}</span>
@@ -166,7 +172,7 @@ export function AhoraPanel({
                   </span>
                 </div>
                 <div className="h-2 rounded-full bg-[var(--tint)]">
-                  <div className="h-full rounded-full bg-[var(--ink)]" style={{ width: `${(r.qty / maxQty) * 100}%` }} />
+                  <div className="h-full rounded-full" style={{ width: `${(r.qty / maxQty) * 100}%`, background: STATION_COLORS[i % STATION_COLORS.length] }} />
                 </div>
               </li>
             ))}
@@ -183,15 +189,15 @@ export function AhoraPanel({
               {mix.map((r) => (
                 <span
                   key={r.method}
-                  className="h-full bg-[var(--ink)]"
-                  style={{ width: `${(r.amount / mixTotal) * 100}%`, opacity: METHOD_OPACITY[r.method] }}
+                  className="h-full"
+                  style={{ width: `${(r.amount / mixTotal) * 100}%`, background: METHOD_COLOR[r.method] }}
                 />
               ))}
             </div>
             <ul className="space-y-1.5">
               {mix.map((r) => (
                 <li key={r.method} className="t-body-medium flex items-center gap-2">
-                  <span aria-hidden="true" className="h-3 w-3 rounded-sm bg-[var(--ink)]" style={{ opacity: METHOD_OPACITY[r.method] }} />
+                  <span aria-hidden="true" className="h-3 w-3 rounded-sm" style={{ background: METHOD_COLOR[r.method] }} />
                   <span className="flex-1 text-[var(--ink)]">{METHOD_LABEL[r.method]}</span>
                   <span className="tnum text-[var(--ink-soft)]">{Math.round((r.amount / mixTotal) * 100)} %</span>
                   <span className="tnum w-20 text-right text-[var(--ink)]">{money(r.amount)}</span>

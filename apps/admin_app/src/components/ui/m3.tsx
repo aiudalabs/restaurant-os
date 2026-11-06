@@ -72,7 +72,7 @@ export type StatusTone = 'success' | 'info' | 'error' | 'neutral' | 'outline';
 
 const TONE: Record<StatusTone, string> = {
   success: 'bg-[var(--good-wash)] text-[var(--good-ink)]',
-  info: 'bg-[var(--tint)] text-[var(--ink)]',
+  info: 'bg-[var(--brand-wash)] text-[var(--brand-ink)]',
   error: 'bg-[var(--md-sys-color-error-container)] text-[var(--md-sys-color-on-error-container)]',
   neutral: 'bg-[var(--md-sys-color-surface-container-highest)] text-[var(--md-sys-color-on-surface-variant)]',
   outline: 'border border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface-variant)]',

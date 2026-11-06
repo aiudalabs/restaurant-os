@@ -57,13 +57,30 @@
 }
 
 :root {
-  --ground: #edeff4;
+  --ground: #eceff8;
   --surface: #ffffff;
   --ink: #101a33;
   --ink-soft: #5a6480;
   --accent: #ffb000;
-  --action: #101a33;
-  --on-action: #ffffff;
+  /* Cobalto: acción, selección, foco y el dato «de hoy». Mango queda solo para lo vivo y lo urgente. */
+  --brand: #3b5bdb;
+  --brand-ink: #2f48b8;      /* cobalto como texto: AA sobre --surface y --brand-wash */
+  --brand-wash: #e6ebff;
+  --on-brand: #ffffff;
+  --action: var(--brand);
+  --on-action: var(--on-brand);
+
+  /* Categorías de datos (estaciones, métodos de pago). Siempre con etiqueta; el color no va solo. */
+  --cat-1: #3b5bdb;
+  --cat-2: #0f9a8f;
+  --cat-3: #8b4fd8;
+  --cat-4: #d1428f;
+  --cat-5: #6c7692;
+
+  /* Riel de navegación: la región más oscura de la app y el ancla de color. */
+  --rail-bg: #101a33;
+  --rail-ink: #b9c2dc;
+  --rail-line: #26304f;
   --good: #1b9a6c;
   --late: #e5484d;
 
@@ -76,13 +93,12 @@
   --good-wash: #dcf3ea;
   --late-ink: #c42b31;
   --late-wash: #fde8e9;
-  --rail: var(--surface);
 
   /* Material 3 roles used by pages that are not redesigned yet. */
   --md-sys-color-primary: var(--action);
   --md-sys-color-on-primary: var(--on-action);
-  --md-sys-color-primary-container: var(--tint);
-  --md-sys-color-on-primary-container: var(--ink);
+  --md-sys-color-primary-container: var(--brand-wash);
+  --md-sys-color-on-primary-container: var(--brand-ink);
   --md-sys-color-secondary: var(--ink);
   --md-sys-color-on-secondary: var(--on-action);
   --md-sys-color-secondary-container: var(--tint);
@@ -134,13 +150,27 @@
 
 /* Dark theme: override the SAME tokens so the whole app flips with no per-page work. */
 .dark {
-  --ground: #10131a;
+  --ground: #0f121a;
   --surface: #181c26;
   --ink: #eef0f7;
   --ink-soft: #98a1ba;
   --accent: #ffb93d;
-  --action: #eef0f7;
-  --on-action: #10131a;
+  --brand: #8aa2ff;
+  --brand-ink: #a9baff;
+  --brand-wash: #1d2547;
+  --on-brand: #10131a;
+  --action: var(--brand);
+  --on-action: var(--on-brand);
+
+  --cat-1: #8aa2ff;
+  --cat-2: #35c9bb;
+  --cat-3: #b48cf2;
+  --cat-4: #f27fba;
+  --cat-5: #98a1ba;
+
+  --rail-bg: #0a0d14;
+  --rail-ink: #98a1ba;
+  --rail-line: #1b2130;
   --good: #3dd39a;
   --late: #ff6b70;
 
@@ -278,12 +308,14 @@ body {
    In the base layer so a component can restyle it (the command bar input does). */
 @layer base {
   :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-    outline: 3px solid var(--ink);
+    outline: 3px solid var(--brand);
     outline-offset: 2px;
   }
 }
 
 /* Scrollbars */
+::selection { background: var(--brand-wash); color: var(--ink); }
+:root { accent-color: var(--brand); caret-color: var(--brand); }
 * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }

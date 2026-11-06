@@ -65,7 +65,7 @@ export function ActiveOrders({ orders, loading, now }: Props) {
                     <span className="t-body-small flex items-center gap-1.5 text-[var(--ink-soft)]">
                       <span
                         aria-hidden="true"
-                        className={cn('h-2 w-2 rounded-full', ready ? 'bg-[var(--good)]' : late ? 'bg-[var(--late)]' : 'bg-[var(--ink-soft)]')}
+                        className={cn('h-2 w-2 rounded-full', ready ? 'bg-[var(--good)]' : late ? 'bg-[var(--late)]' : 'bg-[var(--brand)]')}
                       />
                       {STATE[o.status] ?? o.status}
                       {late && <span className="sr-only">, retrasado más de {LATE_MINUTES} minutos</span>}

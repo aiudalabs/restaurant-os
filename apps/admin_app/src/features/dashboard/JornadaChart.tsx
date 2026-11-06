@@ -213,7 +213,7 @@ export function JornadaChart({ win, today, lastWeek, lastWeekState, onRetryLastW
                 width={bw}
                 height={h}
                 rx={Math.min(3, bw / 2)}
-                fill="var(--ink)"
+                fill="var(--brand)"
                 style={{
                   transformOrigin: `${cx + bw / 2}px ${base}px`,
                   animation: `jornada-rise 520ms var(--ease-out) ${Math.min(i * 12, 700)}ms both`,
@@ -311,7 +311,7 @@ export function JornadaChart({ win, today, lastWeek, lastWeekState, onRetryLastW
 
       <ul className="t-body-small flex flex-wrap items-center gap-x-5 gap-y-1 text-[var(--ink-soft)]">
         <li className="flex items-center gap-2">
-          <span aria-hidden="true" className="h-3 w-3 rounded-sm bg-[var(--ink)]" />
+          <span aria-hidden="true" className="h-3 w-3 rounded-sm bg-[var(--brand)]" />
           Hoy
         </li>
         <li className="flex items-center gap-2">

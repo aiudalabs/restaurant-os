@@ -13,15 +13,15 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   closed: 'Cerrado',
 };
 
-export type Tone = 'good' | 'late' | 'attention' | 'quiet';
+export type Tone = 'good' | 'late' | 'attention' | 'info' | 'quiet';
 
 /** Visual weight of a status: what needs a person (late), what is done well (good), the rest is quiet. */
 export const STATUS_TONES: Record<OrderStatus, Tone> = {
   pending_payment: 'attention',
   payment_failed: 'late',
   pending: 'attention',
-  confirmed: 'quiet',
-  in_preparation: 'quiet',
+  confirmed: 'info',
+  in_preparation: 'info',
   ready: 'good',
   delivered: 'quiet',
   cancelled: 'quiet',

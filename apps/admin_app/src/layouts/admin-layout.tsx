@@ -39,7 +39,7 @@ function RailLink({ item, pathname }: { item: NavItem; pathname: string }) {
           aria-current={active ? 'page' : undefined}
           className={cn(
             'm3-state grid h-11 w-11 place-items-center rounded-[10px]',
-            active ? 'bg-[var(--action)] text-[var(--on-action)]' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]',
+            active ? 'bg-[var(--brand)] text-[var(--on-brand)]' : 'text-[var(--rail-ink)] hover:bg-white/10 hover:text-white',
           )}
         >
           <Icon name={item.icon} filled={active} size={24} />
@@ -66,7 +66,7 @@ function PhoneBarLink({ item, pathname }: { item: NavItem; pathname: string }) {
       aria-current={active ? 'page' : undefined}
       className={cn(
         't-label-medium flex h-14 flex-col items-center justify-center gap-0.5 rounded-[10px]',
-        active ? 'bg-[var(--action)] text-[var(--on-action)]' : 'text-[var(--ink-soft)]',
+        active ? 'bg-[var(--brand)] text-[var(--on-brand)]' : 'text-[var(--rail-ink)]',
       )}
     >
       <Icon name={item.icon} filled={active} size={22} />
@@ -141,7 +141,7 @@ export default function AdminLayout() {
         </a>
 
         {/* Rail — tablet and desktop */}
-        <nav aria-label="Secciones" className="hidden w-16 shrink-0 flex-col items-center gap-1.5 border-r border-[var(--line)] bg-[var(--surface)] py-4 md:flex">
+        <nav aria-label="Secciones" className="hidden w-16 shrink-0 flex-col items-center gap-1.5 border-r border-[var(--rail-line)] bg-[var(--rail-bg)] py-4 md:flex">
           <Mark className="mb-4 h-9 w-9" />
           {PRIMARY_NAV.map((item) => (
             <RailLink key={item.to} item={item} pathname={pathname} />
@@ -240,7 +240,7 @@ export default function AdminLayout() {
         {/* Bottom bar — phones */}
         <nav
           aria-label="Secciones"
-          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 gap-1 border-t border-[var(--line)] bg-[var(--surface)] px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 md:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 gap-1 border-t border-[var(--rail-line)] bg-[var(--rail-bg)] px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 md:hidden"
         >
           {PHONE_BAR.map((item) => (
             <PhoneBarLink key={item.to} item={item} pathname={pathname} />
@@ -254,7 +254,7 @@ export default function AdminLayout() {
             aria-current={PHONE_BAR.some((i) => i.to === current.to) ? undefined : 'page'}
             className={cn(
               't-label-medium flex h-14 flex-col items-center justify-center gap-0.5 rounded-[10px]',
-              PHONE_BAR.some((i) => i.to === current.to) ? 'text-[var(--ink-soft)]' : 'bg-[var(--action)] text-[var(--on-action)]',
+              PHONE_BAR.some((i) => i.to === current.to) ? 'text-[var(--rail-ink)]' : 'bg-[var(--brand)] text-[var(--on-brand)]',
             )}
           >
             <Icon name="more_horiz" size={22} />
