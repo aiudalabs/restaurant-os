@@ -1,118 +1,115 @@
 @import "tailwindcss";
 
-/* Dark mode driven by a .dark class on <html> (toggle in the top app bar). */
+/* Dark mode driven by a .dark class on <html> (theme toggle in the top bar). */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ─────────────────────────────────────────────────────────────────────────
-   RestaurantOS Admin — identidad «El pase» (issue #54).
-   Palette: albahaca #2F7A4F (primary), azafrán #F5B83D (attention, tertiary),
-   ají #C23B26 (delays/errors), aceituna #1F2A24 (ink, navigation), sal #F3F5F2
-   (ground). Type: Big Shoulders Display for titles and numbers, Onest for text.
-   The component structure is still Material 3; only the tokens changed.
+   RestaurantOS Admin — «La jornada» (issue #104, docs/ADMIN_REDESIGN.md).
 
-   Two layers:
-   1. --md-sys-color-* : the full M3 color roles (use these in new code).
-   2. Tailwind palette remap: `orange` → primary tonal palette, `gray` →
-      neutral/neutral-variant, `red` → error, so existing classes
-      (bg-orange-600, text-gray-900, bg-red-50…) follow the scheme and flip
-      in dark mode with no per-page work. The legacy --color-* semantic names
-      used by pages are aliased to the M3 roles below.
+   Brand tokens (light / dark) are the source of truth:
+     --ground   app background          --surface  work panels
+     --ink      text and structure      --ink-soft secondary text
+     --accent   mango: "now" line, attention, live indicator (never a fill for text)
+     --action   primary buttons         --good / --late  semantic states
+   The *-ink / *-wash variants exist for AA contrast: mango, green and red are
+   fine as shapes but too light to carry small text on --surface.
+
+   Pages that are not redesigned yet still speak Material 3 role names
+   (--md-sys-color-*). Those are remapped onto the brand tokens below so they
+   follow the new identity in both themes without per-page work.
    ───────────────────────────────────────────────────────────────────────── */
 @theme {
-  --font-sans: "Onest", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: "Big Shoulders Display", "Onest", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Roboto Mono", ui-monospace, monospace;
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Bricolage Grotesque", "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* primary tonal palette (albahaca) */
-  --color-orange-50: #eef7f1;
-  --color-orange-100: #e3f0e8;
-  --color-orange-200: #c7e2d1;
-  --color-orange-300: #a2cfb2;
-  --color-orange-400: #6fb088;
-  --color-orange-500: #479468;
-  --color-orange-600: #2f7a4f; /* primary */
-  --color-orange-700: #23603d;
-  --color-orange-800: #1a472e;
-  --color-orange-900: #10301f;
+  /* Two radii only: controls 10px, panels 16px (dialogs and sheets reuse the panel radius). */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 16px;
+  --radius-2xl: 16px;
+  --radius-3xl: 16px;
 
-  /* error tonal palette (ají) */
-  --color-red-50: #fdf3f1;
-  --color-red-100: #fbe7e3;
-  --color-red-200: #f6cbc3;
-  --color-red-300: #eda296;
-  --color-red-400: #e07564;
-  --color-red-500: #d2412c;
-  --color-red-600: #c23b26; /* error */
-  --color-red-700: #9e2e1d;
-  --color-red-800: #7f1d10;
-  --color-red-900: #5a1409;
+  /* neutral scale (blue-tinted towards the ink) for any utility class still using gray-* */
+  --color-gray-50: #f4f5f9;
+  --color-gray-100: #e9ebf2;
+  --color-gray-200: #dadee9;
+  --color-gray-300: #c3c9d9;
+  --color-gray-400: #8f98b1;
+  --color-gray-500: #6c7692;
+  --color-gray-600: #5a6480;
+  --color-gray-700: #3d4764;
+  --color-gray-800: #232c47;
+  --color-gray-900: #101a33;
 
-  /* neutral (sal → aceituna) */
-  --color-gray-50: #f3f5f2;
-  --color-gray-100: #eef1ed;
-  --color-gray-200: #dde3de;
-  --color-gray-300: #c9d3cc;
-  --color-gray-400: #93a098;
-  --color-gray-500: #7c8a81;
-  --color-gray-600: #5e6b63;
-  --color-gray-700: #3f4b44;
-  --color-gray-800: #2a352f;
-  --color-gray-900: #1f2a24;
-
-  /* M3 shape scale */
-  --radius-xs: 4px;   /* extra-small: text fields, snackbar */
-  --radius-sm: 8px;   /* small: chips, menus */
-  --radius-md: 12px;  /* medium: cards */
-  --radius-lg: 16px;  /* large: FAB, drawer, side sheet */
-  --radius-xl: 28px;  /* extra-large: dialogs, bottom sheets */
-  --radius-2xl: 28px;
-  --radius-3xl: 32px;
-
-  /* M3 elevation (used sparingly — tonal surfaces carry depth) */
-  --shadow-e1: 0 1px 2px rgb(0 0 0 / .3), 0 1px 3px 1px rgb(0 0 0 / .15);
-  --shadow-e2: 0 1px 2px rgb(0 0 0 / .3), 0 2px 6px 2px rgb(0 0 0 / .15);
-  --shadow-e3: 0 1px 3px rgb(0 0 0 / .3), 0 4px 8px 3px rgb(0 0 0 / .15);
+  --color-red-50: #fdecec;
+  --color-red-100: #fbd9da;
+  --color-red-200: #f6b5b7;
+  --color-red-300: #ef8a8d;
+  --color-red-400: #e8686c;
+  --color-red-500: #e5484d;
+  --color-red-600: #c42b31;
+  --color-red-700: #a3232a;
+  --color-red-800: #801c22;
+  --color-red-900: #5a1317;
 }
 
 :root {
-  --md-sys-color-primary: #2f7a4f;
-  --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #e3f0e8;
-  --md-sys-color-on-primary-container: #1e5234;
-  --md-sys-color-secondary: #1f2a24;
-  --md-sys-color-on-secondary: #ffffff;
-  --md-sys-color-secondary-container: #1f2a24;
-  --md-sys-color-on-secondary-container: #ffffff;
-  --md-sys-color-tertiary: #7a5200;
+  --ground: #edeff4;
+  --surface: #ffffff;
+  --ink: #101a33;
+  --ink-soft: #5a6480;
+  --accent: #ffb000;
+  --action: #101a33;
+  --on-action: #ffffff;
+  --good: #1b9a6c;
+  --late: #e5484d;
+
+  --line: #dfe2ec;          /* hairline borders on --surface */
+  --line-strong: #8a93ab;   /* control outlines, 3:1 on --surface */
+  --tint: #e8ebf3;          /* hover / selected fill */
+  --accent-ink: #7a4e00;    /* mango as text (AA on --surface and --ground) */
+  --accent-wash: #fff0c7;
+  --good-ink: #0d7a53;
+  --good-wash: #dcf3ea;
+  --late-ink: #c42b31;
+  --late-wash: #fde8e9;
+  --rail: var(--surface);
+
+  /* Material 3 roles used by pages that are not redesigned yet. */
+  --md-sys-color-primary: var(--action);
+  --md-sys-color-on-primary: var(--on-action);
+  --md-sys-color-primary-container: var(--tint);
+  --md-sys-color-on-primary-container: var(--ink);
+  --md-sys-color-secondary: var(--ink);
+  --md-sys-color-on-secondary: var(--on-action);
+  --md-sys-color-secondary-container: var(--tint);
+  --md-sys-color-on-secondary-container: var(--ink);
+  --md-sys-color-tertiary: var(--accent-ink);
   --md-sys-color-on-tertiary: #ffffff;
-  --md-sys-color-tertiary-container: #fdf1d6;
-  --md-sys-color-on-tertiary-container: #5c3d00;
-  --md-sys-color-error: #c23b26;
+  --md-sys-color-tertiary-container: var(--accent-wash);
+  --md-sys-color-on-tertiary-container: var(--accent-ink);
+  --md-sys-color-error: var(--late-ink);
   --md-sys-color-on-error: #ffffff;
-  --md-sys-color-error-container: #fbe7e3;
-  --md-sys-color-on-error-container: #7f1d10;
-  --md-sys-color-surface: #f3f5f2;
-  --md-sys-color-on-surface: #1f2a24;
-  --md-sys-color-on-surface-variant: #5e6b63;
-  --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #ffffff;
-  --md-sys-color-surface-container: #eef1ed;
-  --md-sys-color-surface-container-high: #ffffff;
-  --md-sys-color-surface-container-highest: #e7ebe6;
-  --md-sys-color-inverse-surface: #1f2a24;
-  --md-sys-color-inverse-on-surface: #f3f5f2;
-  --md-sys-color-inverse-primary: #8cc4a0;
-  --md-sys-color-outline: #7c8a81;
-  --md-sys-color-outline-variant: #dde3de;
+  --md-sys-color-error-container: var(--late-wash);
+  --md-sys-color-on-error-container: var(--late-ink);
+  --md-sys-color-surface: var(--ground);
+  --md-sys-color-on-surface: var(--ink);
+  --md-sys-color-on-surface-variant: var(--ink-soft);
+  --md-sys-color-surface-container-lowest: var(--surface);
+  --md-sys-color-surface-container-low: var(--surface);
+  --md-sys-color-surface-container: #f6f7fa;
+  --md-sys-color-surface-container-high: var(--surface);
+  --md-sys-color-surface-container-highest: var(--tint);
+  --md-sys-color-inverse-surface: var(--ink);
+  --md-sys-color-inverse-on-surface: var(--ground);
+  --md-sys-color-inverse-primary: #c3c9d9;
+  --md-sys-color-outline: var(--line-strong);
+  --md-sys-color-outline-variant: var(--line);
 
-  /* «El pase» accents outside the M3 roles */
-  --ros-rail: #1f2a24;          /* navigation rail / bottom bar */
-  --ros-rail-fg: #c9d3cc;
-  --ros-saffron: #f5b83d;       /* live / attention */
-  --ros-ticket: #ffffff;        /* order tickets on the pass */
-  --ros-ticket-shadow: 0 10px 24px rgb(31 42 36 / 0.10);
-
-  /* Legacy aliases used across pages (keep until every page uses --md-sys-*) */
+  /* Legacy aliases used across pages */
   --color-primary: var(--md-sys-color-primary);
   --color-on-primary: var(--md-sys-color-on-primary);
   --color-primary-container: var(--md-sys-color-primary-container);
@@ -129,6 +126,7 @@
   --color-outline: var(--md-sys-color-outline);
   --color-outline-variant: var(--md-sys-color-outline-variant);
 
+  --ease-out: cubic-bezier(0.05, 0.7, 0.1, 1);
   --md-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
   --md-ease-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
   --md-ease-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
@@ -136,86 +134,65 @@
 
 /* Dark theme: override the SAME tokens so the whole app flips with no per-page work. */
 .dark {
-  --md-sys-color-primary: #8cc4a0;
-  --md-sys-color-on-primary: #0e2a1a;
-  --md-sys-color-primary-container: #1e5234;
-  --md-sys-color-on-primary-container: #c7e2d1;
-  --md-sys-color-secondary: #e4eae5;
-  --md-sys-color-on-secondary: #1f2a24;
-  --md-sys-color-secondary-container: #e4eae5;
-  --md-sys-color-on-secondary-container: #1f2a24;
-  --md-sys-color-tertiary: #f5b83d;
-  --md-sys-color-on-tertiary: #3d2a00;
-  --md-sys-color-tertiary-container: #4a3500;
-  --md-sys-color-on-tertiary-container: #fdf1d6;
-  --md-sys-color-error: #f2a092;
-  --md-sys-color-on-error: #5a1409;
-  --md-sys-color-error-container: #7f1d10;
-  --md-sys-color-on-error-container: #fbe7e3;
-  --md-sys-color-surface: #111713;
-  --md-sys-color-on-surface: #e4eae5;
-  --md-sys-color-on-surface-variant: #a9b6ae;
-  --md-sys-color-surface-container-lowest: #0b100d;
-  --md-sys-color-surface-container-low: #18201b;
-  --md-sys-color-surface-container: #1c2520;
-  --md-sys-color-surface-container-high: #222c26;
-  --md-sys-color-surface-container-highest: #2b3630;
-  --md-sys-color-inverse-surface: #e4eae5;
-  --md-sys-color-inverse-on-surface: #1f2a24;
-  --md-sys-color-inverse-primary: #2f7a4f;
-  --md-sys-color-outline: #7c8a81;
-  --md-sys-color-outline-variant: #34403a;
+  --ground: #10131a;
+  --surface: #181c26;
+  --ink: #eef0f7;
+  --ink-soft: #98a1ba;
+  --accent: #ffb93d;
+  --action: #eef0f7;
+  --on-action: #10131a;
+  --good: #3dd39a;
+  --late: #ff6b70;
 
-  --ros-rail: #0b100d;
-  --ros-rail-fg: #a9b6ae;
-  --ros-saffron: #f5b83d;
-  --ros-ticket: #18201b;
-  --ros-ticket-shadow: 0 10px 24px rgb(0 0 0 / 0.35);
+  --line: #272d3d;
+  --line-strong: #6f7893;
+  --tint: #232938;
+  --accent-ink: #ffb93d;
+  --accent-wash: #3a2c0c;
+  --good-ink: #3dd39a;
+  --good-wash: #12352a;
+  --late-ink: #ff8a8e;
+  --late-wash: #3d1e22;
 
-  --color-orange-50: #10301f;
-  --color-orange-100: #1a472e;
-  --color-orange-200: #23603d;
-  --color-orange-300: #2f7a4f;
-  --color-orange-400: #479468;
-  --color-orange-500: #6fb088;
-  --color-orange-600: #8cc4a0;
-  --color-orange-700: #a2cfb2;
-  --color-orange-800: #c7e2d1;
-  --color-orange-900: #eef7f1;
+  --md-sys-color-on-tertiary: #10131a;
+  --md-sys-color-on-error: #10131a;
+  --md-sys-color-surface-container: #141821;
+  --md-sys-color-inverse-primary: #3d4764;
 
-  --color-red-50: #5a1409;
-  --color-red-100: #7f1d10;
-  --color-red-200: #9e2e1d;
-  --color-red-300: #c23b26;
-  --color-red-400: #d2412c;
-  --color-red-500: #e07564;
-  --color-red-600: #f2a092;
-  --color-red-700: #f6cbc3;
-  --color-red-800: #fbe7e3;
-  --color-red-900: #fdf3f1;
+  --color-gray-50: #10131a;
+  --color-gray-100: #181c26;
+  --color-gray-200: #272d3d;
+  --color-gray-300: #3d4764;
+  --color-gray-400: #6f7893;
+  --color-gray-500: #8f98b1;
+  --color-gray-600: #98a1ba;
+  --color-gray-700: #c3c9d9;
+  --color-gray-800: #e9ebf2;
+  --color-gray-900: #eef0f7;
 
-  --color-gray-50: #111713;
-  --color-gray-100: #1c2520;
-  --color-gray-200: #34403a;
-  --color-gray-300: #4a5750;
-  --color-gray-400: #7c8a81;
-  --color-gray-500: #93a098;
-  --color-gray-600: #a9b6ae;
-  --color-gray-700: #c9d3cc;
-  --color-gray-800: #e4eae5;
-  --color-gray-900: #e4eae5;
+  --color-red-50: #3d1e22;
+  --color-red-100: #5a1f25;
+  --color-red-200: #801c22;
+  --color-red-300: #a3232a;
+  --color-red-400: #e5484d;
+  --color-red-500: #ff6b70;
+  --color-red-600: #ff8a8e;
+  --color-red-700: #ffb0b3;
+  --color-red-800: #ffd0d2;
+  --color-red-900: #ffe7e8;
 
-  --color-white: #18201b; /* card surface in dark (surface-container-low) */
-  --color-black: #e4eae5;
+  --color-white: #181c26;
+  --color-black: #eef0f7;
 }
 
 html { color-scheme: light; }
 html.dark { color-scheme: dark; }
 
 body {
-  background: var(--md-sys-color-surface);
-  color: var(--md-sys-color-on-surface);
+  background: var(--ground);
+  color: var(--ink);
   font-family: var(--font-sans);
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -239,7 +216,7 @@ body {
   }
   .ms-fill { font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24; }
 
-  /* M3 state layer: hover 8% / focus & press 10% of the content color. */
+  /* Hover / press feedback: a wash of the content colour. */
   .m3-state { position: relative; isolation: isolate; }
   .m3-state::after {
     content: "";
@@ -248,38 +225,34 @@ body {
     border-radius: inherit;
     background: currentColor;
     opacity: 0;
-    transition: opacity 150ms linear;
+    transition: opacity 120ms linear;
     z-index: -1;
     pointer-events: none;
   }
-  .m3-state:hover::after { opacity: 0.08; }
+  .m3-state:hover::after { opacity: 0.07; }
   .m3-state:focus-visible::after,
-  .m3-state:active::after { opacity: 0.10; }
+  .m3-state:active::after { opacity: 0.1; }
 
-  /* Cards: filled / outlined / elevated (M3 medium corner). */
-  /* «El pase»: panels are plain surfaces on the tinted ground (no borders), 20px corners. */
-  .m3-card {
-    background: var(--md-sys-color-surface-container-low);
-    border-radius: 20px;
-    box-shadow: var(--ros-ticket-shadow);
+  /* Panels: a surface with a hairline border, no shadow (the tone change does the work). */
+  .m3-card,
+  .m3-card-outlined {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
   }
   .m3-card-filled {
-    background: var(--md-sys-color-surface-container-highest);
-    border-radius: 20px;
-  }
-  .m3-card-outlined {
-    background: var(--md-sys-color-surface-container-low);
-    border-radius: 20px;
+    background: var(--tint);
+    border-radius: 16px;
   }
 
-  /* M3 typescale (baseline). */
-  /* Display face (Big Shoulders Display) for titles and numbers; Onest for text. */
-  .t-display-large { font: 800 76px/0.9 var(--font-display); }
-  .t-display-medium { font: 800 52px/0.95 var(--font-display); }
-  .t-display-small { font: 800 44px/1 var(--font-display); }
-  .t-headline-medium { font: 800 36px/1 var(--font-display); }
-  .t-headline-small { font: 700 30px/1.05 var(--font-display); }
-  .t-title-large { font: 700 24px/1.15 var(--font-display); }
+  /* Type scale: 12, 14, 16, 20, 28, 44. Bricolage for titles and big figures, Hanken for the rest.
+     The legacy M3 class names are kept so existing pages follow the new scale. */
+  .t-display-large { font: 700 44px/1.05 var(--font-display); letter-spacing: -0.02em; }
+  .t-display-medium { font: 700 44px/1.05 var(--font-display); letter-spacing: -0.02em; }
+  .t-display-small { font: 700 28px/1.1 var(--font-display); letter-spacing: -0.015em; }
+  .t-headline-medium { font: 700 28px/1.15 var(--font-display); letter-spacing: -0.015em; }
+  .t-headline-small { font: 650 20px/1.25 var(--font-display); letter-spacing: -0.01em; }
+  .t-title-large { font: 650 20px/1.25 var(--font-display); letter-spacing: -0.01em; }
   .t-title-medium { font: 600 16px/24px var(--font-sans); }
   .t-title-small { font: 600 14px/20px var(--font-sans); }
   .t-body-large { font: 400 16px/24px var(--font-sans); }
@@ -287,27 +260,36 @@ body {
   .t-body-small { font: 400 12px/16px var(--font-sans); }
   .t-label-large { font: 600 14px/20px var(--font-sans); }
   .t-label-medium { font: 500 12px/16px var(--font-sans); }
-  .t-label-small { font: 500 11px/16px var(--font-sans); }
-  .t-number { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+  .t-label-small { font: 500 12px/16px var(--font-sans); }
+  .t-number { font-family: var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .tnum { font-variant-numeric: tabular-nums; }
 }
 
 @keyframes m3-fade-in { from { opacity: 0; } }
 @keyframes m3-sheet-in { from { transform: translateX(100%); } }
+@keyframes m3-sheet-up { from { transform: translateY(100%); } }
 @keyframes m3-drawer-in { from { transform: translateX(-100%); } }
-@keyframes m3-dialog-in { from { opacity: 0; transform: scale(.94); } }
+@keyframes m3-dialog-in { from { opacity: 0; transform: scale(.96); } }
 @keyframes m3-view-in { from { opacity: 0; transform: translateY(8px); } }
+/* The one choreographed moment: the day curve rising when Inicio loads. */
+@keyframes jornada-rise { from { transform: scaleY(0); } }
+@keyframes jornada-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 
-/* Focus ring uses the primary color everywhere. */
+/* Visible focus in both themes: ink (never mango, which fails 3:1 on the ground). */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 3px solid var(--md-sys-color-primary);
+  outline: 3px solid var(--ink);
   outline-offset: 2px;
 }
 
 /* Scrollbars */
-* { scrollbar-width: thin; scrollbar-color: var(--md-sys-color-outline-variant) transparent; }
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline-variant); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

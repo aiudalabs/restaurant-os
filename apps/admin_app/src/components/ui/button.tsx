@@ -14,16 +14,16 @@ const VARIANT_CLASSES: Record<string, string> = {
   primary: 'bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)]',
   tonal: 'bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]',
   secondary: 'bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]',
-  outlined: 'border border-[var(--md-sys-color-outline)] bg-transparent text-[var(--md-sys-color-primary)]',
-  ghost: 'bg-transparent text-[var(--md-sys-color-primary)]',
+  outlined: 'border border-[var(--md-sys-color-outline)] bg-transparent text-[var(--ink)]',
+  ghost: 'bg-transparent text-[var(--ink)]',
   destructive: 'bg-[var(--md-sys-color-error)] text-[var(--md-sys-color-on-error)]',
 };
 
 // M3 common button: 40dp tall, full shape, label-large.
 const SIZE_CLASSES: Record<string, string> = {
-  sm: 'h-9 px-4',
-  md: 'h-10 px-6',
-  lg: 'h-12 px-8',
+  sm: 'h-10 px-4',
+  md: 'h-11 px-5',
+  lg: 'h-12 px-6',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -32,7 +32,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          'm3-state t-label-large inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full',
+          'm3-state t-label-large inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-[10px]',
           'disabled:pointer-events-none disabled:opacity-40',
           VARIANT_CLASSES[variant],
           SIZE_CLASSES[size],
@@ -76,7 +76,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       aria-label={label}
       title={label}
       className={cn(
-        'm3-state inline-grid h-10 w-10 shrink-0 place-items-center rounded-full disabled:pointer-events-none disabled:opacity-40',
+        'm3-state inline-grid h-11 w-11 shrink-0 place-items-center rounded-[10px] disabled:pointer-events-none disabled:opacity-40',
         ICON_VARIANTS[variant],
         className,
       )}

@@ -30,7 +30,7 @@ export function Dialog({ title, onClose, footer, onSubmit, className, children }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 sm:p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 sm:p-4"
       style={{ animation: 'm3-fade-in 150ms linear' }}
     >
       <div
@@ -38,7 +38,7 @@ export function Dialog({ title, onClose, footer, onSubmit, className, children }
         aria-modal="true"
         className={cn(
           'flex h-dvh w-full flex-col bg-[var(--md-sys-color-surface-container-high)] [--field-bg:var(--md-sys-color-surface-container-high)]',
-          'sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-[28px]',
+          'sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl',
           className,
         )}
         style={{ animation: 'm3-dialog-in 250ms var(--md-ease-emphasized-decelerate)' }}

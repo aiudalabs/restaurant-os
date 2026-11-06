@@ -38,7 +38,7 @@ export function FilterChip({ selected, onClick, icon, children, className }: Chi
       aria-pressed={selected}
       onClick={onClick}
       className={cn(
-        'm3-state t-label-large inline-flex h-8 shrink-0 items-center gap-2 rounded-lg px-4 whitespace-nowrap',
+        'm3-state t-label-large inline-flex h-10 shrink-0 items-center gap-2 rounded-[10px] px-4 whitespace-nowrap',
         selected
           ? 'bg-[var(--md-sys-color-secondary-container)] pl-2 text-[var(--md-sys-color-on-secondary-container)]'
           : 'border border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface-variant)]',
@@ -56,7 +56,7 @@ export function TagChip({ icon, children, className }: { icon?: string; children
   return (
     <span
       className={cn(
-        't-label-large inline-flex h-8 items-center gap-2 rounded-lg border border-[var(--md-sys-color-outline-variant)] px-3 text-[var(--md-sys-color-on-surface-variant)]',
+        't-label-large inline-flex h-8 items-center gap-2 rounded-[10px] border border-[var(--md-sys-color-outline-variant)] px-3 text-[var(--md-sys-color-on-surface-variant)]',
         className,
       )}
     >
@@ -71,8 +71,8 @@ export function TagChip({ icon, children, className }: { icon?: string; children
 export type StatusTone = 'success' | 'info' | 'error' | 'neutral' | 'outline';
 
 const TONE: Record<StatusTone, string> = {
-  success: 'bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)]',
-  info: 'bg-[var(--md-sys-color-tertiary-container)] text-[var(--md-sys-color-on-tertiary-container)]',
+  success: 'bg-[var(--good-wash)] text-[var(--good-ink)]',
+  info: 'bg-[var(--tint)] text-[var(--ink)]',
   error: 'bg-[var(--md-sys-color-error-container)] text-[var(--md-sys-color-on-error-container)]',
   neutral: 'bg-[var(--md-sys-color-surface-container-highest)] text-[var(--md-sys-color-on-surface-variant)]',
   outline: 'border border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface-variant)]',
@@ -81,7 +81,7 @@ const TONE: Record<StatusTone, string> = {
 /** Compact status label. Tone mapping: listo → success, en cocina → info, por cobrar/alerta → error. */
 export function StatusChip({ tone, icon, children, className }: { tone: StatusTone; icon?: string; children: ReactNode; className?: string }) {
   return (
-    <span className={cn('t-label-medium inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-lg px-2.5', icon && 'pl-2', TONE[tone], className)}>
+    <span className={cn('t-label-medium inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md px-2.5', icon && 'pl-2', TONE[tone], className)}>
       {icon && <Icon name={icon} size={16} />}
       {children}
     </span>
@@ -147,7 +147,7 @@ interface SegmentedProps<T extends string> {
 /** M3 single-select segmented button. */
 export function Segmented<T extends string>({ value, options, onChange, label, className }: SegmentedProps<T>) {
   return (
-    <div role="group" aria-label={label} className={cn('inline-flex max-w-full overflow-x-auto rounded-full border border-[var(--md-sys-color-outline)]', className)}>
+    <div role="group" aria-label={label} className={cn('inline-flex max-w-full overflow-x-auto rounded-[10px] border border-[var(--md-sys-color-outline)]', className)}>
       {options.map((o, i) => {
         const on = o.value === value;
         return (
@@ -157,7 +157,7 @@ export function Segmented<T extends string>({ value, options, onChange, label, c
             aria-pressed={on}
             onClick={() => onChange(o.value)}
             className={cn(
-              'm3-state t-label-large inline-flex h-10 shrink-0 items-center gap-2 px-4 whitespace-nowrap',
+              'm3-state t-label-large inline-flex h-11 shrink-0 items-center gap-2 px-4 whitespace-nowrap',
               i > 0 && 'border-l border-[var(--md-sys-color-outline)]',
               on
                 ? 'bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]'
@@ -186,11 +186,11 @@ interface SideSheetProps {
 export function SideSheet({ title, onClose, footer, children }: SideSheetProps) {
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} style={{ animation: 'm3-fade-in 150ms linear' }} />
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} style={{ animation: 'm3-fade-in 150ms linear' }} />
       <aside
         role="dialog"
         aria-modal="true"
-        className="absolute inset-y-0 right-0 flex w-full flex-col bg-[var(--md-sys-color-surface-container-low)] [--field-bg:var(--md-sys-color-surface-container-low)] sm:w-[420px] sm:rounded-l-2xl"
+        className="absolute inset-y-0 right-0 flex w-full flex-col bg-[var(--md-sys-color-surface-container-low)] [--field-bg:var(--md-sys-color-surface-container-low)] sm:w-[420px] sm:rounded-l-2xl border-l border-[var(--line)]"
         style={{ animation: 'm3-sheet-in 350ms var(--md-ease-emphasized-decelerate)' }}
       >
         <div className="flex shrink-0 items-center gap-2 py-3 pl-6 pr-3">
@@ -244,7 +244,7 @@ export function ExtendedFab({ icon, children, onClick }: { icon: string; childre
     <button
       type="button"
       onClick={onClick}
-      className="m3-state t-label-large fixed bottom-[calc(96px+env(safe-area-inset-bottom,0px))] right-4 z-30 inline-flex h-14 items-center gap-3 rounded-2xl bg-[var(--md-sys-color-primary-container)] pl-4 pr-5 text-[var(--md-sys-color-on-primary-container)] shadow-[var(--shadow-e3)] sm:bottom-6 sm:right-6"
+      className="m3-state t-label-large fixed bottom-[calc(96px+env(safe-area-inset-bottom,0px))] right-4 z-30 inline-flex h-14 items-center gap-3 rounded-[10px] bg-[var(--action)] pl-4 pr-5 text-[var(--on-action)] sm:bottom-6 sm:right-6"
     >
       <Icon name={icon} />
       {children}
