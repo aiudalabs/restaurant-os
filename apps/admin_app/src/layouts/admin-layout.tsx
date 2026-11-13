@@ -17,6 +17,30 @@ const SHORTCUT = IS_MAC ? '⌘K' : 'Ctrl K';
 const PHONE_BAR = PRIMARY_NAV.slice(0, 4);
 const MORE = [...PRIMARY_NAV.slice(4), ...SECONDARY_NAV];
 
+const RAIL_KEY = 'admin.rail.expanded';
+
+/** Rail width preference, remembered per browser. Storage can be blocked: fall back to expanded. */
+function useRailExpanded(): [boolean, () => void] {
+  const [expanded, setExpanded] = useState(() => {
+    try {
+      return localStorage.getItem(RAIL_KEY) !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const toggle = () =>
+    setExpanded((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(RAIL_KEY, next ? '1' : '0');
+      } catch {
+        // Not remembered; the toggle still works for this session.
+      }
+      return next;
+    });
+  return [expanded, toggle];
+}
+
 /** The brand mark: a clock face whose single hand is the "ahora" line. */
 function Mark({ className }: { className?: string }) {
   return (
@@ -28,23 +52,27 @@ function Mark({ className }: { className?: string }) {
   );
 }
 
-function RailLink({ item, pathname }: { item: NavItem; pathname: string }) {
+function RailLink({ item, pathname, expanded }: { item: NavItem; pathname: string; expanded: boolean }) {
   const active = isActive(pathname, item.to);
+  const link = (
+    <Link
+      to={item.to}
+      aria-label={item.label}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'm3-state t-label-large flex h-11 items-center rounded-[10px]',
+        expanded ? 'w-full gap-3 px-3' : 'w-11 justify-center',
+        active ? 'bg-[var(--brand)] text-[var(--on-brand)]' : 'text-[var(--rail-ink)] hover:bg-white/10 hover:text-white',
+      )}
+    >
+      <Icon name={item.icon} filled={active} size={24} className="shrink-0" />
+      {expanded && <span className="min-w-0 truncate">{item.label}</span>}
+    </Link>
+  );
+  if (expanded) return link;
   return (
     <Tooltip.Root>
-      <Tooltip.Trigger asChild>
-        <Link
-          to={item.to}
-          aria-label={item.label}
-          aria-current={active ? 'page' : undefined}
-          className={cn(
-            'm3-state grid h-11 w-11 place-items-center rounded-[10px]',
-            active ? 'bg-[var(--brand)] text-[var(--on-brand)]' : 'text-[var(--rail-ink)] hover:bg-white/10 hover:text-white',
-          )}
-        >
-          <Icon name={item.icon} filled={active} size={24} />
-        </Link>
-      </Tooltip.Trigger>
+      <Tooltip.Trigger asChild>{link}</Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content
           side="right"
@@ -82,6 +110,7 @@ export default function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [commandOpen, setCommandOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [railExpanded, toggleRail] = useRailExpanded();
 
   // Close the "Más" sheet when navigating (derived from the path it opened on).
   const [moreOpenedAt, setMoreOpenedAt] = useState('');
@@ -140,12 +169,34 @@ export default function AdminLayout() {
           Saltar al contenido
         </a>
 
-        {/* Rail — tablet and desktop */}
-        <nav aria-label="Secciones" className="hidden w-16 shrink-0 flex-col items-center gap-1.5 border-r border-[var(--rail-line)] bg-[var(--rail-bg)] py-4 md:flex">
-          <Mark className="mb-4 h-9 w-9" />
-          {PRIMARY_NAV.map((item) => (
-            <RailLink key={item.to} item={item} pathname={pathname} />
+        {/* Rail — tablet and desktop. Every section lives here; it expands to show names. */}
+        <nav
+          aria-label="Secciones"
+          className={cn(
+            'hidden shrink-0 flex-col gap-1.5 overflow-y-auto border-r border-[var(--rail-line)] bg-[var(--rail-bg)] px-2.5 py-4 md:flex',
+            railExpanded ? 'w-60' : 'w-16 items-center',
+          )}
+        >
+          <div className={cn('mb-4 flex items-center', railExpanded ? 'gap-3 px-1' : 'justify-center')}>
+            <Mark className="h-9 w-9 shrink-0" />
+            {railExpanded && <span className="t-title-medium truncate text-white">RestaurantOS</span>}
+          </div>
+          {ALL_NAV.map((item) => (
+            <RailLink key={item.to} item={item} pathname={pathname} expanded={railExpanded} />
           ))}
+          <button
+            type="button"
+            onClick={toggleRail}
+            aria-expanded={railExpanded}
+            aria-label={railExpanded ? 'Contraer barra lateral' : 'Expandir barra lateral'}
+            className={cn(
+              'm3-state t-label-large mt-auto flex h-11 items-center rounded-[10px] text-[var(--rail-ink)] hover:bg-white/10 hover:text-white',
+              railExpanded ? 'w-full gap-3 px-3' : 'w-11 justify-center',
+            )}
+          >
+            <Icon name={railExpanded ? 'left_panel_close' : 'left_panel_open'} size={24} className="shrink-0" />
+            {railExpanded && <span>Contraer</span>}
+          </button>
         </nav>
 
         <div className="flex min-w-0 flex-1 flex-col">
@@ -198,15 +249,6 @@ export default function AdminLayout() {
                     <p className="t-title-small truncate">{appUser?.displayName}</p>
                     <p className="t-body-small truncate text-[var(--ink-soft)]">{appUser?.email}</p>
                   </div>
-                  <DropdownMenu.Separator className="my-1 h-px bg-[var(--line)]" />
-                  {SECONDARY_NAV.map((item) => (
-                    <DropdownMenu.Item key={item.to} asChild>
-                      <Link to={item.to} className="t-body-medium flex min-h-11 items-center gap-3 rounded-[10px] px-3 outline-none data-[highlighted]:bg-[var(--tint)]">
-                        <Icon name={item.icon} size={20} className="text-[var(--ink-soft)]" />
-                        {item.label}
-                      </Link>
-                    </DropdownMenu.Item>
-                  ))}
                   <DropdownMenu.Separator className="my-1 h-px bg-[var(--line)]" />
                   <DropdownMenu.Item
                     onSelect={toggle}
