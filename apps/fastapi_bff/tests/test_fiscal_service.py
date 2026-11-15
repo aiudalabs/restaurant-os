@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from app.config import settings
 from app.fiscal import service
 from app.fiscal.digifact import DigifactDuplicate, DigifactError
 from app.fiscal.models import CertifyResult
@@ -81,6 +82,28 @@ def paid(**over):
 def test_skipped_when_org_fiscal_disabled(env):
     ref, c, uploads, res = env(paid(), org={"fiscal": {"enabled": False}})
     assert res["status"] == "skipped" and ref.fiscal["status"] == "skipped" and c.calls == []
+
+
+def test_test_env_org_is_skipped_when_the_deployment_forbids_test_documents(env, monkeypatch):
+    monkeypatch.setattr(settings, "fiscal_allow_test", False)
+    ref, c, uploads, res = env(paid())  # ORG is fiscal.env = "test"
+    assert res["status"] == "skipped" and ref.fiscal["status"] == "skipped"
+    assert c.calls == [] and uploads == []
+    assert "numeroDF" not in ref.fiscal  # no fiscal number burned
+    assert "credenciales oficiales" in ref.fiscal["lastError"]
+
+
+def test_prod_env_org_still_issues_when_test_documents_are_forbidden(env, monkeypatch):
+    monkeypatch.setattr(settings, "fiscal_allow_test", False)
+    prod_org = {"fiscal": {**ORG["fiscal"], "env": "prod"}}
+    ref, c, uploads, res = env(paid(), org=prod_org)
+    assert res["status"] == "issued" and ref.fiscal["status"] == "issued"
+
+
+def test_test_env_org_issues_by_default(env):
+    assert settings.fiscal_allow_test is True
+    ref, c, uploads, res = env(paid())
+    assert res["status"] == "issued"
 
 
 def test_success_allocates_number_persists_before_certify_and_stores_files(env):
