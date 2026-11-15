@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     digifact_test_url: str = "https://testnucpa.digifact.com/api"
     digifact_prod_url: str = "https://nucpa.digifact.com/api"
     internal_token: str = ""  # empty = internal endpoints refuse every call
+    # false in production: never issue documents from Digifact's test environment (PDF "Documento de
+    # Prueba", no fiscal value) until the org has official credentials and fiscal.env = "prod".
+    fiscal_allow_test: bool = True
     firebase_storage_bucket: str = ""  # default: <project>.firebasestorage.app
 
     # Server

@@ -151,6 +151,12 @@ def issue_invoice(
     if of.get("enabled") is not True:
         _write_fiscal(order_ref, {"status": "skipped", "attempts": int(fiscal.get("attempts") or 0)})
         return {"status": "skipped"}
+    if of.get("env") != "prod" and not settings.fiscal_allow_test:
+        # Test-environment documents have no fiscal value: this deployment does not issue them.
+        note = "Este ambiente no emite facturas de prueba: la organización necesita credenciales oficiales (fiscal.env = prod)."
+        logger.warning("Order %s: %s", order_id, note)
+        _write_fiscal(order_ref, {"status": "skipped", "lastError": note, "attempts": int(fiscal.get("attempts") or 0)})
+        return {"status": "skipped"}
     if fiscal.get("status") == "issued":
         return fiscal
     if (order.get("payment") or {}).get("status") != "paid":
