@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildReceipt } from './receipt';
+import { buildReceipt, customerAppLink } from './receipt';
 import type { Branch, Order, OrderItem } from '../types';
 
 const branch: Branch = {
@@ -52,5 +52,21 @@ describe('buildReceipt', () => {
   it('shows the payment method and a fractional tax rate', () => {
     expect(buildReceipt(order, [], branch, 'Ana').paymentText).toBe('Efectivo');
     expect(buildReceipt({ ...order, taxPercent: 0.075 }, [], branch, 'Ana').tax.label).toBe('ITBMS 7.5%');
+  });
+
+  it('carries the customer app link for the QR, or nothing when it is not configured', () => {
+    expect(buildReceipt(order, [], branch, 'Ana', 'https://pedir.example.app').qrUrl).toBe('https://pedir.example.app/?org=o1&branch=b1');
+    expect(buildReceipt(order, [], branch, 'Ana').qrUrl).toBe('');
+  });
+});
+
+describe('customerAppLink', () => {
+  it('drops trailing slashes and encodes ids', () => {
+    expect(customerAppLink('https://pedir.example.app//', 'o 1', 'b/1')).toBe('https://pedir.example.app/?org=o%201&branch=b%2F1');
+  });
+  it('refuses anything that is not https', () => {
+    expect(customerAppLink('http://pedir.example.app', 'o1', 'b1')).toBe('');
+    expect(customerAppLink('javascript:alert(1)', 'o1', 'b1')).toBe('');
+    expect(customerAppLink('', 'o1', 'b1')).toBe('');
   });
 });
