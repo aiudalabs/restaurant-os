@@ -65,3 +65,98 @@ body {
     scrollbar-width: thin;
   }
 }
+
+/* Business receipt (ReceiptPrint). Hidden on screen; when printing it replaces the app
+   and the page is 80 mm wide with a height that fits the content (thermal roll). */
+.receipt-print {
+  display: none;
+}
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  html,
+  body {
+    height: auto;
+    background: #fff;
+  }
+  body > #root {
+    display: none !important;
+  }
+  .receipt-print {
+    display: block;
+    box-sizing: border-box;
+    width: 72mm;
+    margin: 0 auto;
+    padding: 3mm 0 6mm;
+    color: #000;
+    font: 12px/1.35 'DM Sans', Arial, sans-serif;
+  }
+  .receipt-print p,
+  .receipt-print dl,
+  .receipt-print ul {
+    margin: 0;
+    padding: 0;
+  }
+  .receipt-print hr {
+    margin: 2mm 0;
+    border: 0;
+    border-top: 1px dashed #000;
+  }
+  .receipt-center {
+    text-align: center;
+  }
+  .receipt-logo {
+    display: block;
+    max-width: 40mm;
+    max-height: 22mm;
+    margin: 0 auto 1.5mm;
+  }
+  .receipt-brand {
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .receipt-title {
+    margin: 2mm 0 1mm !important;
+    text-align: center;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
+  .receipt-meta,
+  .receipt-totals {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 3mm;
+  }
+  .receipt-meta dd,
+  .receipt-totals dd {
+    margin: 0;
+    text-align: right;
+  }
+  .receipt-lines {
+    list-style: none;
+  }
+  .receipt-lines li {
+    display: grid;
+    grid-template-columns: 6mm 1fr auto;
+    column-gap: 2mm;
+    padding: 0.8mm 0;
+    break-inside: avoid;
+  }
+  .receipt-name small {
+    display: block;
+    font-size: 10px;
+  }
+  .receipt-amount {
+    text-align: right;
+  }
+  .receipt-total {
+    margin-top: 1mm;
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .receipt-foot {
+    margin-top: 4mm !important;
+  }
+}

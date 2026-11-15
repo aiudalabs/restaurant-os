@@ -41,6 +41,10 @@ export async function loadBranch(branchId: string): Promise<Branch> {
     menuId: d.menuId ?? '',
     taxPercent: typeof d.taxPercent === 'number' ? d.taxPercent : 0,
     showProductImages: d.showProductImagesToWaiters === true,
+    address: typeof d.address === 'string' ? d.address : '',
+    phone: typeof d.phone === 'string' ? d.phone : '',
+    brandName: typeof d.branding?.displayName === 'string' ? d.branding.displayName : '',
+    logoUrl: typeof d.branding?.logoUrl === 'string' ? d.branding.logoUrl : '',
   };
 }
 
@@ -166,6 +170,11 @@ function mapOrder(id: string, d: DocumentData): Order {
     pickupCode: d.pickupCode ?? '',
     status: d.status ?? 'pending',
     total: typeof d.total === 'number' ? d.total : 0,
+    subtotal: typeof d.subtotal === 'number' ? d.subtotal : 0,
+    discountAmount: typeof d.discountAmount === 'number' ? d.discountAmount : 0,
+    taxAmount: typeof d.taxAmount === 'number' ? d.taxAmount : 0,
+    taxPercent: typeof d.taxPercent === 'number' ? d.taxPercent : 0,
+    tipAmount: typeof d.tipAmount === 'number' ? d.tipAmount : 0,
     itemCount: d.itemCount ?? 0,
     createdAtMs: d.createdAt?.toMillis?.() ?? Date.now(),
     paymentStatus: d.payment?.status ?? null,
@@ -225,6 +234,8 @@ export function watchOrderItems(
           stationId: d.data().stationId ?? '',
           productName: d.data().productName ?? '',
           quantity: d.data().quantity ?? 1,
+          unitPrice: d.data().unitPrice ?? 0,
+          totalPrice: d.data().totalPrice ?? 0,
           specialInstructions: d.data().specialInstructions ?? '',
           status: d.data().status ?? 'queued',
         })),

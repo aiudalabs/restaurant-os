@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { applyDiscount, closeOrder, loadDiscounts, confirmManualPayment, markItemsReady, recordPayment, watchOrderItems } from '../lib/api';
 import { money } from '../lib/format';
 import { printPdf } from '../lib/print';
+import { buildReceipt } from '../lib/receipt';
+import { ReceiptPrint } from './ReceiptPrint';
 import { PaymentSheet } from './PaymentSheet';
 import { MemberScanSheet } from './MemberScanSheet';
-import type { DiscountOption, FiscalInfo, InvoiceRequest, Order, OrderItem, OrderStatus, PaymentMethod } from '../types';
+import type { Branch, DiscountOption, FiscalInfo, InvoiceRequest, Order, OrderItem, OrderStatus, PaymentMethod } from '../types';
 
 const KITCHEN_LABEL: Record<OrderStatus, { text: string; cls: string }> = {
   pending_payment: { text: 'Esperando pago', cls: 'bg-violet-50 text-violet-700' },
@@ -24,17 +26,23 @@ interface Props {
   order: Order;
   orgId: string;
   now: number;
+  branch: Branch;
+  /** Waiter signed in on this device, printed on the receipt. */
+  servedBy: string;
 }
 
-export function OrderCard({ order, orgId, now }: Props) {
+export function OrderCard({ order, orgId, now, branch, servedBy }: Props) {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [paying, setPaying] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirmReject, setConfirmReject] = useState(false);
+  const [printingReceipt, setPrintingReceipt] = useState(false);
 
   useEffect(() => watchOrderItems(orgId, order.id, setItems), [orgId, order.id]);
+  // Stable: ReceiptPrint re-runs its print effect when this changes.
+  const receiptDone = useCallback(() => setPrintingReceipt(false), []);
 
   const paid = order.paymentStatus === 'paid';
   const ready = order.status === 'ready';
@@ -108,6 +116,16 @@ export function OrderCard({ order, orgId, now }: Props) {
                 : 'Por cobrar'}
           </span>
           {paid && order.fiscal && <FiscalLine fiscal={order.fiscal} />}
+          {paid && (
+            <button
+              type="button"
+              disabled={printingReceipt}
+              onClick={() => setPrintingReceipt(true)}
+              className="text-xs font-bold text-brand underline disabled:opacity-50"
+            >
+              Imprimir recibo
+            </button>
+          )}
         </div>
       </div>
 
@@ -213,6 +231,7 @@ export function OrderCard({ order, orgId, now }: Props) {
           onClose={() => setPaying(false)}
         />
       )}
+      {printingReceipt && <ReceiptPrint receipt={buildReceipt(order, items, branch, servedBy)} onDone={receiptDone} />}
     </article>
   );
 }
