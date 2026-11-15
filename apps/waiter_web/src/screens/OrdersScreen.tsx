@@ -96,7 +96,7 @@ export function OrdersScreen({ session, branch, branches, onChangeBranch, draft,
         )}
         {/* Oldest first: phone = vertical list; larger/touch screens = grid, left→right. */}
         <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          {orders?.map((o) => <OrderCard key={o.id} order={o} orgId={session.orgId} now={now} />)}
+          {orders?.map((o) => <OrderCard key={o.id} order={o} orgId={session.orgId} now={now} branch={branch} servedBy={session.displayName} />)}
         </div>
       </main>
 

@@ -17,6 +17,12 @@ export interface Branch {
   menuId: string;
   taxPercent: number; // fraction, e.g. 0.07
   showProductImages: boolean; // admin toggle, off by default
+  /** Printed on the receipt; '' when not configured. */
+  address: string;
+  phone: string;
+  /** branches.branding (restaurant brand); '' when not configured. */
+  brandName: string;
+  logoUrl: string;
 }
 
 export interface Category {
@@ -90,6 +96,12 @@ export interface Order {
   pickupCode: string;
   status: OrderStatus;
   total: number;
+  /** Server-computed amounts, shown as-is on the receipt (never recalculated here). */
+  subtotal: number;
+  discountAmount: number;
+  taxAmount: number;
+  taxPercent: number;
+  tipAmount: number;
   itemCount: number;
   createdAtMs: number;
   paymentStatus: 'pending' | 'paid' | 'failed' | null;
@@ -109,6 +121,8 @@ export interface OrderItem {
   stationId: string;
   productName: string;
   quantity: number;
+  unitPrice: number;
+  totalPrice: number;
   specialInstructions: string;
   status: ItemStatus;
 }
