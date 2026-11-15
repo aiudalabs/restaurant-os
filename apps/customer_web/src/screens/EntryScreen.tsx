@@ -135,8 +135,14 @@ export function EntryScreen() {
           Mi Club
         </button>
         <button
+          onClick={() => navigate('/orders')}
+          className="mt-2 w-full py-2 text-sm font-semibold text-brand"
+        >
+          Mis pedidos
+        </button>
+        <button
           onClick={() => navigate('/recover')}
-          className="mt-2 w-full py-2 text-sm font-medium text-hint"
+          className="w-full py-2 text-sm font-medium text-hint"
         >
           Recuperar un pedido con mi número
         </button>

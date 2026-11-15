@@ -1,17 +1,15 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Icon, type IconName } from './Icon';
-import { loadActiveOrder } from '../lib/session';
 import { useSession } from '../store/session';
 
-/** Bottom bar of the Club screens: Menú · Mi Club · Pedidos. */
+/** Bottom bar of the Club and history screens: Menú · Mi Club · Pedidos. */
 export function ClubNav() {
   const { pathname } = useLocation();
   const { session } = useSession();
-  const active = loadActiveOrder();
   const items: { to: string; label: string; icon: IconName; on: boolean }[] = [
     { to: session ? '/menu' : '/', label: 'Menú', icon: 'menu', on: false },
     { to: '/club', label: 'Mi Club', icon: 'star', on: pathname.startsWith('/club') },
-    { to: active ? `/order/${active.orderId}` : '/recover', label: 'Pedidos', icon: 'bag', on: false },
+    { to: '/orders', label: 'Pedidos', icon: 'bag', on: pathname === '/orders' },
   ];
   return (
     <nav aria-label="Secciones" className="sticky bottom-0 mt-4 grid grid-cols-3 gap-1 border-t border-line bg-white px-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2.5">
