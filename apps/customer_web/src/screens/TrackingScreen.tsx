@@ -279,6 +279,9 @@ export function TrackingScreen() {
         <Icon name="star" size={18} />
         Ir a Mi Club
       </button>
+      <button onClick={() => navigate('/orders')} className="mt-2.5 w-full py-2 text-sm font-semibold text-brand">
+        Ver mis pedidos
+      </button>
       <button
         onClick={startNewOrder}
         className="mt-2.5 h-[52px] w-full rounded-xl border-[1.5px] border-brand bg-white text-base font-semibold text-brand"

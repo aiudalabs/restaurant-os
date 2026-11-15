@@ -292,6 +292,29 @@ export async function loadReceiptBranch(branchId: string): Promise<ReceiptBranch
   };
 }
 
+/**
+ * Orders this device created (createdByUid == uid; orders claimed with recoverOrder
+ * count too). The rule scopes reads to the creator, so the query must filter by uid.
+ */
+export function watchMyOrders(cb: (orders: OrderDoc[]) => void, onError: () => void): () => void {
+  let unsub: (() => void) | null = null;
+  let closed = false;
+  ensureAnonAuth()
+    .then(() => {
+      if (closed) return;
+      unsub = onSnapshot(
+        query(collection(db, paths.orders), where('createdByUid', '==', auth.currentUser?.uid ?? '__none__')),
+        (snap) => cb(snap.docs.map((d) => mapOrder(d.id, d.data()))),
+        onError,
+      );
+    })
+    .catch(onError);
+  return () => {
+    closed = true;
+    unsub?.();
+  };
+}
+
 /** Live subscription to an order + its items for the tracking screen. */
 export function watchOrder(
   orderId: string,
