@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { watchOrder } from '../lib/api';
+import { loadReceiptBranch, watchOrder } from '../lib/api';
+import { buildReceipt, type ReceiptData } from '../lib/receipt';
+import { ReceiptPrint } from '../components/ReceiptPrint';
 import { initPayment } from '../lib/payments';
 import { money } from '../lib/format';
 import { clearActiveOrder } from '../lib/session';
@@ -34,6 +36,11 @@ export function TrackingScreen() {
   const [loaded, setLoaded] = useState(false);
   const [paying, setPaying] = useState(false);
   const [earn, setEarn] = useState<EarnEvent | null>(null);
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [receiptBusy, setReceiptBusy] = useState(false);
+  const [receiptError, setReceiptError] = useState(false);
+  // Stable: ReceiptPrint re-runs its print effect when this changes.
+  const receiptDone = useCallback(() => setReceipt(null), []);
 
   useEffect(() => {
     if (!orderId) return;
@@ -76,6 +83,20 @@ export function TrackingScreen() {
   const paymentPending = awaitingPayment || paymentFailed;
   // Manual Yappy: staff confirm the transfer in their own Yappy app.
   const yappy = order.paymentMethod === 'yappy';
+
+  // Business receipt (not fiscal): the system print dialog lets the customer save it as a PDF.
+  const downloadReceipt = async () => {
+    setReceiptBusy(true);
+    setReceiptError(false);
+    try {
+      const branch = await loadReceiptBranch(order.branchId);
+      setReceipt(buildReceipt(order, items, branch, window.location.origin));
+    } catch {
+      setReceiptError(true);
+    } finally {
+      setReceiptBusy(false);
+    }
+  };
 
   const startNewOrder = () => {
     clearActiveOrder();
@@ -233,6 +254,22 @@ export function TrackingScreen() {
         </div>
       </div>
 
+      {order.paymentStatus === 'paid' && !cancelled && items.length > 0 && (
+        <div className="mt-4 rounded-2xl bg-white p-4 border border-line">
+          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-hint">Comprobante de consumo</p>
+          <p className="text-sm text-hint">Lo que pagaste, para tu control. No es una factura fiscal.</p>
+          <button
+            onClick={downloadReceipt}
+            disabled={receiptBusy}
+            className="mt-3 w-full rounded-xl border-[1.5px] border-brand py-2.5 text-center text-sm font-semibold text-brand disabled:opacity-60"
+          >
+            {receiptBusy ? 'Preparando…' : 'Descargar comprobante'}
+          </button>
+          {receiptError && <p className="mt-2 text-center text-xs text-danger">No pudimos preparar el comprobante. Intenta de nuevo.</p>}
+          <p className="mt-2 text-center text-xs text-hint">Para guardarlo, elige «Guardar como PDF» en la ventana de impresión.</p>
+        </div>
+      )}
+
       {order.fiscal && order.fiscal.status !== 'skipped' && <InvoiceCard fiscal={order.fiscal} />}
 
       <button
@@ -248,6 +285,7 @@ export function TrackingScreen() {
       >
         Hacer otro pedido
       </button>
+      {receipt && <ReceiptPrint receipt={receipt} onDone={receiptDone} />}
     </div>
   );
 }

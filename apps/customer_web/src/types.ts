@@ -99,6 +99,15 @@ export interface OrderDoc {
   customerName: string;
   tableNumber: string;
   total: number;
+  /** Server-computed amounts, shown as-is on the receipt (never recalculated here). */
+  subtotal: number;
+  discountAmount: number;
+  taxAmount: number;
+  taxPercent: number;
+  tipAmount: number;
+  createdAtMs: number;
+  /** payment.status: 'paid' once collected. */
+  paymentStatus: string | null;
   /** Discount the waiter applied (issue #81). */
   discount: { name: string; amount: number } | null;
   itemCount: number;
@@ -118,5 +127,8 @@ export interface OrderItemDoc {
   id: string;
   productName: string;
   quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  specialInstructions: string;
   status: ItemStatus;
 }

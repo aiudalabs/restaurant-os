@@ -156,6 +156,18 @@ body {
     font-size: 15px;
     font-weight: 800;
   }
+  .receipt-qr {
+    margin-top: 3mm;
+  }
+  .receipt-qr img {
+    display: block;
+    width: 32mm;
+    height: 32mm;
+    margin: 0 auto 1mm;
+  }
+  .receipt-qr p {
+    font-size: 10px;
+  }
   .receipt-foot {
     margin-top: 4mm !important;
   }

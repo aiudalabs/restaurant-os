@@ -231,7 +231,7 @@ export function OrderCard({ order, orgId, now, branch, servedBy }: Props) {
           onClose={() => setPaying(false)}
         />
       )}
-      {printingReceipt && <ReceiptPrint receipt={buildReceipt(order, items, branch, servedBy)} onDone={receiptDone} />}
+      {printingReceipt && <ReceiptPrint receipt={buildReceipt(order, items, branch, servedBy, import.meta.env.VITE_CUSTOMER_APP_URL ?? '')} onDone={receiptDone} />}
     </article>
   );
 }

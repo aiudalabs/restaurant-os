@@ -248,12 +248,47 @@ function mapOrder(id: string, data: Record<string, unknown>): OrderDoc {
     customerName: (data.customerName as string) ?? 'Cliente',
     tableNumber: (data.tableNumber as string) ?? '',
     total: (data.total as number) ?? 0,
+    subtotal: (data.subtotal as number) ?? 0,
+    discountAmount: (data.discountAmount as number) ?? 0,
+    taxAmount: (data.taxAmount as number) ?? 0,
+    taxPercent: (data.taxPercent as number) ?? 0,
+    tipAmount: (data.tipAmount as number) ?? 0,
+    createdAtMs: (data.createdAt as { toMillis?: () => number } | undefined)?.toMillis?.() ?? Date.now(),
+    paymentStatus: ((data.payment as { status?: string } | undefined)?.status as string) ?? null,
     discount: mapDiscount(data.discount),
     itemCount: (data.itemCount as number) ?? 0,
     branchId: (data.branchId as string) ?? '',
     paymentMethod: ((data.payment as { method?: string } | undefined)?.method as string) ?? null,
     payTo: ((data.payment as { payTo?: string } | undefined)?.payTo as string) ?? '',
     fiscal: mapFiscal(data.fiscal),
+  };
+}
+
+/** What the receipt prints about the restaurant; any field the branch does not have is ''. */
+export interface ReceiptBranch {
+  orgId: string;
+  branchId: string;
+  name: string;
+  address: string;
+  phone: string;
+  brandName: string;
+  logoUrl: string;
+}
+
+export async function loadReceiptBranch(branchId: string): Promise<ReceiptBranch> {
+  await ensureAnonAuth();
+  const snap = await getDoc(doc(db, paths.branches, branchId));
+  if (!snap.exists()) throw new Error('Sucursal no encontrada');
+  const d = snap.data();
+  const str = (v: unknown) => (typeof v === 'string' ? v : '');
+  return {
+    orgId: str(d.orgId),
+    branchId: snap.id,
+    name: str(d.name) || 'Restaurante',
+    address: str(d.address),
+    phone: str(d.phone),
+    brandName: str(d.branding?.displayName),
+    logoUrl: str(d.branding?.logoUrl),
   };
 }
 
@@ -285,6 +320,9 @@ export function watchOrder(
             id: d.id,
             productName: d.data().productName,
             quantity: d.data().quantity,
+            unitPrice: d.data().unitPrice ?? 0,
+            totalPrice: d.data().totalPrice ?? 0,
+            specialInstructions: d.data().specialInstructions ?? '',
             status: d.data().status,
           }) as OrderItemDoc,
       );

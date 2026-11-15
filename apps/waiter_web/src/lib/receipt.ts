@@ -32,6 +32,15 @@ export interface ReceiptData {
   tax: { label: string; amount: string };
   tip: string | null;
   total: string;
+  /** Link the QR opens (the restaurant's customer app); '' = no QR. */
+  qrUrl: string;
+}
+
+/** Where the QR leads: the restaurant's customer app, same link format the table QRs use. */
+export function customerAppLink(baseUrl: string, orgId: string, branchId: string): string {
+  const base = baseUrl.trim().replace(/\/+$/, '');
+  if (!/^https:\/\//.test(base)) return '';
+  return `${base}/?org=${encodeURIComponent(orgId)}&branch=${encodeURIComponent(branchId)}`;
 }
 
 /** "ITBMS 7%": 0.07 → 7, 0.075 → 7.5. */
@@ -39,7 +48,7 @@ function percentText(fraction: number): string {
   return `${Math.round(fraction * 10_000) / 100}%`;
 }
 
-export function buildReceipt(order: Order, items: OrderItem[], branch: Branch, servedBy: string): ReceiptData {
+export function buildReceipt(order: Order, items: OrderItem[], branch: Branch, servedBy: string, customerUrl = ''): ReceiptData {
   return {
     brandName: branch.brandName || branch.name,
     logoUrl: branch.logoUrl,
@@ -66,5 +75,6 @@ export function buildReceipt(order: Order, items: OrderItem[], branch: Branch, s
     tax: { label: `ITBMS ${percentText(order.taxPercent)}`, amount: money(order.taxAmount) },
     tip: order.tipAmount > 0 ? money(order.tipAmount) : null,
     total: money(order.total),
+    qrUrl: customerAppLink(customerUrl, branch.orgId, branch.id),
   };
 }

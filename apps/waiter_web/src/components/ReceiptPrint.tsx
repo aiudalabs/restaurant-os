@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import QRCode from 'qrcode';
 import type { ReceiptData } from '../lib/receipt';
 
 interface Props {
@@ -15,8 +16,21 @@ interface Props {
  * A page cannot print silently: the dialog is always shown.
  */
 export function ReceiptPrint({ receipt, onDone }: Props) {
-  // Wait for the logo so it is not missing from the printout; a broken logo must not block printing.
-  const [ready, setReady] = useState(!receipt.logoUrl);
+  // Wait for the logo and the QR so neither is missing from the printout; a failure of either must not block printing.
+  const [logoReady, setLogoReady] = useState(!receipt.logoUrl);
+  const [qr, setQr] = useState<{ done: boolean; src: string }>({ done: !receipt.qrUrl, src: '' });
+  const ready = logoReady && qr.done;
+
+  useEffect(() => {
+    if (!receipt.qrUrl) return;
+    let cancelled = false;
+    QRCode.toDataURL(receipt.qrUrl, { margin: 0, width: 220, errorCorrectionLevel: 'M' })
+      .then((src) => !cancelled && setQr({ done: true, src }))
+      .catch(() => !cancelled && setQr({ done: true, src: '' }));
+    return () => {
+      cancelled = true;
+    };
+  }, [receipt.qrUrl]);
 
   useEffect(() => {
     if (!ready) return;
@@ -35,7 +49,7 @@ export function ReceiptPrint({ receipt, onDone }: Props) {
     <div className="receipt-print" aria-hidden="true">
       <header className="receipt-center">
         {receipt.logoUrl && (
-          <img src={receipt.logoUrl} alt="" className="receipt-logo" onLoad={() => setReady(true)} onError={() => setReady(true)} />
+          <img src={receipt.logoUrl} alt="" className="receipt-logo" onLoad={() => setLogoReady(true)} onError={() => setLogoReady(true)} />
         )}
         <p className="receipt-brand">{receipt.brandName}</p>
         {receipt.address && <p>{receipt.address}</p>}
@@ -95,6 +109,12 @@ export function ReceiptPrint({ receipt, onDone }: Props) {
           </>
         )}
       </dl>
+      {qr.src && (
+        <div className="receipt-center receipt-qr">
+          <img src={qr.src} alt="" />
+          <p>Escanea para pedir y ver tu Club</p>
+        </div>
+      )}
       <p className="receipt-center receipt-foot">¡Gracias por su visita!</p>
     </div>,
     document.body,
