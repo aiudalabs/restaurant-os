@@ -3,7 +3,7 @@ import { BrandMark } from '../components/BrandMark';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { loadBranch } from '../lib/api';
-import { loadHome } from '../lib/home';
+import { clearHome, loadHome, saveHome } from '../lib/home';
 import { setAppIdentity } from '../lib/install';
 import { loadActiveOrder } from '../lib/session';
 import { useSession } from '../store/session';
@@ -21,8 +21,11 @@ export function EntryScreen() {
   const orgId = params.get('org') ?? session?.orgId ?? home?.orgId ?? '';
   const branchId = params.get('branch') ?? session?.branchId ?? home?.branchId ?? '';
 
-  const saved = useMemo(() => loadActiveOrder(), []);
+  // Only this restaurant's active order: another restaurant's must not show up here.
+  const saved = useMemo(() => loadActiveOrder(branchId), [branchId]);
   const [branchName, setBranchName] = useState(session?.branchName ?? '');
+  // The restaurant's real org comes from the branch itself, never from the link.
+  const [realOrgId, setRealOrgId] = useState(orgId);
   const [name, setName] = useState(session?.customerName ?? home?.customerName ?? '');
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
     branchId ? 'loading' : 'error',
@@ -40,7 +43,10 @@ export function EntryScreen() {
       .then((b) => {
         if (!alive) return;
         setBranchName(b.name);
-        setAppIdentity(orgId, branchId, b.name);
+        setRealOrgId(b.orgId);
+        setAppIdentity(b.orgId, branchId, b.name);
+        // Arrived through this restaurant's QR/link: remember it now (Mi Club, bookmarks…).
+        if (params.get('branch')) saveHome({ orgId: b.orgId, branchId, branchName: b.name, customerName: name.trim() });
         setStatus('ready');
       })
       .catch((e) => {
@@ -53,8 +59,14 @@ export function EntryScreen() {
     };
   }, [branchId, orgId]);
 
+  // Forget the remembered restaurant and reload, so the theme and the state start clean.
+  const notMyRestaurant = () => {
+    clearHome();
+    window.location.replace('/');
+  };
+
   const beginOrder = () => {
-    start({ orgId, branchId, branchName, customerName: name.trim() });
+    start({ orgId: realOrgId, branchId, branchName, customerName: name.trim() });
     navigate('/menu');
   };
 
@@ -84,6 +96,9 @@ export function EntryScreen() {
             <p className="text-sm font-medium uppercase tracking-wide text-hint">
               {branchName}
             </p>
+            <button onClick={notMyRestaurant} className="mt-1 text-xs font-medium text-hint underline underline-offset-2">
+              ¿No es tu restaurante?
+            </button>
             <h1 className="mt-1 font-display text-3xl font-semibold">Haz tu pedido</h1>
             <p className="mt-3 max-w-xs text-sm text-hint">
               Escribe tu nombre (opcional). Te daremos un número único para retirar tu

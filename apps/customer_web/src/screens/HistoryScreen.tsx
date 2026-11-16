@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { watchMyOrders } from '../lib/api';
+import { loadBranchNames, watchMyOrders } from '../lib/api';
 import { historyDate, sortHistory, statusInfo, type StatusTone } from '../lib/history';
 import { money } from '../lib/format';
 import { ClubNav } from '../components/ClubNav';
@@ -19,6 +19,7 @@ export function HistoryScreen() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<OrderDoc[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [names, setNames] = useState<Record<string, string>>({});
 
   useEffect(
     () =>
@@ -31,6 +32,17 @@ export function HistoryScreen() {
       ),
     [],
   );
+
+  // Several restaurants can share this device: say which one each order belongs to.
+  const branchKey = orders ? [...new Set(orders.map((o) => o.branchId))].sort().join(',') : '';
+  useEffect(() => {
+    if (!branchKey) return;
+    let alive = true;
+    loadBranchNames(branchKey.split(',')).then((n) => alive && setNames(n));
+    return () => {
+      alive = false;
+    };
+  }, [branchKey]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -70,6 +82,7 @@ export function HistoryScreen() {
                       className="flex w-full items-center justify-between gap-3 rounded-2xl border border-line bg-white px-4 py-3 text-left"
                     >
                       <span className="min-w-0">
+                        {names[o.branchId] && <span className="block truncate text-xs font-semibold text-ink">{names[o.branchId]}</span>}
                         <span className="block font-display text-lg font-semibold text-brand">{o.pickupCode || 'Pedido'}</span>
                         <span className="block text-xs text-hint">
                           {historyDate(o.createdAtMs)} · {o.itemCount} {o.itemCount === 1 ? 'artículo' : 'artículos'}

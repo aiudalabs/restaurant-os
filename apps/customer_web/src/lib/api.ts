@@ -292,6 +292,25 @@ export async function loadReceiptBranch(branchId: string): Promise<ReceiptBranch
   };
 }
 
+/** Restaurant names for the history list; a branch that cannot be read simply has no name. */
+export async function loadBranchNames(branchIds: string[]): Promise<Record<string, string>> {
+  await ensureAnonAuth();
+  const out: Record<string, string> = {};
+  await Promise.all(
+    [...new Set(branchIds.filter(Boolean))].map(async (id) => {
+      try {
+        const snap = await getDoc(doc(db, paths.branches, id));
+        const d = snap.data();
+        const name = d?.branding?.displayName || d?.name;
+        if (typeof name === 'string' && name) out[id] = name;
+      } catch {
+        // Unreadable branch: the order is listed without a restaurant name.
+      }
+    }),
+  );
+  return out;
+}
+
 /**
  * Orders this device created (createdByUid == uid; orders claimed with recoverOrder
  * count too). The rule scopes reads to the creator, so the query must filter by uid.

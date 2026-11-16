@@ -49,7 +49,7 @@ export function TrackingScreen() {
       setItems(its);
       setLoaded(true);
       if (o && (o.status === 'delivered' || o.status === 'closed' || o.status === 'cancelled')) {
-        clearActiveOrder();
+        clearActiveOrder(o.branchId);
       }
     });
     return unsub;
@@ -99,7 +99,7 @@ export function TrackingScreen() {
   };
 
   const startNewOrder = () => {
-    clearActiveOrder();
+    clearActiveOrder(order.branchId);
     clearSession();
     navigate('/', { replace: true });
   };
@@ -407,7 +407,7 @@ function InstallFor({
   orderBranchId: string;
   sessionBranch: { orgId: string; branchId: string; branchName: string } | null;
 }) {
-  const known = [sessionBranch, loadActiveOrder(), loadHome()].find((b) => b?.branchId === orderBranchId);
+  const known = [sessionBranch, loadActiveOrder(orderBranchId), loadHome()].find((b) => b?.branchId === orderBranchId);
   if (!known) return null;
   return <InstallCard orgId={known.orgId} branchId={known.branchId} branchName={known.branchName} />;
 }

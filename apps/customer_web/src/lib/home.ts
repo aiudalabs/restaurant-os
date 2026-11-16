@@ -30,3 +30,12 @@ export function loadHome(): HomeBranch | null {
     return null;
   }
 }
+
+/** "This is not my restaurant": forget it so the next visit asks for a QR. */
+export function clearHome(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* no-op */
+  }
+}
