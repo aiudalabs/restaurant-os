@@ -22,6 +22,10 @@ export interface ReceiptData {
   logoUrl: string;
   address: string;
   phone: string;
+  /** Business RUC line ("RUC 155… DV 32"); '' when not configured. */
+  ruc: string;
+  /** Customer data when a company was named at checkout; null otherwise. */
+  customer: { name: string; ruc: string } | null;
   reference: string;
   dateText: string;
   servedBy: string;
@@ -42,6 +46,14 @@ export function customerAppLink(baseUrl: string, orgId: string, branchId: string
   return `${base}/?org=${encodeURIComponent(orgId)}&branch=${encodeURIComponent(branchId)}`;
 }
 
+/** "RUC 155-123-456 DV 32"; '' without a RUC. */
+export function rucText(ruc: string, dv: string): string {
+  const r = ruc.trim();
+  if (!r) return '';
+  const d = dv.trim();
+  return d ? `RUC ${r} DV ${d}` : `RUC ${r}`;
+}
+
 function percentText(fraction: number): string {
   return `${Math.round(fraction * 10_000) / 100}%`;
 }
@@ -52,6 +64,8 @@ export function buildReceipt(order: OrderDoc, items: OrderItemDoc[], branch: Rec
     logoUrl: branch.logoUrl,
     address: branch.address,
     phone: branch.phone,
+    ruc: rucText(branch.ruc, branch.dv),
+    customer: order.receiver ? { name: order.receiver.name, ruc: rucText(order.receiver.taxId, order.receiver.dv).replace(/^RUC /, '') } : null,
     reference: order.pickupCode || order.customerName,
     dateText: new Date(order.createdAtMs).toLocaleString('es-PA', { dateStyle: 'short', timeStyle: 'short' }),
     servedBy: '',

@@ -54,6 +54,7 @@ export function ReceiptPrint({ receipt, onDone }: Props) {
         <p className="receipt-brand">{receipt.brandName}</p>
         {receipt.address && <p>{receipt.address}</p>}
         {receipt.phone && <p>Tel. {receipt.phone}</p>}
+        {receipt.ruc && <p>{receipt.ruc}</p>}
       </header>
       <p className="receipt-title">RECIBO DE CONSUMO</p>
       <dl className="receipt-meta">
@@ -61,6 +62,14 @@ export function ReceiptPrint({ receipt, onDone }: Props) {
         <dd>{receipt.reference}</dd>
         <dt>Fecha</dt>
         <dd>{receipt.dateText}</dd>
+        {receipt.customer && (
+          <>
+            <dt>Cliente</dt>
+            <dd>{receipt.customer.name || '—'}</dd>
+            <dt>RUC</dt>
+            <dd>{receipt.customer.ruc}</dd>
+          </>
+        )}
         {receipt.servedBy && (
           <>
             <dt>Atendió</dt>

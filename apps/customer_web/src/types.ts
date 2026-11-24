@@ -108,6 +108,8 @@ export interface OrderDoc {
   createdAtMs: number;
   /** payment.status: 'paid' once collected. */
   paymentStatus: string | null;
+  /** Company the order was billed to (RUC); null for consumidor final or none. */
+  receiver: { name: string; taxId: string; dv: string } | null;
   /** Discount the waiter applied (issue #81). */
   discount: { name: string; amount: number } | null;
   itemCount: number;

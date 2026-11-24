@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { buildReceipt, customerAppLink } from './receipt';
+import { buildReceipt, customerAppLink, rucText } from './receipt';
 import type { ReceiptBranch } from './api';
 import type { OrderDoc, OrderItemDoc } from '../types';
 
 const branch: ReceiptBranch = {
-  orgId: 'o1', branchId: 'b1', name: 'Sucursal Centro', address: 'Calle 50', phone: '6000-0000', brandName: 'Pick & Eat', logoUrl: '',
+  orgId: 'o1', branchId: 'b1', name: 'Sucursal Centro', address: 'Calle 50', phone: '6000-0000', ruc: '155-123-456', dv: '32', brandName: 'Pick & Eat', logoUrl: '',
 };
 const order: OrderDoc = {
   id: 'ord1', status: 'ready', pickupCode: 'P-4F2A', customerName: 'Ana', tableNumber: '', total: 18.14, subtotal: 16.95,
   discountAmount: 0, taxAmount: 1.19, taxPercent: 0.07, tipAmount: 0, createdAtMs: Date.UTC(2026, 10, 6, 7, 22),
-  paymentStatus: 'paid', discount: null, itemCount: 2, branchId: 'b1', paymentMethod: 'yappy', payTo: '', fiscal: null,
+  paymentStatus: 'paid', receiver: null, discount: null, itemCount: 2, branchId: 'b1', paymentMethod: 'yappy', payTo: '', fiscal: null,
 };
 const item = (over: Partial<OrderItemDoc>): OrderItemDoc => ({
   id: 'i', productName: 'Pizza', quantity: 1, unitPrice: 5, totalPrice: 5, specialInstructions: '', status: 'done', ...over,
@@ -56,3 +56,17 @@ describe('customerAppLink', () => {
     expect(customerAppLink('javascript:alert(1)', 'o1', 'b1')).toBe('');
   });
 });
+
+describe('RUC on the receipt (customer)', () => {
+  it('prints the business RUC with its DV, or nothing', () => {
+    expect(buildReceipt(order, [], branch, '').ruc).toBe('RUC 155-123-456 DV 32');
+    expect(buildReceipt(order, [], { ...branch, ruc: '', dv: '' }, '').ruc).toBe('');
+    expect(rucText('8-NT-2-1234', '')).toBe('RUC 8-NT-2-1234');
+  });
+  it('prints the customer company only when one was named', () => {
+    expect(buildReceipt(order, [], branch, '').customer).toBeNull();
+    const withCompany = { ...order, receiver: { name: 'Acme S.A.', taxId: '155-999-1', dv: '07' } };
+    expect(buildReceipt(withCompany, [], branch, '').customer).toEqual({ name: 'Acme S.A.', ruc: '155-999-1 DV 07' });
+  });
+});
+

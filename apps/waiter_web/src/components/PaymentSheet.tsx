@@ -107,15 +107,15 @@ export function PaymentSheet({ customerName, total, discounts, applied, onDiscou
             aria-expanded={withData}
             className={`btn ${withData ? 'btn-filled' : 'btn-outlined'} min-h-[44px]`}
           >
-            {withData ? '✓ ' : ''}Datos para la factura (opcional)
+            {withData ? '✓ ' : ''}Datos del cliente (opcional)
           </button>
           {withData && (
             <div className="mt-3 space-y-2">
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Nombre para la factura"
-                aria-label="Nombre para la factura"
+                placeholder="Nombre del cliente"
+                aria-label="Nombre del cliente"
                 autoComplete="off"
                 className="field"
               />
@@ -129,7 +129,7 @@ export function PaymentSheet({ customerName, total, discounts, applied, onDiscou
                   className="field"
                 />
               </label>
-              <p className="text-xs text-muted">Sin datos, la factura sale a consumidor final.</p>
+              <p className="text-xs text-muted">El RUC sale en el recibo y en la factura. Sin datos, la factura sale a consumidor final.</p>
             </div>
           )}
         </div>

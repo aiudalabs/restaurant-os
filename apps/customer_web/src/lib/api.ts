@@ -240,6 +240,14 @@ function mapDiscount(raw: unknown): { name: string; amount: number } | null {
   return d && typeof d.amount === 'number' ? { name: String(d.name ?? 'Descuento'), amount: d.amount } : null;
 }
 
+/** The company the order was billed to (RUC); consumidor final ('CF') or no data is null. */
+function mapReceiver(raw: unknown): OrderDoc['receiver'] {
+  const r = raw as { receiverType?: unknown; taxId?: unknown; dv?: unknown; name?: unknown } | undefined;
+  const taxId = typeof r?.taxId === 'string' ? r.taxId.trim() : '';
+  if (r?.receiverType !== '01' || !taxId || taxId.toUpperCase() === 'CF') return null;
+  return { name: typeof r.name === 'string' ? r.name : '', taxId, dv: typeof r.dv === 'string' ? r.dv : '' };
+}
+
 function mapOrder(id: string, data: Record<string, unknown>): OrderDoc {
   return {
     id,
@@ -254,6 +262,7 @@ function mapOrder(id: string, data: Record<string, unknown>): OrderDoc {
     taxPercent: (data.taxPercent as number) ?? 0,
     tipAmount: (data.tipAmount as number) ?? 0,
     createdAtMs: (data.createdAt as { toMillis?: () => number } | undefined)?.toMillis?.() ?? Date.now(),
+    receiver: mapReceiver(data.invoiceRequest),
     paymentStatus: ((data.payment as { status?: string } | undefined)?.status as string) ?? null,
     discount: mapDiscount(data.discount),
     itemCount: (data.itemCount as number) ?? 0,
@@ -271,6 +280,8 @@ export interface ReceiptBranch {
   name: string;
   address: string;
   phone: string;
+  ruc: string;
+  dv: string;
   brandName: string;
   logoUrl: string;
 }
@@ -287,6 +298,8 @@ export async function loadReceiptBranch(branchId: string): Promise<ReceiptBranch
     name: str(d.name) || 'Restaurante',
     address: str(d.address),
     phone: str(d.phone),
+    ruc: str(d.ruc),
+    dv: str(d.dv),
     brandName: str(d.branding?.displayName),
     logoUrl: str(d.branding?.logoUrl),
   };

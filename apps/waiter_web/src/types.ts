@@ -20,6 +20,9 @@ export interface Branch {
   /** Printed on the receipt; '' when not configured. */
   address: string;
   phone: string;
+  /** Business RUC / DV for the receipt header; '' when not configured. */
+  ruc: string;
+  dv: string;
   /** branches.branding (restaurant brand); '' when not configured. */
   brandName: string;
   logoUrl: string;
@@ -109,6 +112,8 @@ export interface Order {
   fiscal: FiscalInfo | null;
   /** Discount applied by staff (issue #81); null when none. */
   discount: { name: string; percent: number; amount: number } | null;
+  /** Customer data given at checkout for a company (RUC); null for consumidor final or none. */
+  receiver: { name: string; taxId: string; dv: string } | null;
   /** A Club member is attached (scanned by staff) to this order. */
   hasMember: boolean;
 }

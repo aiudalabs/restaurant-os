@@ -4,7 +4,7 @@ import type { OrderDoc } from '../types';
 
 const order = (id: string, createdAtMs: number): OrderDoc => ({
   id, status: 'closed', pickupCode: id, customerName: 'Ana', tableNumber: '', total: 10, subtotal: 9.35, discountAmount: 0,
-  taxAmount: 0.65, taxPercent: 0.07, tipAmount: 0, createdAtMs, paymentStatus: 'paid', discount: null, itemCount: 1,
+  taxAmount: 0.65, taxPercent: 0.07, tipAmount: 0, createdAtMs, paymentStatus: 'paid', receiver: null, discount: null, itemCount: 1,
   branchId: 'b1', paymentMethod: null, payTo: '', fiscal: null,
 });
 

@@ -25,6 +25,9 @@ export interface Branch {
   name: string;
   address: string;
   phone?: string;
+  /** RUC / DV of the business, printed on the consumption receipt. Optional and informational. */
+  ruc?: string;
+  dv?: string;
   menuId: string;
   taxPercent?: number;
   tipOptions?: number[];

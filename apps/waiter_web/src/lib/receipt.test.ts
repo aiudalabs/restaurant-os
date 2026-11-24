@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { buildReceipt, customerAppLink } from './receipt';
+import { buildReceipt, customerAppLink, rucText } from './receipt';
 import type { Branch, Order, OrderItem } from '../types';
 
 const branch: Branch = {
   id: 'b1', orgId: 'o1', name: 'Sucursal Centro', menuId: 'm1', taxPercent: 0.07, showProductImages: false,
-  address: 'Calle 50', phone: '6000-0000', brandName: 'Pick & Eat', logoUrl: 'https://x/logo.png',
+  address: 'Calle 50', phone: '6000-0000', ruc: '155-123-456', dv: '32', brandName: 'Pick & Eat', logoUrl: 'https://x/logo.png',
 };
 const order: Order = {
   id: 'ord1', customerName: 'Mesa 4', pickupCode: '', status: 'ready', total: 18.14, subtotal: 16.95, discountAmount: 0,
   taxAmount: 1.19, taxPercent: 0.07, tipAmount: 0, itemCount: 2, createdAtMs: Date.UTC(2026, 10, 6, 7, 22),
-  paymentStatus: 'paid', paymentMethod: 'cash', fiscal: null, discount: null, hasMember: false,
+  paymentStatus: 'paid', paymentMethod: 'cash', fiscal: null, discount: null, receiver: null, hasMember: false,
 };
 const item = (over: Partial<OrderItem>): OrderItem => ({
   id: 'i', stationId: '', productName: 'Pizza', quantity: 1, unitPrice: 5, totalPrice: 5, specialInstructions: '', status: 'done', ...over,
@@ -70,3 +70,22 @@ describe('customerAppLink', () => {
     expect(customerAppLink('', 'o1', 'b1')).toBe('');
   });
 });
+
+describe('RUC on the receipt', () => {
+  it('prints the business RUC with its DV', () => {
+    expect(buildReceipt(order, [], branch, 'Ana').ruc).toBe('RUC 155-123-456 DV 32');
+  });
+  it('prints nothing when the business has no RUC', () => {
+    expect(buildReceipt(order, [], { ...branch, ruc: '', dv: '' }, 'Ana').ruc).toBe('');
+    expect(rucText('  ', '32')).toBe('');
+  });
+  it('omits the DV when it is not set', () => {
+    expect(rucText('8-NT-2-1234', '')).toBe('RUC 8-NT-2-1234');
+  });
+  it('prints the customer company only when one was named', () => {
+    expect(buildReceipt(order, [], branch, 'Ana').customer).toBeNull();
+    const withCompany = { ...order, receiver: { name: 'Acme S.A.', taxId: '155-999-1', dv: '07' } };
+    expect(buildReceipt(withCompany, [], branch, 'Ana').customer).toEqual({ name: 'Acme S.A.', ruc: '155-999-1 DV 07' });
+  });
+});
+

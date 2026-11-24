@@ -25,6 +25,8 @@ interface BranchFormState {
   name: string;
   address: string;
   phone: string;
+  ruc: string;
+  dv: string;
   menuId: string;
   taxPercent: string; // percent as typed, e.g. "7"
   isActive: boolean;
@@ -82,6 +84,8 @@ const EMPTY: BranchFormState = {
   name: '',
   address: '',
   phone: '',
+  ruc: '',
+  dv: '',
   menuId: '',
   taxPercent: '7',
   isActive: true,
@@ -125,6 +129,8 @@ function BranchDialog({
           name: branch.name ?? '',
           address: branch.address ?? '',
           phone: branch.phone ?? '',
+          ruc: branch.ruc ?? '',
+          dv: branch.dv ?? '',
           menuId: branch.menuId ?? '',
           taxPercent: branch.taxPercent != null ? String(Math.round(branch.taxPercent * 100)) : '7',
           isActive: branch.isActive ?? true,
@@ -168,6 +174,8 @@ function BranchDialog({
       name: form.name.trim(),
       address: form.address.trim(),
       phone: form.phone.trim(),
+      ruc: form.ruc.trim(),
+      dv: form.dv.trim(),
       menuId: form.menuId,
       taxPercent: (Number(form.taxPercent) || 0) / 100,
       isActive: form.isActive,
@@ -281,6 +289,25 @@ function BranchDialog({
             onChange={(e) => set('taxPercent', e.target.value)}
           />
         </div>
+        <div className="grid gap-6 sm:grid-cols-[1fr_8rem]">
+          <Input
+            id="branch-ruc"
+            label="RUC (opcional)"
+            placeholder="155-1234-567890"
+            maxLength={30}
+            value={form.ruc}
+            onChange={(e) => set('ruc', e.target.value)}
+          />
+          <Input
+            id="branch-dv"
+            label="DV (opcional)"
+            placeholder="00"
+            maxLength={4}
+            value={form.dv}
+            onChange={(e) => set('dv', e.target.value)}
+          />
+        </div>
+        <p className="t-body-small -mt-3 text-[var(--ink-soft)]">Se imprime en el recibo de consumo. No activa la facturación electrónica.</p>
 
         <Select
           id="branch-menu"
