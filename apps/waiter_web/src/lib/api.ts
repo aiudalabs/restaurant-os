@@ -43,6 +43,8 @@ export async function loadBranch(branchId: string): Promise<Branch> {
     showProductImages: d.showProductImagesToWaiters === true,
     address: typeof d.address === 'string' ? d.address : '',
     phone: typeof d.phone === 'string' ? d.phone : '',
+    ruc: typeof d.ruc === 'string' ? d.ruc : '',
+    dv: typeof d.dv === 'string' ? d.dv : '',
     brandName: typeof d.branding?.displayName === 'string' ? d.branding.displayName : '',
     logoUrl: typeof d.branding?.logoUrl === 'string' ? d.branding.logoUrl : '',
   };
@@ -163,6 +165,14 @@ function mapFiscal(f: DocumentData): FiscalInfo {
 
 const ACTIVE_STATUSES = ['pending_payment', 'pending', 'confirmed', 'in_preparation', 'ready'];
 
+/** The company the customer asked to bill (RUC); consumidor final ('CF') or no data is null. */
+function mapReceiver(raw: unknown): Order['receiver'] {
+  const r = raw as { receiverType?: unknown; taxId?: unknown; dv?: unknown; name?: unknown } | undefined;
+  const taxId = typeof r?.taxId === 'string' ? r.taxId.trim() : '';
+  if (r?.receiverType !== '01' || !taxId || taxId.toUpperCase() === 'CF') return null;
+  return { name: typeof r.name === 'string' ? r.name : '', taxId, dv: typeof r.dv === 'string' ? r.dv : '' };
+}
+
 function mapOrder(id: string, d: DocumentData): Order {
   return {
     id,
@@ -183,6 +193,7 @@ function mapOrder(id: string, d: DocumentData): Order {
     discount: d.discount && typeof d.discount.amount === 'number'
       ? { name: String(d.discount.name ?? ''), percent: Number(d.discount.percent) || 0, amount: d.discount.amount }
       : null,
+    receiver: mapReceiver(d.invoiceRequest),
     hasMember: typeof d.loyaltyUid === 'string' && d.loyaltyUid !== '',
   };
 }
